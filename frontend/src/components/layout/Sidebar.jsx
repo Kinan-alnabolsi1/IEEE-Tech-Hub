@@ -1,19 +1,44 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // دالة تسجيل الخروج
+  // دالة تسجيل الخروج الاحترافية
   const handleLogout = () => {
-    localStorage.removeItem('ieee_token');
-    navigate('/login');
+    // 1. مسح كل البيانات من الذاكرة المحلية
+    localStorage.clear(); 
+
+    // 2. إظهار رسالة نجاح بتصميم يتناسب مع ثيم التطبيق
+    toast.success('Signed out successfully', {
+      style: {
+        borderRadius: '12px',
+        background: '#1e293b',
+        color: '#fff',
+        fontSize: '12px',
+        fontWeight: 'bold',
+      },
+      iconTheme: {
+        primary: '#ef4444',
+        secondary: '#fff',
+      },
+    });
+
+    // 3. التوجه لصفحة اللوجن ومنع العودة للداشبورد بزر الخلف
+    navigate('/login', { replace: true });
   };
 
-  // إعدادات الروابط بناءً على الرتبة
+  // إعدادات الروابط بناءً على الرتبة (تأكدي من مطابقتها لما يرسله السيرفر)
   const menuConfig = {
-    super_admin: [
+    // التعامل مع Super Admin سواء بمسافة أو بـ underscore
+    'super admin': [
+      { name: 'System Overview', path: '/super-admin', icon: '📊' },
+      { name: 'Admins Control', path: '/super-admin/admins', icon: '🛡️' },
+      { name: 'Global Branches', path: '/super-admin/branches', icon: '🌍' },
+    ],
+    'super_admin': [
       { name: 'System Overview', path: '/super-admin', icon: '📊' },
       { name: 'Admins Control', path: '/super-admin/admins', icon: '🛡️' },
       { name: 'Global Branches', path: '/super-admin/branches', icon: '🌍' },
@@ -22,14 +47,20 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
       { name: 'Branch Home', path: '/admin', icon: '🏠' },
       { name: 'Volunteers List', path: '/admin/volunteers', icon: '👥' },
       { name: 'Events Plan', path: '/admin/events', icon: '📅' },
+    ],
+    volunteer: [
+      { name: 'My Tasks', path: '/admin', icon: '📋' },
+      { name: 'Events', path: '/admin/events', icon: '📅' },
     ]
   };
 
-  const currentMenu = menuConfig[role] || [];
+  // تحويل الرتبة لـ lowercase لضمان مطابقة المفاتيح أعلاه
+  const currentRole = role?.toLowerCase() || '';
+  const currentMenu = menuConfig[currentRole] || [];
 
   return (
     <>
-      {/* الـ Sidebar المحدث ليكون Full Screen في الموبايل */}
+      {/* الـ Sidebar */}
       <aside className={`
         fixed inset-0 z-[100] bg-[#00629B] text-white transition-transform duration-500 ease-in-out transform flex flex-col
         ${isOpen ? 'translate-x-0' : '-translate-x-full'} 
@@ -42,7 +73,7 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
             <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center text-[#00629B] font-black text-xl shadow-lg">I</div>
             <span className="font-black tracking-widest uppercase text-sm">IEEE Portal</span>
           </div>
-          {/* زر إغلاق يظهر فقط في الموبايل */}
+          {/* زر إغلاق للموبايل */}
           <button onClick={toggleSidebar} className="lg:hidden p-2 hover:bg-white/10 rounded-full transition-colors">
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -50,7 +81,7 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
           </button>
         </div>
 
-        {/* روابط التنقل - تأخذ المساحة المتبقية */}
+        {/* روابط التنقل */}
         <nav className="flex-1 p-6 space-y-3 overflow-y-auto mt-4">
           <p className="text-[10px] font-black text-blue-200/40 uppercase tracking-[0.4em] mb-4 px-2">Main Menu</p>
           {currentMenu.map((item) => (
@@ -66,11 +97,13 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
           ))}
         </nav>
 
-        {/* قسم الـ Sign Out (موجود بالأسفل تماماً وبتصميم Card) */}
+        {/* قسم الـ Sign Out */}
         <div className="p-6 border-t border-white/10 bg-black/10 shrink-0">
           <div className="bg-blue-900/40 p-4 rounded-3xl border border-white/5 mb-4 hidden lg:block">
             <p className="text-[9px] font-black text-blue-300 uppercase tracking-widest leading-none mb-1 text-center">Active Session</p>
-            <p className="text-[10px] text-white/60 text-center truncate italic">{user?.name}</p>
+            <p className="text-[10px] text-white/60 text-center truncate italic">
+              {user?.full_name || localStorage.getItem('user_name') || 'Member'}
+            </p>
           </div>
           
           <button 
