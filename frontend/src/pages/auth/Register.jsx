@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/axios'; // استيراد ملف الإعدادات الموحد
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Loader from '../../components/ui/Loader'; 
-
-const API_BASE_URL = 'http://localhost:8000/api';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -18,7 +16,6 @@ const Register = () => {
     branch: ''
   });
 
-  // حارس: إذا كان مسجل دخول يطرده للداشبورد
   useEffect(() => {
     const token = localStorage.getItem('ieee_token');
     if (token) navigate('/admin');
@@ -40,14 +37,15 @@ const Register = () => {
         email: formData.email,
         password: formData.password,
         password_confirmation: formData.password,
-        full_name: formData.username, // إرسال اليوزر نيم كإسم كامل ليقبله السيرفر
+        full_name: formData.username, 
         role: role.charAt(0).toUpperCase() + role.slice(1), 
         branch: formData.branch,
         membership_id: formData.membershipId
       };
 
-      await axios.post(`${API_BASE_URL}/register`, payload);
-      toast.success('Registration Successful!');
+      // استخدام api بدلاً من axios المباشر
+      await api.post('/register', payload);
+      toast.success('Registration Successful! Please login.');
       setTimeout(() => navigate('/login'), 1500);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error creating account');
@@ -65,7 +63,7 @@ const Register = () => {
           <div className="absolute bottom-[-10%] right-1/4 w-[400px] h-[400px] bg-indigo-50/30 rounded-full blur-[100px]"></div>
         </div>
         <div className="relative z-10 w-full max-w-[420px] px-6">
-          <div className="flex flex-col items-center mb-4 animate-in fade-in slide-in-from-bottom-3 duration-700">
+          <div className="flex flex-col items-center mb-4">
             <div className="w-12 h-12 mb-3 bg-white shadow-sm rounded-xl flex items-center justify-center text-[#00629B] border border-slate-50">
               <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />

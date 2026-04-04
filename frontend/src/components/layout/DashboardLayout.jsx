@@ -9,12 +9,15 @@ const DashboardLayout = ({ role }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // محاكاة جلب بيانات (Mock Data)
+    // جلب البيانات المخزنة عند تسجيل الدخول
+    const savedName = localStorage.getItem('user_name');
+    const savedRole = localStorage.getItem('user_role');
+
     const timer = setTimeout(() => {
       setUserData({
-        name: role === 'super_admin' ? "Ahmad Admin" : "Samer Branch",
+        name: savedName || (role === 'super_admin' ? "Ahmad Admin" : "Samer Branch"),
+        role: savedRole || role,
         branch: role === 'super_admin' ? "Main HQ" : "Damascus University",
-        id: "12345"
       });
       setLoading(false);
     }, 500);
@@ -23,11 +26,17 @@ const DashboardLayout = ({ role }) => {
 
   const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
 
-  if (loading) return <div className="h-screen flex items-center justify-center font-bold text-blue-600 animate-pulse uppercase tracking-[0.3em]">Loading...</div>;
+  if (loading) return (
+    <div className="h-screen flex items-center justify-center bg-slate-50">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <span className="font-black text-blue-600 uppercase tracking-[0.3em] text-xs">Loading System...</span>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex relative overflow-x-hidden">
-      {/* السايدبار كامل الشاشة في الموبايل */}
       <Sidebar 
         role={role} 
         isOpen={isSidebarOpen} 
@@ -40,7 +49,7 @@ const DashboardLayout = ({ role }) => {
         
         <main className="p-4 md:p-8 flex-grow">
           <div className="max-w-7xl mx-auto">
-            {/* هون السر: لازم نمرر userData جوا كائن للـ context */}
+            {/* هنا يظهر محتوى الصفحة الابنة */}
             <Outlet context={{ user: userData }} />
           </div>
         </main>

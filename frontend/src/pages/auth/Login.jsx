@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/axios'; // استيراد ملف الإعدادات الموحد
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Loader from '../../components/ui/Loader'; 
-
-const API_BASE_URL = 'http://localhost:8000/api';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -12,12 +10,12 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // حارس: إذا كان مسجل دخول، وجهه فوراً للداشبورد المناسب
   useEffect(() => {
     const token = localStorage.getItem('ieee_token');
     const role = localStorage.getItem('user_role');
     if (token && role) {
-      if (role.toLowerCase() === 'super admin') navigate('/super-admin');
+      const currentRole = role.toLowerCase().replace(/\s+/g, '_');
+      if (currentRole === 'super_admin') navigate('/super-admin');
       else navigate('/admin');
     }
   }, [navigate]);
@@ -27,22 +25,26 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/login`, { email, password });
+      // استخدام ملف api بدلاً من axios المباشر
+      const response = await api.post('/login', { email, password });
       const data = response.data;
       
       if (data.access_token) {
         localStorage.setItem('ieee_token', data.access_token);
-        localStorage.setItem('user_role', data.user.role); 
-        localStorage.setItem('user_name', data.user.full_name);
+        // تخزين الرتبة بصيغة موحدة (lowercase مع underscores) لضمان عمل السايد بار
+        const normalizedRole = data.user.role.toLowerCase().replace(/\s+/g, '_');
+        localStorage.setItem('user_role', normalizedRole); 
+        localStorage.setItem('user_name', data.user.full_name || data.user.username);
+        
+        toast.success(`Welcome back, ${data.user.username}!`);
+
+        // التوجيه بناءً على الرتبة الموحدة
+        if (normalizedRole === 'super_admin') {
+          navigate('/super-admin');
+        } else {
+          navigate('/admin');
+        }
       }
-      
-      toast.success(`Welcome back, ${data.user.username}!`);
-
-      // التوجيه حسب الرتبة (يتعامل مع Super Admin بمسافة)
-      const userRole = data.user.role.toLowerCase();
-      if (userRole === 'super admin') navigate('/super-admin');
-      else navigate('/admin');
-
     } catch (err) {
       toast.error(err.response?.data?.message || 'Invalid Credentials');
     } finally {
@@ -59,7 +61,7 @@ const Login = () => {
           <div className="absolute bottom-[-10%] right-1/4 w-[400px] h-[400px] bg-indigo-50/30 rounded-full blur-[100px]"></div>
         </div>
         <div className="relative z-10 w-full max-w-[420px] px-6">
-          <div className="flex flex-col items-center mb-6 animate-in fade-in slide-in-from-bottom-3 duration-700">
+          <div className="flex flex-col items-center mb-6">
             <div className="w-12 h-12 mb-3 bg-white shadow-sm rounded-xl flex items-center justify-center text-[#00629B] border border-slate-50">
               <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />

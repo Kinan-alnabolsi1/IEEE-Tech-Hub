@@ -1,36 +1,26 @@
-import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
-import Sidebar from '../../components/layout/Sidebar';
-import Navbar from '../../components/layout/Navbar';
+import React from 'react';
+import StatCards from './dashboard/components/StatCards';
+import AnalyticsChart from './dashboard/components/AnalyticsChart';
+import DistributionPie from './dashboard/components/DistributionPie';
 
 const SuperAdminDashboard = () => {
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
-
-  const superData = {
-    name: "Ahmad Master",
-    role: "super_admin",
-    badge: "System Owner"
-  };
-
   return (
-    <div className="min-h-screen bg-[#F0F2F5] flex relative overflow-x-hidden">
-      <Sidebar 
-        role="super_admin" 
-        isOpen={isSidebarOpen} 
-        toggleSidebar={() => setSidebarOpen(false)} 
-        user={superData} 
-      />
+    <div className="p-4 space-y-8 animate-in fade-in duration-700">
+      <header>
+        <h1 className="text-2xl font-bold text-slate-900">System Analytics</h1>
+        <p className="text-slate-500 text-sm italic">Real-time overview of the IEEE Portal activity.</p>
+      </header>
 
-      <div className="flex-1 flex flex-col min-w-0 lg:ml-64 transition-all duration-300">
-        <Navbar 
-          toggleSidebar={() => setSidebarOpen(true)} 
-          role="super_admin" 
-          user={superData} 
-        />
-        
-        <main className="p-4 md:p-8 flex-grow">
-          <Outlet context={{ user: superData }} />
-        </main>
+      {/* المكونات التي قسمناها */}
+      <StatCards />
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+          <AnalyticsChart />
+        </div>
+        <div className="lg:col-span-1">
+          <DistributionPie />
+        </div>
       </div>
     </div>
   );
