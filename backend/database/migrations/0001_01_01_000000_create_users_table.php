@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('password');
             $table->string('full_name', 150);
             $table->enum('role', ['Super Admin', 'Branch Admin', 'Chapter Chair', 'Project Leader', 'Volunteer']);
-            $table->enum('status', ['Active', 'Suspended'])->default('Active');
+            $table->enum('status', ['Pending', 'Active', 'Suspended'])->default('Active');
             $table->string('phone', 30)->nullable();
             $table->text('bio')->nullable();
             $table->string('profile_photo', 255)->nullable();
