@@ -2,18 +2,23 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
-// استيراد الصفحات
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
+// Layout
 import DashboardLayout from './components/layout/DashboardLayout';
 
-// صفحات السوبر أدمن
+// Auth
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+
+// --- Super Admin Pages ---
 import SuperAdminDashboard from './pages/super-admin/SuperAdminDashboard'; 
 import BranchesIndex from './pages/super-admin/branches/components/BranchesIndex'; 
-import SocietiesIndex from './pages/super-admin/societies/components/SocietiesIndex'; // الاستيراد الجديد
+import SocietiesIndex from './pages/super-admin/societies/components/SocietiesIndex';
+import AdminsManagement from './pages/super-admin/admins/AdminsManagement';
+import SystemReports from './pages/super-admin/reports/SystemReports';
 
-// صفحات الأدمن
-import AdminDashboard from './pages/admin/AdminDashboard';
+// --- Admin Pages ---
+import AdminDashboard from './pages/admin/dashboard/AdminDashboard'; // الصفحة 1
+import VolunteerMemberships from './pages/admin/volunteers/VolunteerMemberships'; // الصفحة 2
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('ieee_token');
@@ -24,12 +29,24 @@ const ProtectedRoute = ({ children }) => {
 function App() {
   return (
     <Router>
-      <Toaster position="top-center" />
+      <Toaster 
+        position="top-center" 
+        toastOptions={{
+          style: {
+            borderRadius: '20px',
+            background: '#1e293b',
+            color: '#fff',
+            fontSize: '11px',
+            fontWeight: 'bold',
+          },
+        }} 
+      />
+      
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* مسارات السوبر أدمن */}
+        {/* --- Super Admin Panel --- */}
         <Route 
           path="/super-admin" 
           element={
@@ -39,15 +56,13 @@ function App() {
           }
         >
           <Route index element={<SuperAdminDashboard />} />
+          <Route path="admins" element={<AdminsManagement />} />
           <Route path="branches" element={<BranchesIndex />} />
-          
-          {/* مسار إدارة الجمعيات الجديد */}
           <Route path="societies" element={<SocietiesIndex />} />
-          
-          <Route path="admins" element={<div className="p-10 font-bold">Admins Control Page Coming Soon...</div>} />
+          <Route path="reports" element={<SystemReports />} />
         </Route>
 
-        {/* مسارات الأدمن العادي */}
+        {/* --- Branch Admin Panel --- */}
         <Route 
           path="/admin" 
           element={
@@ -56,7 +71,13 @@ function App() {
             </ProtectedRoute>
           }
         >
+          {/* الصفحة 1: Dashboard */}
           <Route index element={<AdminDashboard />} />
+          
+          {/* الصفحة 2: إدارة العضويات والمتطوعين */}
+          <Route path="volunteers" element={<VolunteerMemberships />} />
+          
+          {/* ملاحظة: باقي الصفحات (chapters, projects, reports) بنضيفهم بنفس الطريقة بس نكتب كودهم */}
         </Route>
 
         <Route path="/" element={<Navigate to="/login" replace />} />

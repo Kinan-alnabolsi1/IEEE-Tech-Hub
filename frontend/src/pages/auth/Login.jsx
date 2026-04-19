@@ -1,44 +1,66 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../api/axios'; // استيراد ملف الإعدادات الموحد
 import { useNavigate, Link } from 'react-router-dom';
+import { postData } from '../../api/apiMethods'; 
 import toast from 'react-hot-toast';
 import Loader from '../../components/ui/Loader'; 
+import { Eye, EyeOff } from 'lucide-react';
+import logo from "../../assets/IEEELogo4-removebg-preview.png";
 
 const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('ieee_token');
     const role = localStorage.getItem('user_role');
     if (token && role) {
-      const currentRole = role.toLowerCase().replace(/\s+/g, '_');
-      if (currentRole === 'super_admin') navigate('/super-admin');
+      if (role === 'super_admin') navigate('/super-admin');
       else navigate('/admin');
     }
   }, [navigate]);
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // استخدام ملف api بدلاً من axios المباشر
-      const response = await api.post('/login', { email, password });
+      // 🌟 1. تنظيف الإيميل من أي فراغات مخفية
+      const cleanEmail = email.trim();
+      
+      // 🌟 2. طباعة الداتا قبل إرسالها لنتأكد إنها مطابقة للبوست مان
+      console.log("🚀 Sending Payload to Backend:", { email: cleanEmail, password });
+
+      // إرسال الطلب بالداتا النظيفة
+      const response = await postData('/login', { 
+        email: cleanEmail, 
+        password: password 
+      });
+      
       const data = response.data;
       
       if (data.access_token) {
         localStorage.setItem('ieee_token', data.access_token);
-        // تخزين الرتبة بصيغة موحدة (lowercase مع underscores) لضمان عمل السايد بار
-        const normalizedRole = data.user.role.toLowerCase().replace(/\s+/g, '_');
-        localStorage.setItem('user_role', normalizedRole); 
-        localStorage.setItem('user_name', data.user.full_name || data.user.username);
         
-        toast.success(`Welcome back, ${data.user.username}!`);
+        const normalizedRole = data.user?.role?.toLowerCase().replace(/\s+/g, '_') || 'admin';
+        localStorage.setItem('user_role', normalizedRole); 
+        
+        let exactName = 'System Administrator';
+        if (data.user) {
+           exactName = data.user.full_name || data.user.name || data.user.username || data.user.first_name || (normalizedRole === 'super_admin' ? 'System Administrator' : 'Branch Admin');
+        }
+        
+        localStorage.setItem('user_name', exactName);
 
-        // التوجيه بناءً على الرتبة الموحدة
+        const branchName = data.user?.branch_name || data.user?.branch;
+        if (branchName) {
+            localStorage.setItem('branch_name', branchName);
+        }
+        
+        toast.success(`Welcome back, ${exactName}!`);
+
         if (normalizedRole === 'super_admin') {
           navigate('/super-admin');
         } else {
@@ -46,7 +68,9 @@ const Login = () => {
         }
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Invalid Credentials');
+      toast.error(err.response?.data?.message || 'Invalid Email or Password');
+      // 🌟 3. طباعة تفاصيل الخطأ إذا ضل يرفض
+      console.error("🔥 Login Error Details:", err.response);
     } finally {
       setIsLoading(false);
     }
@@ -55,40 +79,74 @@ const Login = () => {
   return (
     <>
       {isLoading && <Loader message="Verifying Identity..." />}
+      
       <div className="h-screen w-full flex items-center justify-center bg-[#fcfcfd] font-sans selection:bg-blue-100 overflow-hidden relative">
         <div className="absolute inset-0 z-0 pointer-events-none">
           <div className="absolute top-[-10%] left-1/4 w-[500px] h-[500px] bg-blue-50/50 rounded-full blur-[100px]"></div>
           <div className="absolute bottom-[-10%] right-1/4 w-[400px] h-[400px] bg-indigo-50/30 rounded-full blur-[100px]"></div>
         </div>
+
         <div className="relative z-10 w-full max-w-[420px] px-6">
           <div className="flex flex-col items-center mb-6">
-            <div className="w-12 h-12 mb-3 bg-white shadow-sm rounded-xl flex items-center justify-center text-[#00629B] border border-slate-50">
-              <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <h1 className="text-xl font-light text-slate-900 tracking-[0.15em] uppercase text-center">IEEE <span className="font-semibold text-[#00629B]">Portal</span></h1>
+            <img className='w-12 mb-3 drop-shadow-sm' src={logo} alt="IEEE Logo"/>
+            <h1 className="text-xl font-light text-slate-900 tracking-[0.15em] uppercase text-center">
+              IEEE <span className="font-semibold text-[#00629B]">Tech-Hub</span>
+            </h1>
           </div>
-          <div className="bg-white p-8 rounded-[2rem] shadow-[0_15px_40px_rgba(0,0,0,0.03)] border border-slate-50">
-            <form onSubmit={handleSubmit} className="space-y-4">
+
+          <div className="bg-white p-8 rounded-[2.5rem] shadow-[0_15px_40px_rgba(0,0,0,0.03)] border border-slate-50">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              
               <div className="space-y-1">
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Email</label>
-                <input type="email" required className="w-full bg-slate-50 border-none rounded-lg px-4 py-3 text-xs outline-none" placeholder="admin@ieee-techhub.org" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+                <input 
+                  type="email" 
+                  required 
+                  className="w-full bg-slate-50 border-transparent focus:bg-white focus:ring-2 focus:ring-blue-100 rounded-xl px-4 py-3.5 text-xs outline-none transition-all" 
+                  placeholder="name@university.edu" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                />
               </div>
+
               <div className="space-y-1">
                 <div className="flex justify-between items-center px-1">
                   <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Password</label>
-                  <button type="button" className="text-[8px] text-[#00629B] font-bold uppercase tracking-tighter">Forgot?</button>
+                  <button type="button" className="text-[8px] text-[#00629B] font-black uppercase tracking-tighter hover:underline">Forgot?</button>
                 </div>
-                <input type="password" required className="w-full bg-slate-50 border-none rounded-lg px-4 py-3 text-xs outline-none" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <div className="relative">
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    required 
+                    className="w-full bg-slate-50 border-transparent focus:bg-white focus:ring-2 focus:ring-blue-100 rounded-xl px-4 py-3.5 text-xs outline-none transition-all pr-12" 
+                    placeholder="••••••••" 
+                    value={password} 
+                    onChange={(e) => setPassword(e.target.value)} 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-[#00629B] transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
-              <button type="submit" disabled={isLoading} className="w-full mt-2 py-3.5 bg-[#00629B] text-white rounded-xl font-bold text-[10px] uppercase tracking-[0.2em] shadow-lg hover:bg-[#005282] transition-all disabled:opacity-70">
+
+              <button 
+                type="submit" 
+                disabled={isLoading} 
+                className="w-full mt-4 py-4 bg-[#00629B] text-white rounded-2xl font-bold text-[10px] uppercase tracking-[0.2em] shadow-lg hover:shadow-blue-200 hover:bg-[#005282] active:scale-[0.98] transition-all disabled:opacity-70"
+              >
                 {isLoading ? 'Authenticating...' : 'Sign In to Portal'}
               </button>
             </form>
           </div>
+
           <div className="mt-8 text-center">
-            <Link to="/register" className="text-[10px] text-slate-400 hover:text-[#00629B] tracking-wide">Don't have an account? <span className="font-bold text-[#00629B]">Join IEEE</span></Link>
+            <Link to="/register" className="text-[10px] text-slate-400 hover:text-[#00629B] tracking-wide transition-colors">
+              Don't have an account? <span className="font-bold text-[#00629B] border-b border-blue-100 ml-1">Join IEEE Community</span>
+            </Link>
           </div>
         </div>
       </div>

@@ -1,68 +1,91 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search } from 'lucide-react';
 import BranchTable from './BranchTable'; 
-import AddBranchModal from './AddBranchModal';
+import BranchModal from './BranchModal';
+import { branchService } from '../../../../services/branchService';
+import { getData } from '../../../../api/apiMethods';
+import toast from 'react-hot-toast';
+import Loader from '../../../../components/ui/Loader';
 
 const BranchesIndex = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingBranch, setEditingBranch] = useState(null);
   const [branches, setBranches] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const users = [{ id: 1, name: "Shahed Al-Ahmad" }, { id: 2, name: "Ahmad Mahmoud" }];
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [branchesRes, usersRes] = await Promise.all([
+        branchService.getAll(),
+        getData('/users?role=Branch Admin')
+      ]);
+      setBranches(branchesRes.data || branchesRes || []);
+      const uData = usersRes.data?.data || usersRes.data || usersRes;
+      setUsers(Array.isArray(uData) ? uData : []);
+    } catch (err) { toast.error("Sync Failure"); } 
+    finally { setLoading(false); }
+  };
 
-  useEffect(() => {
-    const data = [
-      { id: 1, name: "AIU Student Branch", region: "Damascus", manager: "Shahed Al-Ahmad", established_at: "2023-10-12", status: "Active" },
-      { id: 2, name: "Damascus University", region: "Damascus", manager: "Ahmad Mahmoud", established_at: "2021-05-20", status: "Active" },
-      { id: 3, name: "Aleppo Tech", region: "Aleppo", manager: "Sami Yassin", established_at: "2022-01-15", status: "Inactive" },
-    ];
-    setBranches(data);
-  }, []);
+  useEffect(() => { fetchData(); }, []);
+
+  const handleSaveBranch = async (formData) => {
+    try {
+      // إجبار البيانات أن تكون أرقام ونصوص نظيفة للسيرفر
+      const payload = {
+        name: String(formData.name).trim(),
+        region: String(formData.region).trim(),
+        description: formData.description || "IEEE Branch",
+        admin_id: parseInt(formData.admin_id, 10)
+      };
+
+      if (editingBranch) {
+        await branchService.update(editingBranch.branch_id, payload);
+        toast.success("Branch Infrastructure Updated!");
+      } else {
+        await branchService.create(payload);
+        toast.success("New Branch Integrated!");
+      }
+      setIsModalOpen(false);
+      fetchData();
+    } catch (err) {
+      console.error("422 Error Detail:", err.response?.data);
+      const msg = err.response?.data?.errors?.admin_id?.[0] || err.response?.data?.message || "Operation Failed";
+      toast.error(msg);
+    }
+  };
+
+  if (loading) return <Loader message="Accessing Mainframe..." />;
 
   return (
-    <div className="p-6 md:p-12 min-h-screen bg-[#FBFDFF]">
-      {/* Header Section */}
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
-        <div className="text-center md:text-left">
-          <h1 className="text-4xl font-black text-[#00629B] uppercase tracking-tighter italic">IEEE Branches</h1>
-          <div className="h-1 w-20 bg-blue-500 mt-2 mx-auto md:mx-0 rounded-full"></div>
-        </div>
-
-        <div className="flex gap-4 w-full md:w-auto">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-            <input 
-              type="text" 
-              placeholder="Filter..." 
-              className="bg-white border-none shadow-sm rounded-2xl pl-12 pr-4 py-4 w-full md:w-64 text-sm font-bold focus:ring-2 focus:ring-blue-100 transition-all outline-none"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+    <div className="p-6 md:p-12 min-h-screen">
+       <div className="flex justify-between items-center mb-10">
+          <div>
+            <h1 className="text-4xl font-black text-[#00629B] uppercase italic tracking-tighter">Manage Branches</h1>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] mt-1">IEEE Branch Management Platform</p>
           </div>
           <button 
-            onClick={() => setIsModalOpen(true)}
-            className="bg-[#00629B] text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-900/20 active:scale-95 transition-all"
+            onClick={() => { setEditingBranch(null); setIsModalOpen(true); }}
+            className="bg-[#00629B] text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-blue-900/20 hover:scale-105 active:scale-95 transition-all"
           >
-            Add Branch
+            + Add New Branch
           </button>
-        </div>
-      </div>
+       </div>
+       
+       <BranchTable 
+         branches={branches} 
+         onEdit={(b) => { setEditingBranch(b); setIsModalOpen(true); }}
+         onDelete={(id) => { if(confirm("Delete?")) branchService.delete(id).then(fetchData); }}
+         onToggleStatus={(b) => branchService.toggleStatus(b.branch_id, b.status).then(fetchData)}
+       />
 
-      {/* Table Section - السر هنا هو overflow-visible على الحاوية */}
-      <div className="max-w-7xl mx-auto overflow-x-auto overflow-y-visible pb-64">
-        <div className="inline-block min-w-full align-middle">
-          <BranchTable 
-            branches={branches.filter(b => b.name.toLowerCase().includes(searchTerm.toLowerCase()))} 
-            onEdit={(b) => alert(b.name)}
-            onDelete={(id) => setBranches(branches.filter(b => b.id !== id))}
-            onToggleStatus={(b) => {
-              setBranches(branches.map(i => i.id === b.id ? {...i, status: i.status === 'Active' ? 'Inactive' : 'Active'} : i));
-            }}
-          />
-        </div>
-      </div>
-
-      <AddBranchModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} users={users} onAdd={(nb) => setBranches([...branches, {...nb, id: Date.now(), status: 'Active'}])} />
+       <BranchModal 
+         isOpen={isModalOpen} 
+         onClose={() => setIsModalOpen(false)} 
+         users={users} 
+         initialData={editingBranch} 
+         onSave={handleSaveBranch} 
+       />
     </div>
   );
 };

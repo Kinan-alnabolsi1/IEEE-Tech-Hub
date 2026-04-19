@@ -7,33 +7,27 @@ import {
   BarElement,
   Title,
   Tooltip as ChartTooltip,
-  Legend // 🌟 أضفنا هذه لضمان عدم حدوث خطأ داخلي في المكتبة
+  Legend
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 
-// 🌟 تسجيل الـ Legend هنا
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, ChartTooltip, Legend);
 
-const AnalyticsChart = ({ chartData = [] }) => {
-  // داتا احتياطية
-  const rawData = chartData.length > 0 ? chartData : [
-    { chapter: 'Computer', count: 45 },
-    { chapter: 'PES', count: 30 },
-    { chapter: 'WIE', count: 55 },
-    { chapter: 'RAS', count: 25 },
-    { chapter: 'EMBS', count: 15 },
-  ];
+const AnalyticsChart = ({ chartData }) => { 
+  
+  // 🌟 حماية الداتا: إذا مافي بيانات من الباك إند، نضع قيمة صفرية لمنع الكراش
+  const safeData = Array.isArray(chartData) && chartData.length > 0 
+    ? chartData 
+    : [{ chapter: 'No Data', count: 0 }];
 
-  // تجهيز الداتا بصيغة Chart.js
+  // تجهيز الداتا لـ Chart.js
   const data = {
-    // 🌟 التعديل هنا: إذا الباك إند أرسل `name` بدل `chapter` سيلتقطه الكود فوراً
-    labels: rawData.map(item => item.chapter || item.name || 'Chapter'),
+    labels: safeData.map(item => item?.chapter || item?.name || item?.label || 'Chapter'),
     datasets: [
       {
         label: 'Volunteers',
-        // 🌟 التعديل هنا: التقاط قيمة العدد بأي شكل أرسلها الباك إند
-        data: rawData.map(item => item.count || item.total || item.value || 0),
-        backgroundColor: rawData.map((_, index) => index % 2 === 0 ? '#00629B' : '#3b82f6'),
+        data: safeData.map(item => item?.count || item?.value || item?.total || 0),
+        backgroundColor: safeData.map((_, index) => index % 2 === 0 ? '#00629B' : '#3b82f6'),
         borderRadius: 8, 
         barThickness: 32, 
         borderSkipped: false,
@@ -43,7 +37,7 @@ const AnalyticsChart = ({ chartData = [] }) => {
 
   const options = {
     responsive: true,
-    maintainAspectRatio: false, // هذه الخاصية تتطلب ارتفاعاً صريحاً للأب
+    maintainAspectRatio: false,
     animation: {
       duration: 1500,
       easing: 'easeOutQuart',
@@ -75,7 +69,9 @@ const AnalyticsChart = ({ chartData = [] }) => {
       y: {
         display: false,
         grid: { display: false },
-        beginAtZero: true, // 🌟 تضمن عدم اختفاء الأعمدة الصغيرة
+        beginAtZero: true, 
+        // 🌟 نسبة وتناسب: نعطي مساحة 20% إضافية فوق أطول عمود لجمالية التصميم
+        suggestedMax: Math.max(...safeData.map(d => d.count || d.value || 0)) * 1.2 || 10,
       },
     },
   };
@@ -92,12 +88,12 @@ const AnalyticsChart = ({ chartData = [] }) => {
         </div>
       </div>
       
-      {/* 🌟 التعديل السحري: إعطاء ارتفاع صريح h-[280px] لكي لا يختفي الشارت */}
       <div className="w-full relative h-[280px]">
-        {chartData.length === 0 && (
+        {/* 🌟 إذا مافي داتا حقيقية، نُظهر رسالة انتظار أنيقة */}
+        {(!Array.isArray(chartData) || chartData.length === 0) && (
            <div className="absolute inset-0 flex items-center justify-center z-10 bg-white/60 backdrop-blur-[1px]">
               <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest italic bg-white px-3 py-1 rounded-full shadow-sm">
-                 Mock Data Preview
+                 Waiting for data...
               </span>
            </div>
         )}

@@ -1,12 +1,12 @@
 import React from 'react';
-import { Users, MapPin, Briefcase, ShieldCheck } from 'lucide-react';
+import { Users, Layers, Clock, Briefcase } from 'lucide-react';
 
-const StatCards = ({ cards = {} }) => {
+const StatCards = ({ stats = {} }) => {
   const statsConfig = [
-    { title: "Total Branches", value: cards.total_branches || 0, icon: MapPin, color: "text-blue-600 bg-blue-100" },
-    { title: "Total Volunteers", value: cards.total_volunteers || 0, icon: Users, color: "text-indigo-600 bg-indigo-100" },
-    { title: "Active Projects", value: cards.active_projects || 0, icon: Briefcase, color: "text-emerald-600 bg-emerald-100" },
-    { title: "Branch Admins", value: cards.total_branch_admins || 0, icon: ShieldCheck, color: "text-amber-600 bg-amber-100" },
+    { title: "Total Volunteers", value: stats.total_volunteers || 0, icon: Users, color: "text-blue-600 bg-blue-100" },
+    { title: "Active Chapters", value: stats.active_chapters || 0, icon: Layers, color: "text-indigo-600 bg-indigo-100" },
+    { title: "Pending Requests", value: stats.pending_requests || 0, icon: Clock, color: "text-amber-600 bg-amber-100" },
+    { title: "Ongoing Projects", value: stats.ongoing_projects || 0, icon: Briefcase, color: "text-emerald-600 bg-emerald-100" },
   ];
 
   return (
