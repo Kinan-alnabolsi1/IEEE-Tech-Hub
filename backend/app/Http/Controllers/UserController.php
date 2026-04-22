@@ -41,20 +41,44 @@ class UserController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
-            'status' => 'required|in:Pending,Active,Suspended'
+            'status' => 'required|in:Pending,Active,Suspended,Rejected'
         ]);
 
         $user = User::findOrFail($id);
         
-        // التحقق من الصلاحيات (فقط Super Admin أو مدراء بصلاحيات عليا يمكنهم إيقاف المستخدمين)
+        // التحقق من الصلاحيات (السوبر أدمن فقط هو من يوافق على مدراء الفروع)
         if ($request->user()->role !== 'Super Admin') {
             return response()->json(['message' => 'Unauthorized action.'], 403);
         }
 
+        // تحديث حالة المستخدم
         $user->update(['status' => $request->status]);
 
+        $roleMessage = '';
+
+        // 🔥 السحر هنا: إذا كان المستخدم مدير فرع، وتمت الموافقة عليه (Active) 🔥
+        if ($user->role === 'Branch Admin' && $request->status === 'Active') {
+            
+            // نجلب الفرع اللي هو سجل فيه
+            $branch = \App\Models\Branch::find($user->branch_id);
+            
+            if ($branch) {
+                // نربط الفرع بهذا المدير رسمياً
+                $branch->update(['admin_id' => $user->user_id]);
+                $roleMessage = " They are now officially the Admin of branch: {$branch->name}.";
+            }
+        }
+        
+        // (اختياري) إذا تم إيقاف المدير، نفك الربط من الفرع
+        if ($user->role === 'Branch Admin' && in_array($request->status, ['Suspended', 'Rejected'])) {
+             $branch = \App\Models\Branch::find($user->branch_id);
+             if ($branch && $branch->admin_id === $user->user_id) {
+                 $branch->update(['admin_id' => null]);
+             }
+        }
+
         return response()->json([
-            'message' => "User status updated to {$request->status} successfully",
+            'message' => "User status updated to {$request->status} successfully." . $roleMessage,
             'data' => $user
         ]);
     }
