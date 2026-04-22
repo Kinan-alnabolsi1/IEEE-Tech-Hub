@@ -12,4 +12,4 @@ export const volunteerService = {
   // جلب الفصول (Chapters) التابعة لفرع معين
   getChapters: (branchId) => 
     getData(`/chapters?branch_id=${branchId}`),
-};
+};  

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import BranchTable from './BranchTable'; 
 import BranchModal from './BranchModal';
 import { branchService } from '../../../../services/branchService';
-import { getData } from '../../../../api/apiMethods';
 import toast from 'react-hot-toast';
 import Loader from '../../../../components/ui/Loader';
 
@@ -10,37 +9,38 @@ const BranchesIndex = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBranch, setEditingBranch] = useState(null);
   const [branches, setBranches] = useState([]);
-  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchData = async () => {
+const fetchData = async () => {
     try {
       setLoading(true);
-      const [branchesRes, usersRes] = await Promise.all([
-        branchService.getAll(),
-        getData('/users?role=Branch Admin')
-      ]);
+      const branchesRes = await branchService.getAll();
       setBranches(branchesRes.data || branchesRes || []);
-      const uData = usersRes.data?.data || usersRes.data || usersRes;
-      setUsers(Array.isArray(uData) ? uData : []);
-    } catch (err) { toast.error("Sync Failure"); } 
-    finally { setLoading(false); }
+    } catch (err) { 
+      // 🌟 استخدمنا err هنا عشان يختفي الخط الأحمر
+      console.error("Fetch Error:", err); 
+      toast.error("Sync Failure"); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   useEffect(() => { fetchData(); }, []);
 
   const handleSaveBranch = async (formData) => {
     try {
-      // إجبار البيانات أن تكون أرقام ونصوص نظيفة للسيرفر
+      // 🌟 تجهيز البيانات بالضبط كما يطلبها الباك إند
       const payload = {
-        name: String(formData.name).trim(),
-        region: String(formData.region).trim(),
-        description: formData.description || "IEEE Branch",
-        admin_id: parseInt(formData.admin_id, 10)
+        name: formData.name.trim(),
+        region: formData.region.trim(),
+        description: formData.description?.trim() || null,
+        contact_email: formData.contact_email?.trim() || null,
+        contact_phone: formData.contact_phone?.trim() || null,
+        founded_date: formData.founded_date || null,
       };
 
       if (editingBranch) {
-        await branchService.update(editingBranch.branch_id, payload);
+        await branchService.update(editingBranch.branch_id || editingBranch.id, payload);
         toast.success("Branch Infrastructure Updated!");
       } else {
         await branchService.create(payload);
@@ -49,8 +49,8 @@ const BranchesIndex = () => {
       setIsModalOpen(false);
       fetchData();
     } catch (err) {
-      console.error("422 Error Detail:", err.response?.data);
-      const msg = err.response?.data?.errors?.admin_id?.[0] || err.response?.data?.message || "Operation Failed";
+      console.error("Error Detail:", err.response?.data);
+      const msg = err.response?.data?.message || "Operation Failed";
       toast.error(msg);
     }
   };
@@ -76,13 +76,12 @@ const BranchesIndex = () => {
          branches={branches} 
          onEdit={(b) => { setEditingBranch(b); setIsModalOpen(true); }}
          onDelete={(id) => { if(confirm("Delete?")) branchService.delete(id).then(fetchData); }}
-         onToggleStatus={(b) => branchService.toggleStatus(b.branch_id, b.status).then(fetchData)}
+         onToggleStatus={(b) => branchService.toggleStatus(b.branch_id || b.id, b.status).then(fetchData)}
        />
 
        <BranchModal 
          isOpen={isModalOpen} 
          onClose={() => setIsModalOpen(false)} 
-         users={users} 
          initialData={editingBranch} 
          onSave={handleSaveBranch} 
        />

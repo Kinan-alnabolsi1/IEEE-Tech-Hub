@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { postData } from '../../api/apiMethods'; 
+import { branchService } from '../../services/branchService'; 
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Loader from '../../components/ui/Loader'; 
-import { Eye, EyeOff } from 'lucide-react';
+// 🌟 ضفت أيقونات جديدة للدروب داون
+import { Eye, EyeOff, ChevronDown, MapPin } from 'lucide-react';
 import logo from "../../assets/IEEELogo4-removebg-preview.png";
 
 const Register = () => {
@@ -11,6 +13,13 @@ const Register = () => {
   const [role, setRole] = useState('Volunteer'); 
   const [isLoading, setIsLoading] = useState(false);
   
+  // حالات الفروع
+  const [branches, setBranches] = useState([]);
+  const [isFetchingBranches, setIsFetchingBranches] = useState(true);
+
+  // 🌟 حالة لفتح وإغلاق القائمة المنسدلة المخصصة
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
   // حالات التحكم بظهور كلمات المرور
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -21,7 +30,8 @@ const Register = () => {
     email: '',
     ieee_membership_number: '',
     password: '',
-    password_confirmation: '', // 🌟 تمت إضافة حقل التأكيد هنا
+    password_confirmation: '', 
+    branch_id: '', 
   });
 
   useEffect(() => {
@@ -29,11 +39,26 @@ const Register = () => {
     if (token) navigate('/admin');
   }, [navigate]);
 
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const response = await branchService.getAll();
+        const branchesData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+        setBranches(branchesData);
+      } catch (error) {
+        console.error("Error fetching branches:", error);
+        toast.error("Failed to load branches list.");
+      } finally {
+        setIsFetchingBranches(false);
+      }
+    };
+    fetchBranches();
+  }, []);
+
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // 🛡️ دالة فحص قوة كلمة المرور
   const isPasswordStrong = (password) => {
     const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
     return strongPasswordRegex.test(password);
@@ -42,13 +67,16 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // 1. التحقق من تطابق كلمتي المرور
+    if (!formData.branch_id) {
+      toast.error('Please select a branch to join.', { duration: 3000 });
+      return;
+    }
+
     if (formData.password !== formData.password_confirmation) {
       toast.error('Passwords do not match. Please try again.', { duration: 3000 });
       return;
     }
 
-    // 2. التحقق من قوة كلمة المرور
     if (!isPasswordStrong(formData.password)) {
       toast.error('Password must be at least 8 characters, include an uppercase letter, a number, and a special character (!@#$&*).', { duration: 5000 });
       return;
@@ -57,7 +85,6 @@ const Register = () => {
     setIsLoading(true);
 
     try {
-      // 🌟 تم ربط البيانات لترسل تماماً كما يطلبها الباك إند
       const payload = {
         username: formData.username,
         email: formData.email,
@@ -66,18 +93,22 @@ const Register = () => {
         full_name: formData.full_name, 
         role: role === 'Admin' ? 'Branch Admin' : role, 
         ieee_membership_number: formData.ieee_membership_number,
+        branch_id: formData.branch_id, 
       };
 
       await postData('/register', payload);
       
-      toast.success('Registration Successful! Please login.');
-      setTimeout(() => navigate('/login'), 1500);
+      toast.success('Registration Successful! Your account is pending admin approval.', { duration: 5000 });
+      setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error creating account');
     } finally {
       setIsLoading(false);
     }
   };
+
+  // 🌟 استخراج اسم الفرع المختار لعرضه
+  const selectedBranch = branches.find(b => b.id === formData.branch_id);
 
   return (
     <>
@@ -88,7 +119,7 @@ const Register = () => {
           <div className="absolute bottom-[-10%] right-1/4 w-[400px] h-[400px] bg-indigo-50/30 rounded-full blur-[100px]"></div>
         </div>
         
-        <div className="relative z-10 w-full max-w-[480px] px-6">
+        <div className="relative z-10 w-full max-w-[480px] px-6 mt-4">
           <div className="flex flex-col items-center mb-4">
             <img className='w-10 mb-3' src={logo} alt="IEEE Logo"/>
             <h1 className="text-xl font-light text-slate-900 tracking-[0.15em] uppercase text-center">
@@ -97,7 +128,6 @@ const Register = () => {
           </div>
           
           <div className="bg-white p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.02)] border border-slate-50">
-            {/* Role Switcher */}
             <div className="flex gap-2 mb-6 bg-slate-50 p-1.5 rounded-2xl">
               {['Admin', 'Volunteer'].map(r => (
                 <button 
@@ -113,31 +143,80 @@ const Register = () => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               
-              {/* Row 1: Username & Full Name */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Username</label>
-                  <input name="username" type="text" required placeholder="john_doe" className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-blue-100 transition-all" onChange={handleInputChange} />
+                  <input name="username" type="text" required placeholder="" className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-blue-100 transition-all" onChange={handleInputChange} />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Full Name</label>
-                  <input name="full_name" type="text" required placeholder="John Doe" className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-blue-100 transition-all" onChange={handleInputChange} />
+                  <input name="full_name" type="text" required placeholder="" className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-blue-100 transition-all" onChange={handleInputChange} />
                 </div>
               </div>
 
-              {/* Row 2: Email & Member ID */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Email Address</label>
-                  <input name="email" type="email" required placeholder="name@university.edu" className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-blue-100 transition-all" onChange={handleInputChange} />
+                  <input name="email" type="email" required placeholder="" className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-blue-100 transition-all" onChange={handleInputChange} />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Member ID</label>
-                  <input name="ieee_membership_number" type="text" required placeholder="e.g. 98765432" className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-blue-100 transition-all" onChange={handleInputChange} />
+                  <input name="ieee_membership_number" type="text" required placeholder="" className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-blue-100 transition-all" onChange={handleInputChange} />
                 </div>
               </div>
 
-              {/* Row 3: Password & Confirm Password */}
+              {/* 🌟 Custom Dropdown (UI الأنيق) */}
+              <div className="space-y-1.5 relative z-20">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Target Branch</label>
+                <div className="relative">
+                  {/* زر فتح القائمة */}
+                  <button
+                    type="button"
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className={`w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all flex justify-between items-center ${selectedBranch ? 'text-slate-800' : 'text-slate-400'}`}
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      {selectedBranch && <MapPin className="w-3.5 h-3.5 text-[#00629B]" />}
+                      <span className="truncate">
+                        {isFetchingBranches ? 'Loading branches...' : (selectedBranch ? selectedBranch.name : 'Select the branch you wish to join...')}
+                      </span>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* القائمة المنسدلة نفسها */}
+                  {isDropdownOpen && (
+                    <>
+                      {/* طبقة خفية لإغلاق القائمة عند النقر خارجها */}
+                      <div className="fixed inset-0 z-30" onClick={() => setIsDropdownOpen(false)}></div>
+                      
+                      <div className="absolute z-40 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] py-2 max-h-48 overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+                        {branches.length > 0 ? (
+                          branches.map((branch) => (
+                            <button
+                              key={branch.id}
+                              type="button"
+                              onClick={() => {
+                                setFormData({ ...formData, branch_id: branch.id });
+                                setIsDropdownOpen(false);
+                              }}
+                              className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-colors flex items-center gap-2 hover:bg-blue-50/50 hover:text-[#00629B] ${formData.branch_id === branch.id ? 'bg-blue-50 text-[#00629B]' : 'text-slate-600'}`}
+                            >
+                              {formData.branch_id === branch.id && <div className="w-1.5 h-1.5 rounded-full bg-[#00629B]"></div>}
+                              {branch.name}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-4 py-3 text-xs text-slate-400 font-medium text-center">
+                            No branches available currently
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Password</label>
@@ -179,12 +258,12 @@ const Register = () => {
               </p>
 
               <button type="submit" disabled={isLoading} className="w-full mt-4 py-4 bg-[#00629B] text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] shadow-xl shadow-blue-900/10 hover:bg-[#004a75] hover:-translate-y-0.5 transition-all disabled:opacity-70">
-                {isLoading ? 'Creating Account...' : 'Complete Registration'}
+                {isLoading ? 'Processing...' : 'Submit Request'}
               </button>
             </form>
           </div>
 
-          <div className="mt-8 text-center">
+          <div className="mt-6 text-center pb-4">
             <Link to="/login" className="text-[10px] text-slate-400 hover:text-[#00629B] tracking-widest uppercase font-bold transition-colors">
               Already a member? <span className="text-[#00629B] border-b-2 border-blue-100 pb-0.5">Sign In</span>
             </Link>
