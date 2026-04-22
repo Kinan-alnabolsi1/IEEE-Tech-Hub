@@ -21,7 +21,7 @@ class AuthController extends Controller
             'role' => 'required|in:Branch Admin,Volunteer', 
             
             // 2. تصحيح الأسماء لتتطابق تماماً مع السطر السابق
-            'branch_id' => 'required_if:role,Branch Admin,Volunteer|exists:branches,id',
+            'branch_id' => 'required_if:role,Branch Admin,Volunteer|exists:branches,branch_id',
         ]);
 
         $validated['password'] = Hash::make($validated['password']);

@@ -22,7 +22,7 @@ class CreateBranchRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'admin_id' => 'required|exists:users,user_id',
+            // 'admin_id' => 'required|exists:users,user_id',
             'name' => 'required|string|max:150',
             'region' => 'required|string|max:100',
             'description' => 'nullable|string',

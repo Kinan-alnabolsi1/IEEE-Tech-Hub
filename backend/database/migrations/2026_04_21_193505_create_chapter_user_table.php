@@ -11,14 +11,21 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('chapter_user', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('chapter_id')->constrained()->onDelete('cascade');
-            $table->string('role_in_chapter')->default('member'); 
-            $table->timestamps();
-        });
-    }
+    Schema::create('chapter_user', function (Blueprint $table) {
+        $table->id();
+        
+        // 1. إنشاء الأعمدة أولاً
+        $table->unsignedBigInteger('user_id');
+        $table->unsignedBigInteger('chapter_id');
+        
+        $table->string('role_in_chapter')->default('member'); 
+        $table->timestamps();
+
+        // 2. الربط الصريح وتحديد اسم العمود المستهدف (user_id و chapter_id)
+        $table->foreign('user_id')->references('user_id')->on('users')->onDelete('cascade');
+        $table->foreign('chapter_id')->references('chapter_id')->on('chapters')->onDelete('cascade');
+    });
+}
 
     /**
      * Reverse the migrations.
