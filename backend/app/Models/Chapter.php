@@ -24,4 +24,9 @@ class Chapter extends Model
     public function projects() {
         return $this->hasMany(Project::class, 'chapter_id', 'chapter_id');
     }
+    public function members() {
+        return $this->belongsToMany(User::class, 'chapter_user', 'chapter_id', 'user_id')
+                    ->withPivot('role_in_chapter')
+                    ->withTimestamps();
+    }
 }

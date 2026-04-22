@@ -25,7 +25,7 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'ieee_membership_number', 'username', 'email', 'password', 
-        'full_name', 'role', 'status', 'phone', 'bio', 'profile_photo'
+        'full_name', 'role', 'branch_id', 'status', 'phone', 'bio', 'profile_photo'
     ];
 
     /**
@@ -69,4 +69,14 @@ class User extends Authenticatable
     public function tasks() {
         return $this->belongsToMany(Task::class, 'task_assignments', 'user_id', 'task_id');
     }
+
+    public function branch()
+{
+    return $this->belongsTo(Branch::class);
+}
+
+public function chapters()
+{
+    return $this->belongsToMany(Chapter::class)->withPivot('role_in_chapter');
+}
 }
