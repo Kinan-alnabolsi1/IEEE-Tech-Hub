@@ -28,8 +28,14 @@ class BranchController extends Controller
         ], 201);
     }
 
-    public function show($id) {
-        return response()->json(Branch::with(['admin', 'societies', 'chapters'])->findOrFail($id));
+    public function show($branchId) {
+        // نستخدم Eager Loading لجلب الفرع مع مديره، جمعياته، وفصوله بضربة واحدة
+        $branch = Branch::with(['admin', 'societies', 'chapters'])->findOrFail($branchId);
+        
+        return response()->json([
+            'message' => 'Branch retrieved successfully',
+            'data' => $branch
+        ]);
     }
 
     // (حذفنا دالة applyToBranch لأن المتطوع يقدم طلبه من خلال الـ AuthController Register)
@@ -151,6 +157,30 @@ class BranchController extends Controller
         return response()->json([
             'message' => 'Societies linked to branch successfully',
             'data' => $branch->load('societies')
+        ]);
+    }
+
+    /**
+     * Remove (detach) a specific society from a branch.
+     * DELETE /api/branches/{branch_id}/societies/{society_id}
+     */
+    public function detachSociety($branchId, $societyId)
+    {
+        $branch = Branch::findOrFail($branchId);
+
+        // السحر هنا: نخزن نتيجة الـ detach (عدد الأسطر المحذوفة)
+        $detachedCount = $branch->societies()->detach($societyId);
+
+        // إذا لم يتم حذف أي سطر، يعني الجمعية غير موجودة في هذا الفرع
+        if ($detachedCount === 0) {
+            return response()->json([
+                'message' => 'Society is not attached to this branch or does not exist.'
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Society removed from branch successfully.',
+            'data' => $branch->load('societies') 
         ]);
     }
 }

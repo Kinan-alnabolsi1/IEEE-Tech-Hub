@@ -23,11 +23,16 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json($request->user()->load('skills'));
     });
     Route::get('/profile/{user_id}', [UserController::class, 'showProfile']);
-    Route::get('/societies', [SocietyController::class, 'index']); // الكل بيقدر يشوف الجمعيات
+    Route::get('/societies', [SocietyController::class, 'index']); // جلب الكل مع الفلتر
+    Route::post('/societies', [SocietyController::class, 'store']); // إنشاء
+    Route::get('/societies/{society_id}', [SocietyController::class, 'show']); // جلب جمعية محددة
+    Route::put('/societies/{society_id}', [SocietyController::class, 'update']); // تعديل
+    Route::delete('/societies/{society_id}', [SocietyController::class, 'destroy']);
 
     // تقديم المتطوع لطلب انضمام والمشاركة بمشروع (خاص بالمتطوعين بشكل أساسي)
     Route::post('/branches/{branch}/apply', [BranchController::class, 'applyToBranch']);
     Route::post('/projects/{project}/join', [ProjectController::class, 'joinProject']);
+    Route::get('/branches/{branch_id}', [BranchController::class, 'show']);
 
 
     // -- 2. مسارات مخصصة للسوبر أدمن فقط (Super Admin ONLY) --
@@ -37,10 +42,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // إدارة الفروع والجمعيات (إضافة، تعديل، حذف)
         Route::apiResource('branches', BranchController::class)->except(['index', 'show']);
-        Route::apiResource('societies', SocietyController::class)->except(['index', 'show']);
+        // Route::apiResource('societies', SocietyController::class)->except(['index', 'show']);
 
         // ربط الجمعيات بالفروع
         Route::post('/branches/{branch}/societies', [BranchController::class, 'attachSocieties']);
+        Route::delete('/branches/{branch_id}/societies/{society_id}', [BranchController::class, 'detachSociety']);
 
         // تقارير السوبر أدمن
         Route::get('/reports/system', [ReportController::class, 'getSystemReports']);
@@ -53,7 +59,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/users/{user_id}/status', [UserController::class, 'updateStatus']);
 
         // إدارة الفصول (Chapters)
-        Route::apiResource('chapters', ChapterController::class)->except(['index', 'show']);
+        // الفصول
+        Route::get('/chapters', [ChapterController::class, 'getAllChapters']);
+        Route::put('/chapters/{chapter_id}', [ChapterController::class, 'update']);
+        Route::get('/branches/{branch_id}/chapters', [ChapterController::class, 'index']);
+        Route::post('/chapters', [ChapterController::class, 'store']);
+        Route::get('/chapters/{chapter_id}', [ChapterController::class, 'show']);
+        Route::patch('/chapters/{chapter_id}/assign-chair', [ChapterController::class, 'assignChair']);
+        Route::post('/chapters/{chapter_id}/members', [ChapterController::class, 'addMember']);
+        Route::delete('/chapters/{chapter_id}/members/{user_id}', [ChapterController::class, 'removeMember']);
 
         // إدارة طلبات الانضمام للفرع
         Route::get('/branches/{branch}/memberships/pending', [BranchController::class, 'getPendingMemberships']);
