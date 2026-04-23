@@ -26,7 +26,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/societies', [SocietyController::class, 'index']); // جلب الكل مع الفلتر
     Route::post('/societies', [SocietyController::class, 'store']); // إنشاء
     Route::get('/societies/{society_id}', [SocietyController::class, 'show']); // جلب جمعية محددة
-    Route::put('/societies/{society_id}', [SocietyController::class, 'update']); // تعديل
+    Route::patch('/societies/{society_id}', [SocietyController::class, 'update']); // تعديل
     Route::delete('/societies/{society_id}', [SocietyController::class, 'destroy']);
 
     // تقديم المتطوع لطلب انضمام والمشاركة بمشروع (خاص بالمتطوعين بشكل أساسي)

@@ -9,10 +9,21 @@ use Illuminate\Http\Request;
 
 class BranchController extends Controller
 {
-    public function index() {
-        // إذا كنت عامل علاقة admin بالموديل
-        return response()->json(Branch::with('admin')->get());
+    public function index(Request $request)
+{
+    $query = Branch::with('admin');
+
+    // الفلترة حسب وجود مدير أو عدمه
+    if ($request->has('has_admin')) {
+        if ($request->has_admin === 'true') {
+            $query->whereNotNull('admin_id');
+        } elseif ($request->has_admin === 'false') {
+            $query->whereNull('admin_id');
+        }
     }
+
+    return response()->json($query->get());
+}
 
     // 1. السوبر أدمن ينشئ الفرع بدون مدير مبدئياً
     public function store(CreateBranchRequest $request) {
@@ -125,12 +136,22 @@ class BranchController extends Controller
     }
 
     public function destroy($id)
-    {
-        $branch = Branch::findOrFail($id);
-        $branch->delete();
+{
+    $branch = Branch::findOrFail($id);
 
-        return response()->json(['message' => 'Branch deleted successfully']);
-    }
+    // 1. تحديث كافة المستخدمين المنتمين لهذا الفرع (أدمن، متطوعين، رؤساء فصول)
+    \App\Models\User::where('branch_id', $id)->update([
+        'branch_id' => null,
+        'status' => 'Suspended' // أو Inactive حسب رغبتك
+    ]);
+
+    // 2. حذف الفرع (بسبب Cascade سيتم حذف الفصول والارتباط بالجمعيات تلقائياً)
+    $branch->delete();
+
+    return response()->json([
+        'message' => 'Branch deleted successfully. Associated users have been suspended and unlinked.'
+    ]);
+}
 
     public function updateStatus(Request $request, $id)
     {
