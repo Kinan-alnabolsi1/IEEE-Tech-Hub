@@ -1,5 +1,7 @@
 import React from 'react';
-import { Edit2, Trash2, Shield, Globe, Tag } from 'lucide-react';
+import { Edit2, Trash2, Globe, Tag, Layers } from 'lucide-react';
+// 🌟 استدعاء مكون الـ EmptyState
+import EmptyState from '../../../../components/ui/EmptyState';
 
 const SocietyTable = ({ societies, onDelete, onEdit }) => {
   
@@ -10,21 +12,21 @@ const SocietyTable = ({ societies, onDelete, onEdit }) => {
     return 'bg-amber-50 text-amber-600 border-amber-100';
   };
 
+  // 🌟 استخدام EmptyState الموحد
   if (!societies || societies.length === 0) {
     return (
-      <div className="text-center py-24 bg-white rounded-[2rem] border border-dashed border-slate-200 mx-4">
-        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Shield className="w-8 h-8 text-slate-300" />
-        </div>
-        <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em]">No Societies Found</p>
-        <p className="text-slate-300 text-[10px] mt-2">Connect to server to fetch live data</p>
-      </div>
+      <EmptyState 
+        icon={Layers} 
+        title="No Societies Found" 
+        message="The directory is currently empty. Add a new society to begin integration."
+      />
     );
   }
 
   return (
-    <div className="bg-white rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.02)] border border-slate-100 overflow-hidden">
-      <table className="w-full text-left border-separate border-spacing-0">
+    // 🌟 Responsive wrapper for table
+    <div className="bg-white rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.02)] border border-slate-100 overflow-x-auto no-scrollbar">
+      <table className="w-full text-left border-separate border-spacing-0 min-w-[800px]">
         <thead>
           <tr className="bg-slate-50/50">
             <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] border-b border-slate-100">Society Name</th>
@@ -69,7 +71,6 @@ const SocietyTable = ({ societies, onDelete, onEdit }) => {
               </td>
               <td className="px-8 py-5">
                 <div className="flex justify-center items-center gap-3">
-                  {/* زر التعديل - ظاهر دائماً */}
                   <button 
                     onClick={() => onEdit(soc)}
                     className="p-2.5 bg-slate-50 hover:bg-blue-100 text-slate-500 hover:text-[#00629B] rounded-xl transition-all shadow-sm border border-slate-100"
@@ -77,8 +78,6 @@ const SocietyTable = ({ societies, onDelete, onEdit }) => {
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
-                  
-                  {/* زر الحذف - ظاهر دائماً */}
                   <button 
                     onClick={() => onDelete(soc.id || soc.society_id)}
                     className="p-2.5 bg-slate-50 hover:bg-red-100 text-slate-500 hover:text-red-600 rounded-xl transition-all shadow-sm border border-slate-100"
@@ -96,4 +95,4 @@ const SocietyTable = ({ societies, onDelete, onEdit }) => {
   );
 };
 
-export default SocietyTable;
+export default SocietyTable;  

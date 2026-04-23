@@ -11,14 +11,13 @@ const BranchesIndex = () => {
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
 
-const fetchData = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
       const branchesRes = await branchService.getAll();
       setBranches(branchesRes.data || branchesRes || []);
       
     } catch (err) { 
-      // 🌟 استخدمنا err هنا عشان يختفي الخط الأحمر
       console.error("Fetch Error:", err); 
       toast.error("Sync Failure"); 
     } finally { 
@@ -30,7 +29,6 @@ const fetchData = async () => {
 
   const handleSaveBranch = async (formData) => {
     try {
-      // 🌟 تجهيز البيانات بالضبط كما يطلبها الباك إند
       const payload = {
         name: formData.name.trim(),
         region: formData.region.trim(),
@@ -59,15 +57,16 @@ const fetchData = async () => {
   if (loading) return <Loader message="Accessing Mainframe..." />;
 
   return (
-    <div className="p-6 md:p-12 min-h-screen">
-       <div className="flex justify-between items-center mb-10">
+    <div className="p-4 md:p-8 lg:p-12 min-h-screen">
+       {/* 🌟 Responsive Header: بيكونوا تحت بعض عالموبايل وجنب بعض عالشاشات الكبيرة */}
+       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
           <div>
-            <h1 className="text-4xl font-black text-[#00629B] uppercase italic tracking-tighter">Manage Branches</h1>
+            <h1 className="text-3xl md:text-4xl font-black text-[#00629B] uppercase italic tracking-tighter">Manage Branches</h1>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] mt-1">IEEE Branch Management Platform</p>
           </div>
           <button 
             onClick={() => { setEditingBranch(null); setIsModalOpen(true); }}
-            className="bg-[#00629B] text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-blue-900/20 hover:scale-105 active:scale-95 transition-all"
+            className="w-full md:w-auto bg-[#00629B] text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-blue-900/20 hover:scale-105 active:scale-95 transition-all text-center"
           >
             + Add New Branch
           </button>
@@ -76,7 +75,7 @@ const fetchData = async () => {
        <BranchTable 
          branches={branches} 
          onEdit={(b) => { setEditingBranch(b); setIsModalOpen(true); }}
-         onDelete={(id) => { if(confirm("Delete?")) branchService.delete(id).then(fetchData); }}
+         onDelete={(id) => { if(window.confirm("Delete?")) branchService.delete(id).then(fetchData); }}
          onToggleStatus={(b) => branchService.toggleStatus(b.branch_id || b.id, b.status).then(fetchData)}
        />
 

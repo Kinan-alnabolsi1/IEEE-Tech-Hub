@@ -12,8 +12,8 @@ const Register = () => {
   const [role, setRole] = useState('Volunteer'); 
   const [isLoading, setIsLoading] = useState(false);
   
-  // حالات الفروع
-  const [branches, setBranches] = useState([]);
+  const [allBranches, setAllBranches] = useState([]); 
+  const [displayBranches, setDisplayBranches] = useState([]); 
   const [isFetchingBranches, setIsFetchingBranches] = useState(true);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -35,32 +35,43 @@ const Register = () => {
     if (token) navigate('/admin');
   }, [navigate]);
 
-  // 🌟 جلب الفروع (مع حماية ذكية لشكل الداتا وطباعة لمعرفة المشكلة)
   useEffect(() => {
     const fetchBranches = async () => {
       try {
         const response = await branchService.getAll();
-        console.log("🚀 BRANCHES API RESPONSE:", response); // هاد السطر رح يكشفلنا السر بالكونسول!
-
-        // استخراج المصفوفة شو ما كان شكلها
+        
         let branchesData = [];
         if (Array.isArray(response)) branchesData = response;
         else if (Array.isArray(response?.data)) branchesData = response.data;
         else if (Array.isArray(response?.data?.data)) branchesData = response.data.data;
         
-        setBranches(branchesData);
+        setAllBranches(branchesData);
       } catch (error) {
-        console.error("🔥 Error fetching branches:", error);
-        // إذا كان الخطأ 401، يعني الباك إند قافل المسار ولازم يفتحه للكل
-        if (error.response?.status === 401 || error.response?.status === 403) {
-           toast.error("API Error: Branches endpoint requires authentication!");
-        }
+        console.error("Error fetching branches:", error);
       } finally {
         setIsFetchingBranches(false);
       }
     };
     fetchBranches();
   }, []);
+
+  // 🌟 التعديل السحري صار هون
+  useEffect(() => {
+    if (role === 'Admin') {
+      // 🌟 الفلترة صارت تعتمد على admin_id بدل admin
+      // إذا الـ admin_id مو موجود أو null، معناها الفرع متاح
+      const availableForAdmins = allBranches.filter(branch => !branch.admin_id);
+      setDisplayBranches(availableForAdmins);
+      
+      if (formData.branch_id) {
+         const stillValid = availableForAdmins.some(b => (b.id || b.branch_id) === formData.branch_id);
+         if (!stillValid) setFormData(prev => ({ ...prev, branch_id: '' }));
+      }
+    } else {
+      setDisplayBranches(allBranches);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role, allBranches]);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -92,7 +103,7 @@ const Register = () => {
     setIsLoading(true);
 
     try {
-const payload = {
+      const payload = {
         username: formData.username,
         email: formData.email,
         password: formData.password,
@@ -100,11 +111,10 @@ const payload = {
         full_name: formData.full_name, 
         role: role === 'Admin' ? 'Branch Admin' : role, 
         ieee_membership_number: formData.ieee_membership_number,
-        branch_id: Number(formData.branch_id), // 🌟 حوّلناه لرقم صريح لضمان قبوله بالباك إند
+        branch_id: Number(formData.branch_id), 
       };
 
       await postData('/register', payload);
-      console.log(payload,"payload")
       
       toast.success('Registration Successful! Your account is pending admin approval.', { duration: 5000 });
       setTimeout(() => navigate('/login'), 2000);
@@ -115,8 +125,7 @@ const payload = {
     }
   };
 
-  // 🌟 التقاط الفرع شو ما كان اسم الـ ID تبعه (id أو branch_id)
-  const selectedBranch = branches.find(b => (b.id || b.branch_id) === formData.branch_id);
+  const selectedBranch = allBranches.find(b => (b.id || b.branch_id) === formData.branch_id);
 
   return (
     <>
@@ -196,9 +205,8 @@ const payload = {
                       <div className="fixed inset-0 z-30" onClick={() => setIsDropdownOpen(false)}></div>
                       
                       <div className="absolute z-40 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] py-2 max-h-48 overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
-                        {branches.length > 0 ? (
-                          branches.map((branch) => {
-                            // 🌟 التقاط الـ ID واسم الفرع بذكاء
+                        {displayBranches.length > 0 ? (
+                          displayBranches.map((branch) => {
                             const bId = branch.id || branch.branch_id;
                             const bName = branch.name || branch.title || `Branch ${bId}`;
 
@@ -219,7 +227,7 @@ const payload = {
                           })
                         ) : (
                           <div className="px-4 py-3 text-xs text-slate-400 font-medium text-center">
-                            No branches available currently
+                            {role === 'Admin' ? 'No branches available for new admins.' : 'No branches available currently.'}
                           </div>
                         )}
                       </div>

@@ -8,10 +8,8 @@ const EditSocietyModal = ({ isOpen, onClose, onEdit, societyData }) => {
     status: 'Active'
   });
 
-  // 🌟 حالة لفتح وإغلاق القائمة المخصصة
   const [isStatusOpen, setIsStatusOpen] = useState(false);
 
-  // Populate data when modal opens
   useEffect(() => {
     if (societyData) {
       setFormData({
@@ -35,27 +33,40 @@ const EditSocietyModal = ({ isOpen, onClose, onEdit, societyData }) => {
       title="Edit Society Details" 
       subtitle={`Updating settings for ${societyData.abbreviation}`}
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         
-        {/* Read-Only Info Box */}
-        <div className="p-5 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-1.5"><Box className="w-3.5 h-3.5 text-[#00629B]" /> Name</span>
-            <span className="text-xs font-bold text-slate-800">{societyData.name}</span>
+        {/* 🌟 Read-Only Info Box (Responsive Fix) */}
+        <div className="p-4 sm:p-5 bg-slate-50 rounded-xl border border-slate-100 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1.5 sm:gap-4">
+            <span className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-1.5 shrink-0">
+              <Box className="w-3.5 h-3.5 text-[#00629B]" /> Name
+            </span>
+            <span className="text-xs font-bold text-slate-800 leading-tight">
+              {societyData.name}
+            </span>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-1.5"><Tag className="w-3.5 h-3.5 text-[#00629B]" /> Abbreviation</span>
-            <span className="text-xs font-black text-[#00629B] bg-blue-50 px-2 py-0.5 rounded-md">{societyData.abbreviation || societyData.abbr}</span>
+          
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1.5 sm:gap-4">
+            <span className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-1.5 shrink-0">
+              <Tag className="w-3.5 h-3.5 text-[#00629B]" /> Abbreviation
+            </span>
+            <span className="text-xs font-black text-[#00629B] bg-blue-50 px-2.5 py-1 rounded-md w-fit">
+              {societyData.abbreviation || societyData.abbr}
+            </span>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-1.5"><Layers className="w-3.5 h-3.5 text-[#00629B]" /> Type</span>
-            <span className="text-xs font-bold text-slate-600">{societyData.classification || 'Standard'}</span>
+          
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1.5 sm:gap-4">
+            <span className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-1.5 shrink-0">
+              <Layers className="w-3.5 h-3.5 text-[#00629B]" /> Type
+            </span>
+            <span className="text-xs font-bold text-slate-600">
+              {societyData.classification || 'Standard'}
+            </span>
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4">
-          
-          {/* 🌟 Custom Dropdown - Editable Status */}
+          {/* Custom Dropdown - Editable Status */}
           <div className="space-y-1.5 relative z-50">
             <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1 flex items-center gap-1.5">
               <Activity className="w-3.5 h-3.5 text-[#00629B]" /> Society Status
@@ -82,7 +93,7 @@ const EditSocietyModal = ({ isOpen, onClose, onEdit, societyData }) => {
                           setFormData({ ...formData, status: statusOption });
                           setIsStatusOpen(false);
                         }}
-                        className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-colors flex items-center gap-2 hover:bg-blue-50/50 hover:text-[#00629B] ${formData.status === statusOption ? 'bg-blue-50 text-[#00629B]' : 'text-slate-600'}`}
+                        className={`w-full text-left px-4 py-3 text-xs font-bold transition-colors flex items-center gap-2 hover:bg-blue-50/50 hover:text-[#00629B] ${formData.status === statusOption ? 'bg-blue-50 text-[#00629B]' : 'text-slate-600'}`}
                       >
                         {formData.status === statusOption && <div className="w-1.5 h-1.5 rounded-full bg-[#00629B]"></div>}
                         <span className={statusOption === 'Active' ? 'text-emerald-600' : 'text-red-500'}>
@@ -112,19 +123,19 @@ const EditSocietyModal = ({ isOpen, onClose, onEdit, societyData }) => {
           </div>
         </div>
 
-        <div className="pt-4 flex gap-4 relative z-30">
+        <div className="pt-2 flex gap-3 relative z-30">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 px-4 py-3.5 rounded-xl text-[10px] font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100"
+            className="flex-1 px-2 py-3.5 rounded-xl text-[10px] font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="flex-[2] bg-emerald-500 text-white px-4 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:shadow-emerald-200 hover:bg-emerald-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            className="flex-[2] bg-emerald-500 text-white px-2 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:shadow-emerald-200 hover:bg-emerald-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
-            <CheckCircle2 className="w-4 h-4" /> Save Changes
+            <CheckCircle2 className="w-4 h-4" /> Save
           </button>
         </div>
       </form>

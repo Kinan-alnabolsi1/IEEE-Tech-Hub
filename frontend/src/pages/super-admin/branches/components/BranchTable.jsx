@@ -1,10 +1,25 @@
 import React from 'react';
-import { MoreVertical, Edit2, Trash2, MapPin, Building2, ShieldOff, CheckCircle, UserX, User } from 'lucide-react';
+import { MoreVertical, Edit2, Trash2, MapPin, Building2, ShieldOff, CheckCircle, UserX } from 'lucide-react';
+// 🌟 استدعاء مكون الـ EmptyState
+import EmptyState from '../../../../components/ui/EmptyState';
 
 const BranchTable = ({ branches = [], onEdit, onDelete, onToggleStatus }) => {
+  
+  // 🌟 استخدام EmptyState الموحد
+  if (!branches || branches.length === 0) {
+    return (
+      <EmptyState 
+        icon={Building2} 
+        title="No Branches Integrated" 
+        message="The infrastructure is currently empty. Click 'Add New Branch' to register the first IEEE entity."
+      />
+    );
+  }
+
   return (
-    <div className="overflow-visible pb-40">
-      <table className="w-full text-left border-separate border-spacing-y-4">
+    // 🌟 Responsive wrapper for table (مع مساحة سفلية pb-40 عشان المنيو تفتح براحتها)
+    <div className="overflow-x-auto pb-40 w-full no-scrollbar">
+      <table className="w-full text-left border-separate border-spacing-y-4 min-w-[900px]">
         <thead>
           <tr className="text-[#00629B] opacity-60">
             <th className="px-8 py-3 text-[10px] font-black uppercase tracking-[0.25em]">Branch Identity</th>
@@ -77,8 +92,8 @@ const BranchTable = ({ branches = [], onEdit, onDelete, onToggleStatus }) => {
                     <button className="p-3 hover:bg-[#00629B] hover:text-white rounded-2xl transition-all duration-300 text-slate-300 bg-white border border-slate-50 shadow-sm outline-none">
                       <MoreVertical className="w-5 h-5" />
                     </button>
-                    <div className="absolute right-0 top-full -mt-2 pt-2 w-56 z-[9999] hidden group-hover/menu:block animate-in fade-in zoom-in-95 duration-300 overflow-visible">
-                      <div className="bg-white border border-slate-100 rounded-[1.8rem] shadow-2xl py-3 text-left">
+                    <div className="absolute right-0 top-full -mt-2 pt-2 w-56 z-[9999] hidden group-hover/menu:block animate-in fade-in zoom-in-95 duration-300 overflow-visible text-left">
+                      <div className="bg-white border border-slate-100 rounded-[1.8rem] shadow-2xl py-3">
                         <button onClick={() => onEdit(branch)} className="w-full flex items-center gap-3 px-5 py-3 text-[10px] font-black uppercase tracking-[0.1em] text-slate-600 hover:bg-blue-50 hover:text-[#00629B] transition-colors">
                           <Edit2 className="w-4 h-4 text-blue-400" /> Edit Branch
                         </button>
