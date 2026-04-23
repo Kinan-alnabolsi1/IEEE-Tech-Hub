@@ -16,6 +16,7 @@ const fetchData = async () => {
       setLoading(true);
       const branchesRes = await branchService.getAll();
       setBranches(branchesRes.data || branchesRes || []);
+      
     } catch (err) { 
       // 🌟 استخدمنا err هنا عشان يختفي الخط الأحمر
       console.error("Fetch Error:", err); 

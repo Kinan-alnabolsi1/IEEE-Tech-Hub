@@ -4,7 +4,6 @@ import { branchService } from '../../services/branchService';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Loader from '../../components/ui/Loader'; 
-// 🌟 ضفت أيقونات جديدة للدروب داون
 import { Eye, EyeOff, ChevronDown, MapPin } from 'lucide-react';
 import logo from "../../assets/IEEELogo4-removebg-preview.png";
 
@@ -16,11 +15,8 @@ const Register = () => {
   // حالات الفروع
   const [branches, setBranches] = useState([]);
   const [isFetchingBranches, setIsFetchingBranches] = useState(true);
-
-  // 🌟 حالة لفتح وإغلاق القائمة المنسدلة المخصصة
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // حالات التحكم بظهور كلمات المرور
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
@@ -39,15 +35,26 @@ const Register = () => {
     if (token) navigate('/admin');
   }, [navigate]);
 
+  // 🌟 جلب الفروع (مع حماية ذكية لشكل الداتا وطباعة لمعرفة المشكلة)
   useEffect(() => {
     const fetchBranches = async () => {
       try {
         const response = await branchService.getAll();
-        const branchesData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+        console.log("🚀 BRANCHES API RESPONSE:", response); // هاد السطر رح يكشفلنا السر بالكونسول!
+
+        // استخراج المصفوفة شو ما كان شكلها
+        let branchesData = [];
+        if (Array.isArray(response)) branchesData = response;
+        else if (Array.isArray(response?.data)) branchesData = response.data;
+        else if (Array.isArray(response?.data?.data)) branchesData = response.data.data;
+        
         setBranches(branchesData);
       } catch (error) {
-        console.error("Error fetching branches:", error);
-        toast.error("Failed to load branches list.");
+        console.error("🔥 Error fetching branches:", error);
+        // إذا كان الخطأ 401، يعني الباك إند قافل المسار ولازم يفتحه للكل
+        if (error.response?.status === 401 || error.response?.status === 403) {
+           toast.error("API Error: Branches endpoint requires authentication!");
+        }
       } finally {
         setIsFetchingBranches(false);
       }
@@ -85,7 +92,7 @@ const Register = () => {
     setIsLoading(true);
 
     try {
-      const payload = {
+const payload = {
         username: formData.username,
         email: formData.email,
         password: formData.password,
@@ -93,10 +100,11 @@ const Register = () => {
         full_name: formData.full_name, 
         role: role === 'Admin' ? 'Branch Admin' : role, 
         ieee_membership_number: formData.ieee_membership_number,
-        branch_id: formData.branch_id, 
+        branch_id: Number(formData.branch_id), // 🌟 حوّلناه لرقم صريح لضمان قبوله بالباك إند
       };
 
       await postData('/register', payload);
+      console.log(payload,"payload")
       
       toast.success('Registration Successful! Your account is pending admin approval.', { duration: 5000 });
       setTimeout(() => navigate('/login'), 2000);
@@ -107,8 +115,8 @@ const Register = () => {
     }
   };
 
-  // 🌟 استخراج اسم الفرع المختار لعرضه
-  const selectedBranch = branches.find(b => b.id === formData.branch_id);
+  // 🌟 التقاط الفرع شو ما كان اسم الـ ID تبعه (id أو branch_id)
+  const selectedBranch = branches.find(b => (b.id || b.branch_id) === formData.branch_id);
 
   return (
     <>
@@ -165,11 +173,10 @@ const Register = () => {
                 </div>
               </div>
 
-              {/* 🌟 Custom Dropdown (UI الأنيق) */}
+              {/* Custom Dropdown */}
               <div className="space-y-1.5 relative z-20">
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Target Branch</label>
                 <div className="relative">
-                  {/* زر فتح القائمة */}
                   <button
                     type="button"
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -184,28 +191,32 @@ const Register = () => {
                     <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
 
-                  {/* القائمة المنسدلة نفسها */}
                   {isDropdownOpen && (
                     <>
-                      {/* طبقة خفية لإغلاق القائمة عند النقر خارجها */}
                       <div className="fixed inset-0 z-30" onClick={() => setIsDropdownOpen(false)}></div>
                       
                       <div className="absolute z-40 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] py-2 max-h-48 overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
                         {branches.length > 0 ? (
-                          branches.map((branch) => (
-                            <button
-                              key={branch.id}
-                              type="button"
-                              onClick={() => {
-                                setFormData({ ...formData, branch_id: branch.id });
-                                setIsDropdownOpen(false);
-                              }}
-                              className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-colors flex items-center gap-2 hover:bg-blue-50/50 hover:text-[#00629B] ${formData.branch_id === branch.id ? 'bg-blue-50 text-[#00629B]' : 'text-slate-600'}`}
-                            >
-                              {formData.branch_id === branch.id && <div className="w-1.5 h-1.5 rounded-full bg-[#00629B]"></div>}
-                              {branch.name}
-                            </button>
-                          ))
+                          branches.map((branch) => {
+                            // 🌟 التقاط الـ ID واسم الفرع بذكاء
+                            const bId = branch.id || branch.branch_id;
+                            const bName = branch.name || branch.title || `Branch ${bId}`;
+
+                            return (
+                              <button
+                                key={bId}
+                                type="button"
+                                onClick={() => {
+                                  setFormData({ ...formData, branch_id: bId });
+                                  setIsDropdownOpen(false);
+                                }}
+                                className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-colors flex items-center gap-2 hover:bg-blue-50/50 hover:text-[#00629B] ${formData.branch_id === bId ? 'bg-blue-50 text-[#00629B]' : 'text-slate-600'}`}
+                              >
+                                {formData.branch_id === bId && <div className="w-1.5 h-1.5 rounded-full bg-[#00629B]"></div>}
+                                {bName}
+                              </button>
+                            );
+                          })
                         ) : (
                           <div className="px-4 py-3 text-xs text-slate-400 font-medium text-center">
                             No branches available currently

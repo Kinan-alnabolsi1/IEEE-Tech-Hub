@@ -7,13 +7,17 @@ export const societyService = {
     // إضافة جمعية جديدة
     create: (data) => postData('/societies', data),
 
-    // تعديل جمعية (قيد الإنشاء في السيرفر)
+    // تعديل جمعية
     update: (id, data) => putData(`/societies/${id}`, data),
 
-    // حذف جمعية
+    // حذف جمعية من النظام نهائياً
     delete: (id) => deleteData(`/societies/${id}`),
 
-    // ربط جمعية بفرع (قيد الإنشاء في السيرفر)
+    // ✅ ربط جمعية بفرع (Attach)
     attachToBranch: (branchId, societyIds) => 
-        postData(`/branches/${branchId}/societies`, { society_ids: societyIds })
+        postData(`/branches/${branchId}/societies`, { society_ids: societyIds }),
+
+    // 🌟 الدالة الجديدة: إلغاء ربط جمعية واحدة بفرع (Detach)
+    detachFromBranch: (branchId, societyId) => 
+        deleteData(`/branches/${branchId}/societies/${societyId}`)
 };

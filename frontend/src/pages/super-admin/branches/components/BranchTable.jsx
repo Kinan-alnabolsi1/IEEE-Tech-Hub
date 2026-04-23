@@ -1,9 +1,8 @@
 import React from 'react';
-import { MoreVertical, Edit2, Trash2, MapPin, Building2, ShieldOff, CheckCircle } from 'lucide-react';
+import { MoreVertical, Edit2, Trash2, MapPin, Building2, ShieldOff, CheckCircle, UserX, User } from 'lucide-react';
 
 const BranchTable = ({ branches = [], onEdit, onDelete, onToggleStatus }) => {
   return (
-    /* pb-40 لضمان وجود مساحة للمنيو في آخر سطر */
     <div className="overflow-visible pb-40">
       <table className="w-full text-left border-separate border-spacing-y-4">
         <thead>
@@ -18,6 +17,7 @@ const BranchTable = ({ branches = [], onEdit, onDelete, onToggleStatus }) => {
         <tbody className="overflow-visible">
           {branches.map((branch, index) => {
             const isActive = branch.status?.toLowerCase() === 'active';
+            const hasAdmin = branch.admin && branch.admin.full_name;
             
             return (
               <tr key={branch.branch_id || index} className="bg-white hover:shadow-[0_10px_30px_-15px_rgba(0,98,155,0.1)] transition-all duration-500 group overflow-visible">
@@ -40,13 +40,30 @@ const BranchTable = ({ branches = [], onEdit, onDelete, onToggleStatus }) => {
                 </td>
                 <td className="px-8 py-6 border-y border-slate-50">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-[#00629B]/10 text-[#00629B] flex items-center justify-center font-black text-[10px] border border-[#00629B]/20 uppercase">
-                      {branch.admin?.username?.charAt(0) || 'A'}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-black text-[#00629B] capitalize">{branch.admin?.username}</span>
-                      <span className="text-sm text-slate-500 font-bold capitalize italic">{branch.admin?.full_name}</span>
-                    </div>
+                    {hasAdmin ? (
+                      <>
+                        <div className="w-9 h-9 rounded-full bg-[#00629B]/10 text-[#00629B] flex items-center justify-center font-black text-[10px] border border-[#00629B]/20 uppercase">
+                          {branch.admin.full_name.charAt(0)}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-black text-[#00629B] leading-none mb-1 capitalize">
+                            {branch.admin.full_name}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-bold italic lowercase opacity-70">
+                            @{branch.admin.username}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-9 h-9 rounded-full bg-slate-50 text-slate-300 flex items-center justify-center border border-slate-100 border-dashed">
+                          <UserX className="w-4 h-4" />
+                        </div>
+                        <span className="text-[10px] font-black text-slate-300 uppercase italic tracking-widest">
+                          No Admin Assigned
+                        </span>
+                      </>
+                    )}
                   </div>
                 </td>
                 <td className="px-8 py-6 border-y border-slate-50 text-center">
@@ -60,9 +77,8 @@ const BranchTable = ({ branches = [], onEdit, onDelete, onToggleStatus }) => {
                     <button className="p-3 hover:bg-[#00629B] hover:text-white rounded-2xl transition-all duration-300 text-slate-300 bg-white border border-slate-50 shadow-sm outline-none">
                       <MoreVertical className="w-5 h-5" />
                     </button>
-                    {/* المنيو: أضفنا -top-2 و pt-2 لمنع الماوس من فقدان الـ Hover */}
                     <div className="absolute right-0 top-full -mt-2 pt-2 w-56 z-[9999] hidden group-hover/menu:block animate-in fade-in zoom-in-95 duration-300 overflow-visible">
-                      <div className="bg-white border border-slate-100 rounded-[1.8rem] shadow-2xl py-3">
+                      <div className="bg-white border border-slate-100 rounded-[1.8rem] shadow-2xl py-3 text-left">
                         <button onClick={() => onEdit(branch)} className="w-full flex items-center gap-3 px-5 py-3 text-[10px] font-black uppercase tracking-[0.1em] text-slate-600 hover:bg-blue-50 hover:text-[#00629B] transition-colors">
                           <Edit2 className="w-4 h-4 text-blue-400" /> Edit Branch
                         </button>
