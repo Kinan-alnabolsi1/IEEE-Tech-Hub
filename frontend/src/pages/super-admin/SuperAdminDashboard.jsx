@@ -29,7 +29,7 @@ const SuperAdminDashboard = () => {
     const fetchStats = async () => {
       const token = localStorage.getItem('ieee_token');
       if (!token) {
-        navigate('/login');
+        navigate('/');
         return;
       }
 
@@ -44,7 +44,7 @@ const SuperAdminDashboard = () => {
       } catch (err) {
         if (err.response?.status === 401) {
           localStorage.removeItem('ieee_token');
-          navigate('/login');
+          navigate('/');
           toast.error("Session expired. Please login again.");
         } else {
           toast.error("Failed to sync system analytics");

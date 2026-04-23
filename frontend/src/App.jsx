@@ -22,7 +22,7 @@ import VolunteerMemberships from './pages/admin/volunteers/VolunteerMemberships'
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('ieee_token');
-  if (!token) return <Navigate to="/login" replace />;
+  if (!token) return <Navigate to="/" replace />;
   return children;
 };
 
@@ -43,7 +43,7 @@ function App() {
       />
       
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
         {/* --- Super Admin Panel --- */}
@@ -80,8 +80,8 @@ function App() {
           {/* ملاحظة: باقي الصفحات (chapters, projects, reports) بنضيفهم بنفس الطريقة بس نكتب كودهم */}
         </Route>
 
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );

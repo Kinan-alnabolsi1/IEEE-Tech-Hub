@@ -117,7 +117,7 @@ const Register = () => {
       await postData('/register', payload);
       
       toast.success('Registration Successful! Your account is pending admin approval.', { duration: 5000 });
-      setTimeout(() => navigate('/login'), 2000);
+      setTimeout(() => navigate('/'), 2000);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error creating account');
     } finally {
@@ -283,7 +283,7 @@ const Register = () => {
           </div>
 
           <div className="mt-6 text-center pb-4">
-            <Link to="/login" className="text-[10px] text-slate-400 hover:text-[#00629B] tracking-widest uppercase font-bold transition-colors">
+            <Link to="/" className="text-[10px] text-slate-400 hover:text-[#00629B] tracking-widest uppercase font-bold transition-colors">
               Already a member? <span className="text-[#00629B] border-b-2 border-blue-100 pb-0.5">Sign In</span>
             </Link>
           </div>

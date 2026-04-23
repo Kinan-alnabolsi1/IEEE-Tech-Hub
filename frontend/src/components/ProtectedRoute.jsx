@@ -5,7 +5,7 @@ const ProtectedRoute = ({ children }) => {
 
     // إذا مافي توكن، منرجعه للـ login
     if (!token) {
-        return <Navigate to="/login" replace />;
+        return <Navigate to="/" replace />;
     }
 
     // إذا في توكن، بنخليه يشوف الصفحة (الأبناء)

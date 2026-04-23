@@ -93,13 +93,20 @@ const AdminTable = ({ data, type, onAction, isLoading }) => {
             const uniqueId = admin.id || admin.user_id || admin.uuid;
 
             return (
-              <tr key={uniqueId || index} className="bg-white hover:shadow-[0_10px_30px_-15px_rgba(0,98,155,0.1)] transition-all duration-300 group">
+              <tr
+                key={uniqueId || index}
+                className="bg-white hover:shadow-[0_10px_30px_-15px_rgba(0,98,155,0.1)] transition-all duration-300 group"
+              >
                 <td className="px-8 py-6 rounded-l-[2rem] border-y border-l border-slate-50">
                   <div className="flex flex-col">
-                    <span className="font-black text-slate-700 text-sm italic uppercase">{admin.full_name || admin.name}</span>
+                    <span className="font-black text-slate-700 text-sm italic uppercase">
+                      {admin.full_name || admin.name}
+                    </span>
                     <div className="flex items-center gap-1.5 mt-1 text-slate-400">
                       <Mail className="w-3 h-3" />
-                      <span className="text-[10px] font-bold lowercase">{admin.email}</span>
+                      <span className="text-[10px] font-bold lowercase">
+                        {admin.email}
+                      </span>
                     </div>
                   </div>
                 </td>
@@ -119,23 +126,25 @@ const AdminTable = ({ data, type, onAction, isLoading }) => {
                   <div className="flex items-center gap-2 text-slate-400">
                     <Calendar className="w-3.5 h-3.5" />
                     <span className="text-[10px] font-black">
-                      {admin.created_at ? admin.created_at.split('T')[0] : (admin.date || 'N/A')}
+                      {admin.created_at
+                        ? admin.created_at.split("T")[0]
+                        : admin.date || "N/A"}
                     </span>
                   </div>
                 </td>
 
                 <td className="px-8 py-6 rounded-r-[2rem] border-y border-r border-slate-50 text-right">
-                  {type === 'pending' && (
+                  {type === "pending" && (
                     <div className="flex justify-end gap-3">
-                      <button 
-                        onClick={() => onAction(uniqueId, 'Active')}
+                      <button
+                        onClick={() => onAction(uniqueId, "Active")}
                         className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
                         title="Approve Admin"
                       >
                         <Check className="w-5 h-5" />
                       </button>
-                      <button 
-                        onClick={() => onAction(uniqueId, 'Rejected')}
+                      <button
+                        onClick={() => onAction(uniqueId, "Suspended")}
                         className="p-3 bg-red-50 text-red-600 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-sm"
                         title="Reject Admin"
                       >
@@ -144,18 +153,18 @@ const AdminTable = ({ data, type, onAction, isLoading }) => {
                     </div>
                   )}
 
-                  {type === 'active' && (
-                    <button 
-                      onClick={() => onAction(uniqueId, 'Suspended')}
+                  {type === "active" && (
+                    <button
+                      onClick={() => onAction(uniqueId, "Suspended")}
                       className="px-6 py-3 bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ml-auto border border-transparent hover:border-red-100"
                     >
                       <Ban className="w-4 h-4" /> Suspend Account
                     </button>
                   )}
 
-                  {type === 'suspended' && (
-                    <button 
-                      onClick={() => onAction(uniqueId, 'Active')}
+                  {type === "suspended" && (
+                    <button
+                      onClick={() => onAction(uniqueId, "Active")}
                       className="px-6 py-3 bg-slate-50 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ml-auto border border-transparent hover:border-emerald-100"
                     >
                       <RefreshCcw className="w-4 h-4" /> Reactivate

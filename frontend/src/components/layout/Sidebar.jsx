@@ -53,7 +53,7 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
       });
 
       console.log("--- 🏁 Logout Finished ---");
-      navigate('/login', { replace: true });
+      navigate('/', { replace: true });
     }
   };
 
