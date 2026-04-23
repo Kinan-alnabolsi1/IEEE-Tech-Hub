@@ -72,6 +72,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // إدارة طلبات الانضمام للفرع
         Route::get('/branches/{branch}/memberships/pending', [BranchController::class, 'getPendingMemberships']);
         Route::patch('/memberships/{membership}/approve', [BranchController::class, 'approveMembership']);
+
+        Route::get('/branches/{branch_id}/stats', [BranchController::class, 'getStats']);
     });
 
 

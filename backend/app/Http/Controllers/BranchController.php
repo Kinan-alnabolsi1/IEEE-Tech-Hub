@@ -204,4 +204,65 @@ class BranchController extends Controller
             'data' => $branch->load('societies') 
         ]);
     }
+
+    /**
+     * جلب إحصائيات لوحة التحكم لفرع محدد (Branch Dashboard Stats)
+     * GET /api/branches/{branch_id}/stats
+     */
+    public function getStats(Request $request, $branchId)
+    {
+        $branch = Branch::findOrFail($branchId);
+
+        // حماية أمنية
+        if ($request->user()->role !== 'Super Admin' && $request->user()->branch_id !== $branch->branch_id) {
+            return response()->json(['message' => 'Unauthorized to view these statistics.'], 403);
+        }
+
+        // 1. البطاقات الإحصائية
+        $totalVolunteers = \App\Models\User::where('branch_id', $branchId)
+            ->where('role', 'Volunteer')
+            ->where('status', 'Active')
+            ->count();
+
+        $pendingRequests = \App\Models\User::where('branch_id', $branchId)
+            ->where('role', 'Volunteer')
+            ->where('status', 'Pending')
+            ->count();
+
+        $activeChapters = \App\Models\Chapter::where('branch_id', $branchId)
+            ->where('status', 'Active')
+            ->count();
+
+        // 👇=== السحر تبعنا (المشاريع التابعة للفصول) يوضع هنا ===👇
+        
+        // أ. نجلب كل أرقام الـ IDs الخاصة بفصول هذا الفرع
+        $chapterIds = \App\Models\Chapter::where('branch_id', $branchId)->pluck('chapter_id');
+
+        // ب. نعد المشاريع التي تنتمي لأي فصل من هذه الفصول وحالتها Ongoing
+        $ongoingProjects = \App\Models\Project::whereIn('chapter_id', $chapterIds)
+            ->where('status', 'Ongoing') 
+            ->count();
+            
+        // 👆===================================================👆
+
+        // 2. بيانات الرسوم البيانية
+        $volunteersPerChapter = \App\Models\Chapter::where('branch_id', $branchId)
+            ->withCount('members') 
+            ->get(['chapter_id', 'name']); 
+
+        return response()->json([
+            'message' => 'Branch statistics retrieved successfully',
+            'data' => [
+                'cards' => [
+                    'total_volunteers' => $totalVolunteers,
+                    'pending_requests' => $pendingRequests,
+                    'active_chapters' => $activeChapters,
+                    'ongoing_projects' => $ongoingProjects, // سيتم تمرير العدد الصحيح هنا
+                ],
+                'charts' => [
+                    'volunteers_per_chapter' => $volunteersPerChapter,
+                ]
+            ]
+        ]);
+    }
 }
