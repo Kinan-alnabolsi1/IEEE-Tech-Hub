@@ -3,7 +3,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { postData } from '../../api/apiMethods'; 
 import toast from 'react-hot-toast';
 import Loader from '../../components/ui/Loader'; 
-// 🌟 ضفت الأيقونات اللي بنحتاجها لكرت الـ Pending
 import { Eye, EyeOff, Clock, ShieldCheck, Mail, ArrowLeft } from 'lucide-react';
 import logo from "../../assets/IEEELogo4-removebg-preview.png";
 
@@ -13,8 +12,6 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
-  // 🌟 حالة جديدة للتحكم بظهور كرت الانتظار بنفس الصفحة
   const [isPending, setIsPending] = useState(false);
 
   useEffect(() => {
@@ -41,19 +38,31 @@ const Login = () => {
       const data = response.data;
       
       if (data.access_token) {
+        // 🌟 1. تخزين التوكن
         localStorage.setItem('ieee_token', data.access_token);
         
+        // 🌟 2. تخزين كائن المستخدم بالكامل لضمان وجود كل البيانات (برمجياً أفضل)
+        if (data.user) {
+            localStorage.setItem('ieee_user', JSON.stringify(data.user));
+            
+            // 🌟 3. تخزين الـ branch_id بشكل صريح لحل مشكلة الداشبورد
+            // حاولنا نلقطه بأكثر من اسم حسب شو ممكن يبعت الباك إند
+            const bId = data.user.branch_id || data.user.branch?.id;
+            if (bId) {
+                localStorage.setItem('branch_id', bId);
+            }
+        }
+
         const normalizedRole = data.user?.role?.toLowerCase().replace(/\s+/g, '_') || 'admin';
         localStorage.setItem('user_role', normalizedRole); 
         
         let exactName = 'System Administrator';
         if (data.user) {
-           exactName = data.user.full_name || data.user.name || data.user.username || data.user.first_name || (normalizedRole === 'super_admin' ? 'System Administrator' : 'Branch Admin');
+           exactName = data.user.full_name || data.user.name || data.user.username || (normalizedRole === 'super_admin' ? 'System Administrator' : 'Branch Admin');
         }
-        
         localStorage.setItem('user_name', exactName);
 
-        const branchName = data.user?.branch_name || data.user?.branch;
+        const branchName = data.user?.branch_name || data.user?.branch?.name;
         if (branchName) {
             localStorage.setItem('branch_name', branchName);
         }
@@ -70,14 +79,12 @@ const Login = () => {
       const errorMsg = err.response?.data?.message || err.response?.data?.error || '';
       const statusCode = err.response?.status;
 
-      // 🌟 فحص إذا كان الحساب قيد المراجعة
       if (
         errorMsg.toLowerCase().includes('pending') || 
         errorMsg.toLowerCase().includes('not approved') || 
         errorMsg.toLowerCase().includes('inactive') ||
         statusCode === 403 
       ) {
-        // بدلاً من التوجيه، نظهر كرت الانتظار هنا
         setIsPending(true);
       } else {
         toast.error(errorMsg || 'Invalid Email or Password');
@@ -87,14 +94,11 @@ const Login = () => {
     }
   };
 
-  // ==========================================
-  // 🌟 واجهة الانتظار (تظهر إذا isPending === true)
-  // ==========================================
   if (isPending) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-[#fcfcfd] font-sans selection:bg-blue-100 overflow-hidden relative">
         <div className="absolute inset-0 z-0 pointer-events-none">
-          <div className="absolute top-[-10%] left-1/4 w-[500px] h-[500px] bg-blue-50/50 rounded-full blur-[100px] animate-pulse duration-1000"></div>
+          <div className="absolute top-[-10%] left-1/4 w-[500px] h-[500px] bg-blue-50/50 rounded-full blur-[100px] animate-pulse"></div>
           <div className="absolute bottom-[-10%] right-1/4 w-[400px] h-[400px] bg-indigo-50/30 rounded-full blur-[100px]"></div>
         </div>
 
@@ -114,10 +118,7 @@ const Login = () => {
               </div>
             </div>
 
-            <h2 className="text-2xl font-black text-slate-800 tracking-tight mb-2">
-              Account Under Review
-            </h2>
-            
+            <h2 className="text-2xl font-black text-slate-800 tracking-tight mb-2">Account Under Review</h2>
             <p className="text-sm text-slate-400 font-medium leading-relaxed px-4 mb-8">
               Your registration was successful, but your account requires <span className="text-amber-500 font-bold">Administrator approval</span> before you can access the system.
             </p>
@@ -142,10 +143,7 @@ const Login = () => {
 
             <button 
               type="button"
-              onClick={() => {
-                setIsPending(false); // إخفاء كرت الانتظار
-                setPassword(''); // تفريغ الباسوورد كإجراء أمني لطيف
-              }} 
+              onClick={() => { setIsPending(false); setPassword(''); }} 
               className="inline-flex items-center justify-center gap-2 w-full py-4 bg-white text-slate-600 border-2 border-slate-100 hover:border-[#00629B] hover:text-[#00629B] rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all group"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
@@ -157,9 +155,6 @@ const Login = () => {
     );
   }
 
-  // ==========================================
-  // 🌟 واجهة تسجيل الدخول العادية
-  // ==========================================
   return (
     <>
       {isLoading && <Loader message="Verifying Identity..." />}
@@ -180,7 +175,6 @@ const Login = () => {
 
           <div className="bg-white p-8 rounded-[2.5rem] shadow-[0_15px_40px_rgba(0,0,0,0.03)] border border-slate-50 animate-in fade-in zoom-in-95 duration-300">
             <form onSubmit={handleSubmit} className="space-y-5">
-              
               <div className="space-y-1">
                 <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
                 <input 

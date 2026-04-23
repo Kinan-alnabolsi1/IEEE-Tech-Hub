@@ -14,11 +14,11 @@ import SuperAdminDashboard from './pages/super-admin/SuperAdminDashboard';
 import BranchesIndex from './pages/super-admin/branches/components/BranchesIndex'; 
 import SocietiesIndex from './pages/super-admin/societies/components/SocietiesIndex';
 import AdminsManagement from './pages/super-admin/admins/AdminsManagement';
-import SystemReports from './pages/super-admin/reports/SystemReports';
 
 // --- Admin Pages ---
 import AdminDashboard from './pages/admin/dashboard/AdminDashboard'; // الصفحة 1
 import VolunteerMemberships from './pages/admin/volunteers/VolunteerMemberships'; // الصفحة 2
+import ChaptersIndex from './pages/admin/chapters/ChaptersIndex';
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('ieee_token');
@@ -59,7 +59,6 @@ function App() {
           <Route path="admins" element={<AdminsManagement />} />
           <Route path="branches" element={<BranchesIndex />} />
           <Route path="societies" element={<SocietiesIndex />} />
-          <Route path="reports" element={<SystemReports />} />
         </Route>
 
         {/* --- Branch Admin Panel --- */}
@@ -77,6 +76,7 @@ function App() {
           {/* الصفحة 2: إدارة العضويات والمتطوعين */}
           <Route path="volunteers" element={<VolunteerMemberships />} />
           
+          <Route path="chapters" element={<ChaptersIndex />} />
           {/* ملاحظة: باقي الصفحات (chapters, projects, reports) بنضيفهم بنفس الطريقة بس نكتب كودهم */}
         </Route>
 

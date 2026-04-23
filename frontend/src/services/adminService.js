@@ -10,8 +10,13 @@ export const adminService = {
   updateAdminStatus: (userId, newStatus) => 
     patchData(`/users/${userId}/status`, { status: newStatus }),
 
-  // 🌟 3. جلب بيانات الداشبورد (الإحصائيات والشارتات)
+  // 🌟 3. جلب بيانات الداشبورد العامة (للسوبر أدمن فقط)
   // هاد بيطابق مسار: /admin/stats
   getDashboardStats: () => 
-    getData('/admin/stats'), 
+    getData('/admin/stats'),
+
+  // 🌟 4. جلب إحصائيات فرع معين (خاص لمدير الفرع - الـ Dashboard الجديد)
+  // هاد بيطابق مسار: /branches/{branch_id}/stats
+  getBranchDashboardStats: (branchId) => 
+    getData(`/branches/${branchId}/stats`),
 };

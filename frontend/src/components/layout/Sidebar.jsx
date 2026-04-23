@@ -63,7 +63,7 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
       { name: 'Admins Control', path: '/super-admin/admins', icon: '🛡️' },
       { name: 'Global Branches', path: '/super-admin/branches', icon: '🌍' },
       { name: 'Societies Management', path: '/super-admin/societies', icon: '🧬' },
-      { name: 'Reports Monitor', path: '/super-admin/reports', icon: '📄' },
+      // { name: 'Reports Monitor', path: '/super-admin/reports', icon: '📄' },
     ],
     'admin': [
     { name: 'Branch Dashboard', path: '/admin', icon: '🏠' },            // الصفحة 1

@@ -1,15 +1,20 @@
 import { getData } from '../api/apiMethods';
 
 export const volunteerService = {
-  // جلب الملف الشخصي للمتطوع (حسب الـ ID الخاص به)
+  // جلب الملف الشخصي للمتطوع
   getProfile: (userId) => 
     getData(`/users/${userId}`),
 
-  // إذا كان المتطوع يحتاج لرؤية قائمة الفروع المتاحة للانضمام إليها
+  // جلب الفروع
   getBranches: () => 
     getData('/branches'),
 
-  // جلب الفصول (Chapters) التابعة لفرع معين
+  // جلب الفصول التابعة لفرع
   getChapters: (branchId) => 
     getData(`/chapters?branch_id=${branchId}`),
-};  
+
+  // 🌟 الدالة الجديدة والمهمة لإدارة الأعضاء:
+  // جلب كل المستخدمين اللي بفرع معين (عشان نختار منهم أعضاء للشابتر)
+  getByBranch: (branchId) => 
+    getData(`/branches/${branchId}/volunteers`), 
+};
