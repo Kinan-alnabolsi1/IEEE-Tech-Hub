@@ -41,7 +41,7 @@ class UserController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
-            'status' => 'required|in:Pending,Active,Suspended,Rejected'
+            'status' => 'required|in:Pending,Active,Suspended'
         ]);
 
         $user = User::findOrFail($id);
