@@ -106,4 +106,19 @@ class ChapterController extends Controller
             'data' => $chapter
         ]);
     }
+
+    // 9. حذف فصل (Delete Chapter)
+    public function destroy($chapterId) {
+        $chapter = Chapter::findOrFail($chapterId);
+        
+        // 🚨 ملاحظة هندسية: بفضل الـ onDelete('cascade') في قاعدة البيانات، 
+        // سيتم تلقائياً حذف:
+        // 1. ارتباطات الأعضاء في جدول (chapter_user)
+        // 2. المشاريع التابعة لهذا الفصل في جدول (projects)
+        $chapter->delete();
+
+        return response()->json([
+            'message' => 'Chapter deleted successfully. All associated members and projects have been cleaned up.'
+        ]);
+    }
 }

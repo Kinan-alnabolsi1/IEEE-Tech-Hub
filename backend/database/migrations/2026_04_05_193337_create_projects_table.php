@@ -29,6 +29,7 @@ return new class extends Migration
 
             $table->foreign('leader_id')->references('user_id')->on('users')->onDelete('set null');
             $table->foreign('approved_by')->references('user_id')->on('users')->onDelete('set null');
+            $table->foreign('chapter_id')->references('chapter_id')->on('chapters')->onDelete('cascade');
         });
     }
 

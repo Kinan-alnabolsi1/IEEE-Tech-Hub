@@ -67,6 +67,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/chapters/{chapter_id}', [ChapterController::class, 'show']);
         Route::patch('/chapters/{chapter_id}/assign-chair', [ChapterController::class, 'assignChair']);
         Route::post('/chapters/{chapter_id}/members', [ChapterController::class, 'addMember']);
+        Route::delete('/chapters/{chapter_id}', [ChapterController::class, 'destroy']);
         Route::delete('/chapters/{chapter_id}/members/{user_id}', [ChapterController::class, 'removeMember']);
 
         // إدارة طلبات الانضمام للفرع
