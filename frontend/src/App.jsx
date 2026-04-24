@@ -19,6 +19,7 @@ import AdminsManagement from './pages/super-admin/admins/AdminsManagement';
 import AdminDashboard from './pages/admin/dashboard/AdminDashboard'; // الصفحة 1
 import VolunteerMemberships from './pages/admin/volunteers/VolunteerMemberships'; // الصفحة 2
 import ChaptersIndex from './pages/admin/chapters/ChaptersIndex';
+import ProjectsIndex from './pages/admin/projects/ProjectsIndex';
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('ieee_token');
@@ -77,6 +78,7 @@ function App() {
           <Route path="volunteers" element={<VolunteerMemberships />} />
           
           <Route path="chapters" element={<ChaptersIndex />} />
+          <Route path="projects" element={<ProjectsIndex />} />
           {/* ملاحظة: باقي الصفحات (chapters, projects, reports) بنضيفهم بنفس الطريقة بس نكتب كودهم */}
         </Route>
 

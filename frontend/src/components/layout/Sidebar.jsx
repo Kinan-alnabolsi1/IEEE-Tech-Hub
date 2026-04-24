@@ -70,7 +70,7 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
     { name: 'Volunteer Members', path: '/admin/volunteers', icon: '👥' }, // الصفحة 2
     { name: 'Technical Chapters', path: '/admin/chapters', icon: '⚙️' },  // الصفحة 3
     { name: 'Project Approvals', path: '/admin/projects', icon: '🚀' },  // الصفحة 4
-    { name: 'Branch Reports', path: '/admin/reports', icon: '📝' },      // الصفحة 5
+    // { name: 'Branch Reports', path: '/admin/reports', icon: '📝' },      // الصفحة 5
   ],
     'volunteer': [
       { name: 'My Tasks', path: '/admin', icon: '📋' },
