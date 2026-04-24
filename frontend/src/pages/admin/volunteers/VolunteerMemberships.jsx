@@ -19,6 +19,7 @@ const VolunteerMemberships = () => {
       setData(response.data?.data || response.data || []);
     } catch (err) {
       toast.error("Error fetching data from server");
+      console.log(err);
     } finally {
       setLoading(false);
     }

@@ -38,20 +38,25 @@ const ChapterTable = ({ chapters, onEdit, onDelete, onToggleStatus, onManageMemb
             const chapterId = chapter.chapter_id || chapter.id;
             
             return (
-              <tr key={chapterId || Math.random()} className="hover:bg-blue-50/30 transition-all duration-300 group">
+              <tr
+                key={chapterId || Math.random()}
+                className="hover:bg-blue-50/30 transition-all duration-300 group"
+              >
                 {/* اسم الفصل */}
                 <td className="px-8 py-6">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center text-[#00629B] font-black text-sm border border-blue-100/50 group-hover:scale-110 transition-transform">
-                      {chapter.name?.charAt(0) || 'C'}
+                      {chapter.name?.charAt(0) || "C"}
                     </div>
                     <div className="flex flex-col">
                       <span className="text-sm font-black text-slate-800 italic uppercase tracking-tight">
-                        {chapter.name || 'Unnamed Chapter'}
+                        {chapter.name || "Unnamed Chapter"}
                       </span>
                       <div className="flex items-center gap-1 mt-0.5">
-                         <Info className="w-3 h-3 text-slate-300" />
-                         <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none">Technical Chapter</span>
+                        <Info className="w-3 h-3 text-slate-300" />
+                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none">
+                          Technical Chapter
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -61,7 +66,9 @@ const ChapterTable = ({ chapters, onEdit, onDelete, onToggleStatus, onManageMemb
                 <td className="px-6 py-6">
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-xl border border-slate-200/50">
                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
-                      {chapter.society?.abbreviation || chapter.society?.name || 'IEEE SOCIETY'}
+                      {chapter.society?.abbreviation ||
+                        chapter.society?.name ||
+                        "IEEE SOCIETY"}
                     </span>
                   </div>
                 </td>
@@ -71,42 +78,52 @@ const ChapterTable = ({ chapters, onEdit, onDelete, onToggleStatus, onManageMemb
                   {chapter.chair ? (
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full bg-[#00629B] text-white flex items-center justify-center font-black text-[10px] shadow-lg shadow-blue-900/10 uppercase border-2 border-white">
-                        {(chapter.chair.full_name || chapter.chair.name)?.charAt(0)}
+                        {(
+                          chapter.chair.full_name || chapter.chair.name
+                        )?.charAt(0)}
                       </div>
                       <div className="flex flex-col">
-                         <span className="text-xs font-black text-slate-700 capitalize">{chapter.chair.full_name || chapter.chair.name}</span>
-                         <span className="text-[9px] text-slate-400 font-bold italic">Chapter Lead</span>
+                        <span className="text-xs font-black text-slate-700 capitalize">
+                          {chapter.chair.full_name || chapter.chair.name}
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-bold italic">
+                          Chapter Lead
+                        </span>
                       </div>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 text-slate-300 italic">
-                       <UserPlus className="w-4 h-4 opacity-30" />
-                       <span className="text-[10px] font-bold uppercase tracking-tighter">No Chair Assigned</span>
+                      <UserPlus className="w-4 h-4 opacity-30" />
+                      <span className="text-[10px] font-bold uppercase tracking-tighter">
+                        No Chair Assigned
+                      </span>
                     </div>
                   )}
                 </td>
 
                 {/* الحالة (Toggle) */}
                 <td className="px-6 py-6 text-center">
-                   <button 
-                    onClick={() => onToggleStatus && onToggleStatus(chapter)} 
+                  <button
+                    onClick={() => onToggleStatus && onToggleStatus(chapter)}
                     className="focus:outline-none transition-transform active:scale-90"
                     title={isActive ? "Deactivate Chapter" : "Activate Chapter"}
-                   >
-                      {isActive ? (
-                        <ToggleRight className="w-7 h-7 text-emerald-500 drop-shadow-sm" />
-                      ) : (
-                        <ToggleLeft className="w-7 h-7 text-slate-200" />
-                      )}
-                   </button>
+                  >
+                    {isActive ? (
+                      <ToggleRight className="w-7 h-7 text-emerald-500 drop-shadow-sm" />
+                    ) : (
+                      <ToggleLeft className="w-7 h-7 text-slate-200" />
+                    )}
+                  </button>
                 </td>
 
                 {/* الأكشنز */}
                 <td className="px-8 py-6">
                   <div className="flex justify-end items-center gap-3">
                     {/* إدارة الأعضاء */}
-                    <button 
-                      onClick={() => onManageMembers && onManageMembers(chapter)}
+                    <button
+                      onClick={() =>
+                        onManageMembers && onManageMembers(chapter)
+                      }
                       className="p-3 bg-white text-slate-400 hover:text-[#00629B] hover:bg-blue-50 border border-slate-100 rounded-2xl transition-all shadow-sm group/btn"
                       title="Manage Members"
                     >
@@ -114,7 +131,7 @@ const ChapterTable = ({ chapters, onEdit, onDelete, onToggleStatus, onManageMemb
                     </button>
 
                     {/* تعديل */}
-                    <button 
+                    <button
                       onClick={() => onEdit && onEdit(chapter)}
                       className="p-3 bg-white text-slate-400 hover:text-amber-500 hover:bg-amber-50 border border-slate-100 rounded-2xl transition-all shadow-sm"
                       title="Edit Settings"
@@ -123,8 +140,8 @@ const ChapterTable = ({ chapters, onEdit, onDelete, onToggleStatus, onManageMemb
                     </button>
 
                     {/* حذف */}
-                    <button 
-                      onClick={() => onDelete && onDelete(chapterId)}
+                    <button
+                      onClick={() => onDelete(chapter.chapter_id)}
                       className="p-3 bg-white text-slate-400 hover:text-red-500 hover:bg-red-50 border border-slate-100 rounded-2xl transition-all shadow-sm"
                       title="Delete Chapter"
                     >

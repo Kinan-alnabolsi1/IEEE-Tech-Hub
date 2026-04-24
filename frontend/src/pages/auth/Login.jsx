@@ -36,7 +36,7 @@ const Login = () => {
       });
       
       const data = response.data;
-      
+      console.log(data, "data");
       if (data.access_token) {
         // 🌟 1. تخزين التوكن
         localStorage.setItem('ieee_token', data.access_token);
@@ -48,6 +48,7 @@ const Login = () => {
             // 🌟 3. تخزين الـ branch_id بشكل صريح لحل مشكلة الداشبورد
             // حاولنا نلقطه بأكثر من اسم حسب شو ممكن يبعت الباك إند
             const bId = data.user.branch_id || data.user.branch?.id;
+            console.log(bId, "bId");
             if (bId) {
                 localStorage.setItem('branch_id', bId);
             }

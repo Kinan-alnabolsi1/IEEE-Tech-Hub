@@ -51,6 +51,16 @@ const ChaptersIndex = () => {
       toast.error("Failed to update status");
     }
   };
+  
+  const handleDelete = async (chapterId) => {
+    try {
+      await chapterService.delete(chapterId);
+      toast.success("Chapter deleted successfully");
+      fetchData(); // 🔥 إعادة تحميل البيانات بعد الحذف
+    } catch (err) {
+      toast.error("Failed to delete chapter");
+    }
+  };
 
   useEffect(() => { if (branchId) fetchData(); }, [branchId]);
 
@@ -59,7 +69,6 @@ const ChaptersIndex = () => {
       {loading && <Loader message="Loading Chapters..." />}
 
       <div className="p-4 md:p-8 space-y-10 animate-in fade-in duration-700 max-w-[1600px] mx-auto">
-        
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div>
@@ -71,8 +80,11 @@ const ChaptersIndex = () => {
             </p>
           </div>
 
-          <button 
-            onClick={() => { setSelectedChapter(null); setIsModalOpen(true); }}
+          <button
+            onClick={() => {
+              setSelectedChapter(null);
+              setIsModalOpen(true);
+            }}
             className="w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-4 bg-[#00629B] text-white rounded-[1.5rem] md:rounded-[2rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-lg hover:bg-[#004a75] transition-all active:scale-95"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
@@ -83,15 +95,18 @@ const ChaptersIndex = () => {
         {/* Table Section */}
         {!loading && (
           <div className="w-full overflow-hidden">
-            <ChapterTable 
-              chapters={chapters} 
-              onEdit={(c) => { setSelectedChapter(c); setIsModalOpen(true); }}
-              onDelete={fetchData}
+            <ChapterTable
+              chapters={chapters}
+              onEdit={(c) => {
+                setSelectedChapter(c);
+                setIsModalOpen(true);
+              }}
+              onDelete={handleDelete}
               onToggleStatus={handleToggleStatus}
               // 🌟 ربط زر إدارة الأعضاء بفتح المودال الجديد
-              onManageMembers={(c) => { 
-                setSelectedChapter(c); 
-                setIsMembersModalOpen(true); 
+              onManageMembers={(c) => {
+                setSelectedChapter(c);
+                setIsMembersModalOpen(true);
               }}
             />
           </div>
@@ -99,7 +114,7 @@ const ChaptersIndex = () => {
 
         {/* 1. مودال إضافة/تعديل الفصل */}
         {isModalOpen && (
-          <ChapterModal 
+          <ChapterModal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
             chapter={selectedChapter}
@@ -111,7 +126,7 @@ const ChaptersIndex = () => {
 
         {/* 🌟 2. مودال إدارة أعضاء الفصل الجديد */}
         {isMembersModalOpen && (
-          <MemberManagementModal 
+          <MemberManagementModal
             isOpen={isMembersModalOpen}
             onClose={() => setIsMembersModalOpen(false)}
             chapter={selectedChapter}
