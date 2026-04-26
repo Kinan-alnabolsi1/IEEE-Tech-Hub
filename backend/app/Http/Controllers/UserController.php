@@ -40,46 +40,50 @@ class UserController extends Controller
      */
     public function updateStatus(Request $request, $id)
     {
-        $request->validate([
-            'status' => 'required|in:Pending,Active,Suspended'
+        $targetUser = \App\Models\User::findOrFail($id);
+        $currentUser = $request->user();
+
+        // 🛡️ منطق الصلاحيات (Authorization Logic)
+
+        // 1. إذا كان المستخدم الحالي هو السوبر أدمن:
+        // له الصلاحية المطلقة لتعديل أي مستخدم (وخصوصاً مدراء الفروع)
+        if ($currentUser->role === 'Super Admin') {
+            // يمر بدون أي قيود
+        } 
+        
+        // 2. إذا كان المستخدم الحالي هو مدير فرع (Branch Admin):
+        elseif ($currentUser->role === 'Branch Admin') {
+            // الشرط الأول: يجب أن يكون المستخدم الهدف في نفس فرع المدير
+            $isSameBranch = $targetUser->branch_id === $currentUser->branch_id;
+            
+            // الشرط الثاني: يمنع منعاً باتاً التعديل على أي Super Admin
+            $isNotSuperAdmin = $targetUser->role !== 'Super Admin';
+
+            if (!$isSameBranch || !$isNotSuperAdmin) {
+                return response()->json([
+                    'message' => 'Unauthorized action. You can only manage users within your own branch, and you cannot modify Super Admins.'
+                ], 403);
+            }
+        } 
+        
+        // 3. أي دور آخر يحاول الوصول لهذا المسار (مثل المتطوعين): يتم طرده فوراً
+        else {
+            return response()->json([
+                'message' => 'Unauthorized action.'
+            ], 403);
+        }
+
+        // ✅ التحقق من صحة البيانات المرسلة (الـ Status)
+        $validated = $request->validate([
+            'status' => 'required|in:Pending,Active,Suspended,Rejected'
         ]);
 
-        $user = User::findOrFail($id);
-        
-        // التحقق من الصلاحيات (السوبر أدمن فقط هو من يوافق على مدراء الفروع)
-        if ($request->user()->role !== 'Super Admin') {
-            return response()->json(['message' => 'Unauthorized action.'], 403);
-        }
-
-        // تحديث حالة المستخدم
-        $user->update(['status' => $request->status]);
-
-        $roleMessage = '';
-
-        // 🔥 السحر هنا: إذا كان المستخدم مدير فرع، وتمت الموافقة عليه (Active) 🔥
-        if ($user->role === 'Branch Admin' && $request->status === 'Active') {
-            
-            // نجلب الفرع اللي هو سجل فيه
-            $branch = \App\Models\Branch::find($user->branch_id);
-            
-            if ($branch) {
-                // نربط الفرع بهذا المدير رسمياً
-                $branch->update(['admin_id' => $user->user_id]);
-                $roleMessage = " They are now officially the Admin of branch: {$branch->name}.";
-            }
-        }
-        
-        // (اختياري) إذا تم إيقاف المدير، نفك الربط من الفرع
-        if ($user->role === 'Branch Admin' && in_array($request->status, ['Suspended', 'Rejected'])) {
-             $branch = \App\Models\Branch::find($user->branch_id);
-             if ($branch && $branch->admin_id === $user->user_id) {
-                 $branch->update(['admin_id' => null]);
-             }
-        }
+        // تحديث الحالة
+        $targetUser->update($validated);
 
         return response()->json([
-            'message' => "User status updated to {$request->status} successfully." . $roleMessage,
-            'data' => $user
+            'message' => "User status updated to {$validated['status']} successfully",
+            'data' => $targetUser
         ]);
     }
     

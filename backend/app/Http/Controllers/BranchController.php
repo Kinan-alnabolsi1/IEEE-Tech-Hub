@@ -265,4 +265,38 @@ class BranchController extends Controller
             ]
         ]);
     }
+
+    /**
+     * جلب جميع المتطوعين التابعين لفرع محدد (مع إمكانية الفلترة حسب الحالة)
+     * GET /api/branches/{branch_id}/volunteers?status=Active
+     */
+    public function getVolunteers(Request $request, $branchId)
+    {
+        $branch = Branch::findOrFail($branchId);
+
+        // 🛡️ الحماية الأمنية: السوبر أدمن أو مدير هذا الفرع فقط
+        if ($request->user()->role !== 'Super Admin' && $request->user()->branch_id !== $branch->branch_id) {
+            return response()->json(['message' => 'Unauthorized to view these volunteers.'], 403);
+        }
+
+        // 1. بناء الاستعلام لجلب المتطوعين في هذا الفرع فقط
+        $query = \App\Models\User::where('branch_id', $branchId)
+                                    ->where('role', 'Volunteer');
+
+        // 2. فلتر اختياري: إذا أرسل الفرونت إند حالة معينة في الرابط
+        if ($request->has('status')) {
+            $validStatuses = ['Pending', 'Active', 'Suspended', 'Rejected'];
+            if (in_array($request->status, $validStatuses)) {
+                $query->where('status', $request->status);
+            }
+        }
+
+        // 3. تنفيذ الاستعلام وجلب البيانات (مرتبة من الأحدث للأقدم)
+        $volunteers = $query->latest()->get();
+
+        return response()->json([
+            'message' => 'Volunteers retrieved successfully',
+            'data' => $volunteers
+        ]);
+    }
 }

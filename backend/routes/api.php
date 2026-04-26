@@ -70,6 +70,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/chapters/{chapter_id}', [ChapterController::class, 'destroy']);
         Route::delete('/chapters/{chapter_id}/members/{user_id}', [ChapterController::class, 'removeMember']);
 
+        // جلب متطوعي الفرع (مع دعم الفلترة)
+        Route::get('/branches/{branch_id}/volunteers', [BranchController::class, 'getVolunteers']);
+
         // إدارة طلبات الانضمام للفرع
         Route::get('/branches/{branch}/memberships/pending', [BranchController::class, 'getPendingMemberships']);
         Route::patch('/memberships/{membership}/approve', [BranchController::class, 'approveMembership']);
