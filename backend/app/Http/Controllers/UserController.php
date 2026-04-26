@@ -43,20 +43,12 @@ class UserController extends Controller
         $targetUser = \App\Models\User::findOrFail($id);
         $currentUser = $request->user();
 
-        // 🛡️ منطق الصلاحيات (Authorization Logic)
-
-        // 1. إذا كان المستخدم الحالي هو السوبر أدمن:
-        // له الصلاحية المطلقة لتعديل أي مستخدم (وخصوصاً مدراء الفروع)
+        // 🛡️ 1. منطق الصلاحيات (Authorization Logic)
         if ($currentUser->role === 'Super Admin') {
-            // يمر بدون أي قيود
-        } 
-        
-        // 2. إذا كان المستخدم الحالي هو مدير فرع (Branch Admin):
-        elseif ($currentUser->role === 'Branch Admin') {
-            // الشرط الأول: يجب أن يكون المستخدم الهدف في نفس فرع المدير
+            // السوبر أدمن يمر بدون أي قيود
+        } elseif ($currentUser->role === 'Branch Admin') {
+            // مدير الفرع: مسموح له فقط التعديل على أعضاء فرعه، وممنوع يعدل على أي Super Admin
             $isSameBranch = $targetUser->branch_id === $currentUser->branch_id;
-            
-            // الشرط الثاني: يمنع منعاً باتاً التعديل على أي Super Admin
             $isNotSuperAdmin = $targetUser->role !== 'Super Admin';
 
             if (!$isSameBranch || !$isNotSuperAdmin) {
@@ -64,26 +56,43 @@ class UserController extends Controller
                     'message' => 'Unauthorized action. You can only manage users within your own branch, and you cannot modify Super Admins.'
                 ], 403);
             }
-        } 
-        
-        // 3. أي دور آخر يحاول الوصول لهذا المسار (مثل المتطوعين): يتم طرده فوراً
-        else {
-            return response()->json([
-                'message' => 'Unauthorized action.'
-            ], 403);
+        } else {
+            // طرد أي دور آخر (متطوعين الخ)
+            return response()->json(['message' => 'Unauthorized action.'], 403);
         }
 
-        // ✅ التحقق من صحة البيانات المرسلة (الـ Status)
+        // ✅ 2. التحقق من صحة البيانات
         $validated = $request->validate([
             'status' => 'required|in:Pending,Active,Suspended,Rejected'
         ]);
 
-        // تحديث الحالة
+        // 🔄 3. تحديث حالة المستخدم
         $targetUser->update($validated);
 
+        $roleMessage = '';
+
+        // 🔥 4. السحر هنا: ربط وفك ربط مدير الفرع بجدول الفروع 🔥
+        if ($targetUser->role === 'Branch Admin') {
+            $branch = \App\Models\Branch::find($targetUser->branch_id);
+            
+            if ($branch) {
+                if ($validated['status'] === 'Active') {
+                    // نربط الفرع بهذا المدير رسمياً
+                    $branch->update(['admin_id' => $targetUser->user_id]);
+                    $roleMessage = " They are now officially the Admin of branch: {$branch->name}.";
+                } elseif (in_array($validated['status'], ['Suspended', 'Rejected'])) {
+                    // نفك الارتباط إذا تم رفضه أو إيقافه (فقط إذا كان هو المدير الحالي)
+                    if ($branch->admin_id === $targetUser->user_id) {
+                        $branch->update(['admin_id' => null]);
+                        $roleMessage = " They have been removed as the Admin of branch: {$branch->name}.";
+                    }
+                }
+            }
+        }
+
         return response()->json([
-            'message' => "User status updated to {$validated['status']} successfully",
-            'data' => $targetUser
+            'message' => "User status updated to {$validated['status']} successfully." . $roleMessage,
+            'data' => $targetUser->load('branch') // نرجع بيانات الفرع للتأكيد للـ Frontend
         ]);
     }
     

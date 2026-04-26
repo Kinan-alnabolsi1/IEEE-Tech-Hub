@@ -78,6 +78,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/memberships/{membership}/approve', [BranchController::class, 'approveMembership']);
 
         Route::get('/branches/{branch_id}/stats', [BranchController::class, 'getStats']);
+
+        Route::get('/branches/{branch_id}/projects', [ProjectController::class, 'getBranchProjects']);
+        Route::patch('/projects/{project}/status', [ProjectController::class, 'updateStatus']);
     });
 
 
@@ -85,6 +88,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:Super Admin,Branch Admin,Chapter Chair')->group(function () {
         // إدارة المشاريع الأساسية (موافقة عليها أو تعديلها)
         Route::apiResource('projects', ProjectController::class)->except(['index', 'show']);
+
     });
 
 
