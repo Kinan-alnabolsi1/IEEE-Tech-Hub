@@ -69,6 +69,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/chapters/{chapter_id}/members', [ChapterController::class, 'addMember']);
         Route::delete('/chapters/{chapter_id}', [ChapterController::class, 'destroy']);
         Route::delete('/chapters/{chapter_id}/members/{user_id}', [ChapterController::class, 'removeMember']);
+        // عزل رئيس الفصل فقط (يبقى عضواً)
+        Route::delete('/chapters/{chapter_id}/chair', [ChapterController::class, 'removeChair']);
 
         // جلب متطوعي الفرع (مع دعم الفلترة)
         Route::get('/branches/{branch_id}/volunteers', [BranchController::class, 'getVolunteers']);

@@ -64,11 +64,26 @@ class ChapterController extends Controller
     }
 
     // 6. إزالة متطوع من الفصل
-    public function removeMember($chapterId, $userId) {
+    /**
+     * إزالة عضو من الفصل (مع التحقق من منصبه كرئيس)
+     * DELETE /api/chapters/{chapter_id}/members/{user_id}
+     */
+    public function removeMember($chapterId, $userId)
+    {
         $chapter = Chapter::findOrFail($chapterId);
+
+        // 1. إزالة العضو من الجدول الوسيط (Pivot Table)
         $chapter->members()->detach($userId);
 
-        return response()->json(['message' => 'Member removed from chapter']);
+        // 2. التحقق: إذا كان العضو المحذوف هو الـ Chair الحالي للفصل
+        if ($chapter->chair_id == $userId) {
+            $chapter->update(['chair_id' => null]);
+            $message = "Member removed from chapter and chairmanship has been vacated.";
+        } else {
+            $message = "Member removed from chapter.";
+        }
+
+        return response()->json(['message' => $message]);
     }
 
     // 7. جلب جميع الفصول في النظام (ممتازة للـ Super Admin)
@@ -119,6 +134,26 @@ class ChapterController extends Controller
 
         return response()->json([
             'message' => 'Chapter deleted successfully. All associated members and projects have been cleaned up.'
+        ]);
+    }
+
+    /**
+     * عزل رئيس الفصل (يبقى عضواً عادياً)
+     * DELETE /api/chapters/{chapter_id}/chair
+     */
+    public function removeChair($chapterId)
+    {
+        $chapter = Chapter::findOrFail($chapterId);
+
+        if (!$chapter->chair_id) {
+            return response()->json(['message' => 'This chapter already has no chair.'], 400);
+        }
+
+        // تصفير حقل الرئيس فقط
+        $chapter->update(['chair_id' => null]);
+
+        return response()->json([
+            'message' => 'Chairmanship removed successfully. The user is still a member of the chapter.'
         ]);
     }
 }
