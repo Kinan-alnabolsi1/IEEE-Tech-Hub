@@ -21,6 +21,10 @@ export const chapterService = {
   assignChair: (chapterId, userId) =>
     patchData(`/chapters/${chapterId}/assign-chair`, { user_id: userId }),
 
+  // 🌟 دالة عزل رئيس الفصل (جديد)
+  removeChair: (chapterId) => 
+    deleteData(`/chapters/${chapterId}/chair`),
+
   // 7. إضافة متطوع للفصل
   addMember: (chapterId, userId, role = "Member") =>
     postData(`/chapters/${chapterId}/members`, {

@@ -126,7 +126,7 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
 
         <div className="p-4 border-t border-white/10 bg-black/5 shrink-0">
           <div className="bg-blue-900/30 px-4 py-3 rounded-2xl border border-white/5 mb-3 flex items-center justify-between shadow-inner">
-            <div className="flex flex-col overflow-hidden">
+            <div className="flex flex-col ">
               <p className="text-[8px] font-black text-blue-300 uppercase tracking-widest leading-none mb-1">Active</p>
               <p className="text-[10px] text-white font-bold truncate italic">
                 {user?.name || localStorage.getItem('user_name') || 'Member'}

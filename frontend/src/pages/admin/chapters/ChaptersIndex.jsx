@@ -32,6 +32,7 @@ const ChaptersIndex = () => {
       setSocieties(societiesRes.data?.data || societiesRes.data || []);
 
     } catch (err) {
+      console.error(err);
       toast.error("Error syncing data");
     } finally {
       setLoading(false);
@@ -48,6 +49,7 @@ const ChaptersIndex = () => {
       ));
       toast.success(`Chapter is now ${newStatus}`);
     } catch (err) {
+      console.error(err);
       toast.error("Failed to update status");
     }
   };
@@ -58,6 +60,7 @@ const ChaptersIndex = () => {
       toast.success("Chapter deleted successfully");
       fetchData(); // 🔥 إعادة تحميل البيانات بعد الحذف
     } catch (err) {
+      console.error(err);
       toast.error("Failed to delete chapter");
     }
   };
@@ -94,7 +97,7 @@ const ChaptersIndex = () => {
 
         {/* Table Section */}
         {!loading && (
-          <div className="w-full overflow-hidden">
+          <div className="w-full">
             <ChapterTable
               chapters={chapters}
               onEdit={(c) => {
@@ -130,6 +133,7 @@ const ChaptersIndex = () => {
             isOpen={isMembersModalOpen}
             onClose={() => setIsMembersModalOpen(false)}
             chapter={selectedChapter}
+            onSuccess={fetchData}
           />
         )}
       </div>

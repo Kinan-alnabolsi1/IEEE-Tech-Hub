@@ -33,13 +33,15 @@ const ChapterTable = ({ chapters, onEdit, onDelete, onToggleStatus, onManageMemb
         </thead>
         <tbody className="divide-y divide-slate-50">
           {/* 🌟 حماية ثانية: استخدام && لضمان أننا لن نقوم بعمل map على شيء ليس مصفوفة */}
-          {Array.isArray(chapters) && chapters.map((chapter) => {
+          {/* 🌟 Added 'index' as the second argument to map */}
+          {Array.isArray(chapters) && chapters.map((chapter, index) => {
             const isActive = chapter.status?.toLowerCase() === 'active';
             const chapterId = chapter.chapter_id || chapter.id;
             
             return (
               <tr
-                key={chapterId || Math.random()}
+                // 🌟 Use the index as a safe fallback instead of Math.random()
+                key={chapterId || `chapter-row-${index}`} 
                 className="hover:bg-blue-50/30 transition-all duration-300 group"
               >
                 {/* اسم الفصل */}
@@ -111,7 +113,7 @@ const ChapterTable = ({ chapters, onEdit, onDelete, onToggleStatus, onManageMemb
                     {isActive ? (
                       <ToggleRight className="w-7 h-7 text-emerald-500 drop-shadow-sm" />
                     ) : (
-                      <ToggleLeft className="w-7 h-7 text-slate-200" />
+                      <ToggleLeft className="w-7 h-7 text-rose-500 drop-shadow-sm " />
                     )}
                   </button>
                 </td>

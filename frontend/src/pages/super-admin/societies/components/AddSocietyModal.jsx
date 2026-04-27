@@ -144,8 +144,10 @@ const AddSocietyModal = ({ isOpen, onClose, onAdd, existingSocieties = [] }) => 
 
               {isTypeOpen && (
                 <>
+                
                   <div className="fixed inset-0 z-30" onClick={() => setIsTypeOpen(false)}></div>
-                  <div className="absolute z-40 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] py-2 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                  
+                  <div className="absolute z-40 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] py-2  animate-in fade-in zoom-in-95 duration-200">
                     {['Technical', 'Affinity Group', 'Administrative'].map((type) => (
                       <button
                         key={type}

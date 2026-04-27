@@ -17,7 +17,7 @@ const BaseModal = ({ isOpen, onClose, title, subtitle, children }) => {
         onClick={onClose} 
       />
       <div 
-        className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300"
+        className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl relative z-10 animate-in zoom-in-95 duration-300"
         onClick={(e) => e.stopPropagation()} 
       >
         <div className="px-8 py-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">

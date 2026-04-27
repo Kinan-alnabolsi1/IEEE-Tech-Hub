@@ -17,7 +17,7 @@ const Navbar = ({ toggleSidebar, role, user }) => {
           </svg>
         </button>
         
-        <div className="flex flex-col overflow-hidden text-left">
+        <div className="flex flex-col text-left"> 
           <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] leading-none mb-1">IEEE Management</span>
           <h1 className="text-sm font-bold text-slate-700 whitespace-nowrap">
             {role === 'super_admin' ? 'Root Administration' : 'Branch Dashboard'}

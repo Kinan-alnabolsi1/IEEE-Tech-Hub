@@ -1,58 +1,60 @@
 // src/pages/admin/projects/ProjectsIndex.jsx
 import React, { useState, useEffect } from 'react';
 import { projectService } from '../../../services/projectService';
-import { Activity } from 'lucide-react';
-import ProjectsTable from './ProjectsTable';
-import ProjectDetailsModal from './ProjectDetailsModal';
+import { Activity, Loader2 } from 'lucide-react'; // 🌟 ضفنا الـ Loader2 هون
+import ProjectsTable from './ProjectsTable'; // تأكدي من المسار إذا كان جوات فولدر components
+import ProjectDetailsModal from './ProjectDetailsModal'; 
 import toast from 'react-hot-toast';
 
 const ProjectsIndex = () => {
   const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // 🌟 هلق استخدمناه بالأسفل
   const [selectedProject, setSelectedProject] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // جلب الـ branch_id من اللوكال ستوريج
   const branchId = localStorage.getItem('branch_id');
 
-  // داتا وهمية (Mock Data) للتجريب حتى يجهز الباك إند
-  const mockProjects = [
-    { project_id: 1, name: "AI Hackathon 2026", chapter_name: "Computer Society", leader_name: "Ahmad Ali", status: "Pending Approval", start_date: "Oct 10", end_date: "Oct 12", description: "A 48-hour hackathon focusing on AI solutions for branch members." },
-    { project_id: 2, name: "Robotics Workshop", chapter_name: "RAS", leader_name: "Lina Omar", status: "Ongoing", start_date: "Sep 01", end_date: "Oct 30", description: "Weekly sessions to build a line-follower robot." },
-    { project_id: 3, name: "Women in Tech Panel", chapter_name: "WIE", leader_name: "Shahd", status: "Completed", start_date: "Aug 15", end_date: "Aug 15", description: "Discussion panel with industry leaders." },
-  ];
-
   const fetchProjects = async () => {
+    if (!branchId) return;
     try {
       setLoading(true);
-      // محاولة الجلب من الباك إند
       const res = await projectService.getByBranch(branchId);
+      // استخراج مصفوفة المشاريع
       setProjects(res.data?.data || res.data || []);
     } catch (err) {
-      // 🌟 بمجرد أن يجهز الباك إند، احذفي هذا الـ Catch واستخدمي toast.error فقط
-      console.warn("API not ready, using Mock Data");
-      setProjects(mockProjects);
+      toast.error("Failed to fetch projects from server");
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { if (branchId) fetchProjects(); }, [branchId]);
+  useEffect(() => { 
+    fetchProjects(); 
+  }, [branchId]);
 
+  // 🌟 دالة الموافقة الحقيقية
   const handleApprove = async (projectId) => {
     try {
-      // await projectService.approve(projectId); // نفعلها عند جهوزية الـ API
-      setProjects(prev => prev.map(p => p.project_id === projectId ? { ...p, status: 'Ongoing' } : p));
+      await projectService.updateStatus(projectId, 'Ongoing'); 
       toast.success("Project Approved Successfully");
-    } catch (err) { toast.error("Failed to approve"); }
+      fetchProjects(); // تحديث الجدول فوراً
+    } catch (err) { 
+      toast.error(err.response?.data?.message || "Failed to approve project"); 
+    }
   };
 
+  // 🌟 دالة الرفض الحقيقية
   const handleReject = async (projectId) => {
     if (!window.confirm("Are you sure you want to reject this project?")) return;
     try {
-      // await projectService.reject(projectId, "Admin decision"); // نفعلها لاحقاً
-      setProjects(prev => prev.map(p => p.project_id === projectId ? { ...p, status: 'Rejected' } : p));
+      await projectService.updateStatus(projectId, 'Rejected');
       toast.success("Project Rejected");
-    } catch (err) { toast.error("Failed to reject"); }
+      fetchProjects(); // تحديث الجدول فوراً
+    } catch (err) { 
+      toast.error(err.response?.data?.message || "Failed to reject project"); 
+    }
   };
 
   return (
@@ -70,13 +72,22 @@ const ProjectsIndex = () => {
         </div>
       </div>
 
-      {/* Table */}
-      <ProjectsTable 
-        projects={projects}
-        onView={(p) => { setSelectedProject(p); setIsModalOpen(true); }}
-        onApprove={handleApprove}
-        onReject={handleReject}
-      />
+      {/* 🌟 Table & Loader (استخدمنا loading هون ليختفي الخط الأحمر ويعطي UI احترافي) */}
+      <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 min-h-[400px]">
+        {loading ? (
+          <div className="flex flex-col justify-center items-center py-40 space-y-4">
+            <Loader2 className="animate-spin text-[#00629B]" size={40} />
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Syncing Projects...</span>
+          </div>
+        ) : (
+          <ProjectsTable 
+            projects={projects}
+            onView={(p) => { setSelectedProject(p); setIsModalOpen(true); }}
+            onApprove={handleApprove}
+            onReject={handleReject}
+          />
+        )}
+      </div>
 
       {/* Modal */}
       <ProjectDetailsModal 
