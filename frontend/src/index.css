@@ -1,11 +1,1 @@
 @import "tailwindcss";
-
-/* حل مشكلة الفراغ بين الزر والمنيو اللي بيخليها تختفي */
-.group:hover .group-hover\:block {
-    display: block !important;
-}
-
-/* تأكدي إن الجدول ما عم يعمل سكرول داخلي بيقص القوائم */
-.no-scrollbar-table {
-    overflow: visible !important;
-}

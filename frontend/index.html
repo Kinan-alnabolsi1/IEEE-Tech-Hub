@@ -5,6 +5,24 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>junior</title>
+    <style>
+  /* إجبار السكرول على العمل مهما كانت الظروف */
+  html, body {
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    /* إزالة أي قيود قد تأتي من مكتبات خارجية */
+    position: static !important; 
+    display: block !important;
+  }
+
+  #root {
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow: visible !important;
+  }
+</style>
   </head>
   <body>
     <div id="root"></div>

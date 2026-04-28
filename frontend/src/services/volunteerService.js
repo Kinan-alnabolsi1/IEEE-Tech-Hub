@@ -1,4 +1,4 @@
-import { getData } from '../api/apiMethods';
+import { getData, patchData } from '../api/apiMethods';
 
 export const volunteerService = {
   // جلب الملف الشخصي للمتطوع
@@ -13,8 +13,13 @@ export const volunteerService = {
   getChapters: (branchId) => 
     getData(`/chapters?branch_id=${branchId}`),
 
-  // 🌟 الدالة الجديدة والمهمة لإدارة الأعضاء:
-  // جلب كل المستخدمين اللي بفرع معين (عشان نختار منهم أعضاء للشابتر)
-  getByBranch: (branchId) => 
-    getData(`/branches/${branchId}/volunteers`), 
+  // 🌟 جلب المتطوعين مع دعم الفلترة حسب الحالة (Active, Pending, Suspended)
+  getByBranch: (branchId, status = '') => {
+    const query = status ? `?status=${status}` : '';
+    return getData(`/branches/${branchId}/volunteers${query}`);
+  },
+
+  // 🌟 تغيير حالة المتطوع (قبول، رفض/إيقاف، إرجاع للانتظار)
+  updateStatus: (userId, status) => 
+    patchData(`/users/${userId}/status`, { status }),
 };

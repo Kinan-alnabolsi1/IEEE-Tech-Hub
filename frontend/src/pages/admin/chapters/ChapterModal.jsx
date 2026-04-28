@@ -41,7 +41,10 @@ const ChapterModal = ({ isOpen, onClose, chapter, societies, branchId, onSuccess
       }
       onSuccess();
       onClose();
-    } catch (err) { toast.error("Action failed"); }
+    } catch (err) { 
+  console.error("Error submitting form:", err); // 🌟 ضفنا هاد السطر
+  toast.error("Action failed"); 
+}
   };
 
   const selectedSociety = Array.isArray(societies) 

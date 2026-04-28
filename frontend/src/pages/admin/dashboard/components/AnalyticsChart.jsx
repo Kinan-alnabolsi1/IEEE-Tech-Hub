@@ -15,18 +15,27 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, ChartTooltip, Le
 
 const AnalyticsChart = ({ chartData }) => { 
   
-  // 🌟 حماية الداتا: إذا مافي بيانات من الباك إند، نضع قيمة صفرية لمنع الكراش
   const safeData = Array.isArray(chartData) && chartData.length > 0 
     ? chartData 
     : [{ chapter: 'No Data', count: 0 }];
 
-  // تجهيز الداتا لـ Chart.js
+  // 🌟 الحل السحري هون: دالة ذكية بتقرأ الرقم مهما كان اسم المتغير بالباك إند
+  const getCount = (item) => {
+    return item?.members_count || 
+           (item?.members ? item.members.length : undefined) || 
+           item?.count || 
+           item?.value || 
+           item?.total || 
+           0;
+  };
+
   const data = {
     labels: safeData.map(item => item?.chapter || item?.name || item?.label || 'Chapter'),
     datasets: [
       {
         label: 'Volunteers',
-        data: safeData.map(item => item?.count || item?.value || item?.total || 0),
+        // 🌟 استخدمنا الدالة هون ليقرأ الرقم الصح
+        data: safeData.map(item => getCount(item)), 
         backgroundColor: safeData.map((_, index) => index % 2 === 0 ? '#00629B' : '#3b82f6'),
         borderRadius: 8, 
         barThickness: 32, 
@@ -34,6 +43,9 @@ const AnalyticsChart = ({ chartData }) => {
       },
     ],
   };
+
+  // 🌟 حسبنا أعلى قيمة بالأعمدة عشان نضبط ارتفاع الشارت
+  const maxCount = Math.max(...safeData.map(item => getCount(item)));
 
   const options = {
     responsive: true,
@@ -70,8 +82,8 @@ const AnalyticsChart = ({ chartData }) => {
         display: false,
         grid: { display: false },
         beginAtZero: true, 
-        // 🌟 نسبة وتناسب: نعطي مساحة 20% إضافية فوق أطول عمود لجمالية التصميم
-        suggestedMax: Math.max(...safeData.map(d => d.count || d.value || 0)) * 1.2 || 10,
+        // 🌟 ضبطنا الارتفاع بشكل ديناميكي
+        suggestedMax: maxCount > 0 ? maxCount * 1.2 : 10,
       },
     },
   };
@@ -89,7 +101,7 @@ const AnalyticsChart = ({ chartData }) => {
       </div>
       
       <div className="w-full relative h-[280px]">
-        {/* 🌟 إذا مافي داتا حقيقية، نُظهر رسالة انتظار أنيقة */}
+        {/* رسالة الانتظار */}
         {(!Array.isArray(chartData) || chartData.length === 0) && (
            <div className="absolute inset-0 flex items-center justify-center z-10 bg-white/60 backdrop-blur-[1px]">
               <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest italic bg-white px-3 py-1 rounded-full shadow-sm">

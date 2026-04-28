@@ -188,7 +188,7 @@ const SuperAdminDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* 1. Growth Chart (Line Chart المدمج) */}
-        <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-50 overflow-hidden flex flex-col">
+        <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-50  flex flex-col">
           <div className="mb-8">
             <h2 className="text-xl font-black text-slate-800 uppercase italic">Volunteer Growth</h2>
             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1 italic">Monthly Registration Flow</p>
