@@ -17,12 +17,12 @@ const BaseModal = ({ isOpen, onClose, title, subtitle, children }) => {
         onClick={onClose} 
       />
       <div 
-        className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl relative z-10 animate-in zoom-in-95 duration-300"
+        // 🌟 السر هون: ضفنا overflow-hidden عشان نقص الخلفية الرمادية اللي طالعة برا الحواف
+        className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl relative z-10 animate-in zoom-in-95 duration-300 overflow-hidden"
         onClick={(e) => e.stopPropagation()} 
       >
         <div className="px-8 py-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
           
-          {/* تم تعديل هذه المنطقة لتدعم العنوان الفرعي */}
           <div>
             <h2 className="text-xl font-black text-[#00629B] uppercase italic tracking-tighter">{title}</h2>
             {subtitle && (

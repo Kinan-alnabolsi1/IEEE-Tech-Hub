@@ -1,115 +1,98 @@
 import React, { useState, useEffect } from 'react';
-import { useOutletContext } from 'react-router-dom';
-import { Users, Layout, CheckCircle, ArrowUpRight, Loader2 } from 'lucide-react';
-import ChapterHeader from '../components/ChapterHeader';
-
-// 🚨 الـ API معلق تماماً عشان ما يضرب المتصفح
-// import api from '../../../api/apiMethods'; 
+import { Users, Layers, Clock, Briefcase, ArrowUpRight } from 'lucide-react';
+import { getChapterStats } from '../../../services/dashboardService'; 
+import Loader from '../../../components/ui/Loader';
+import toast from 'react-hot-toast';
 
 const ChapterDashboard = () => {
-  // سحبنا بيانات اليوزر بشكل آمن
-  const outletContext = useOutletContext();
-  const user = outletContext?.user || {}; 
-
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    membersCount: 0,
-    activeProjects: 0,
-    completedTasks: 0,
-  });
+  const [stats, setStats] = useState(null);
 
   useEffect(() => {
-    // 🟡 داتا وهمية (Mock Data) لعرض التصميم فقط بدون أي API
-    const loadMockData = () => {
-      setLoading(true);
-      
-      /* // 🔴 الكود الحقيقي المجهز للربط لاحقاً:
+    const fetchStats = async () => {
       try {
-        const chapterId = user?.chapter_id;
-        const response = await api.get(`/chapters/${chapterId}/stats`);
-        setStats(response.data.data);
+        setLoading(true);
+        const chapterId = localStorage.getItem('chapter_id');
+        const response = await getChapterStats(chapterId);
+        if (response.data && response.data.data) {
+          setStats(response.data.data.cards);
+        }
       } catch (error) {
-        console.error("Error fetching stats", error);
-      }
-      */
-
-      // محاكاة التحميل
-      setTimeout(() => {
-        setStats({
-          membersCount: 42,
-          activeProjects: 5,
-          completedTasks: 18,
-        });
+        toast.error("Failed to load statistics");
+      } finally {
         setLoading(false);
-      }, 800);
+      }
     };
-
-    loadMockData();
+    fetchStats();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <Loader2 className="animate-spin text-[#00629B]" size={40} />
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">
-          Loading Chapter Stats...
-        </p>
-      </div>
-    );
-  }
+  if (loading) return <Loader message="Live Performance Metrics..." />;
 
   return (
-    <div className="p-4 md:p-8 max-w-[1600px] mx-auto animate-in fade-in duration-500">
-      
-      {/* الهيدر الفخم */}
-      <ChapterHeader 
-        title="Chapter Dashboard" 
-        subtitle="Overview of your chapter's performance" 
-        chapterName={user?.chapter_name || "Computer Society"} 
-      />
+    <div className="p-2 animate-in fade-in duration-700">
+      {/* --- Unified System Header --- */}
+      <div className="mb-12">
+        <h1 className="text-[38px] font-[900] text-[#005587] italic tracking-tight leading-none uppercase">
+          Chapter Overview
+        </h1>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em] mt-3 ml-1">
+          Live Performance Metrics
+        </p>
+      </div>
 
-      {/* كروت الإحصائيات الوهمية */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        
-        {/* كارت الأعضاء */}
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group">
-          <div className="flex items-center justify-between mb-4">
-            <div className="bg-blue-50 p-4 rounded-2xl group-hover:scale-110 transition-transform">
-              <Users className="w-7 h-7 text-blue-600" />
-            </div>
-            <ArrowUpRight className="w-5 h-5 text-slate-300" />
-          </div>
-          <p className="text-slate-400 text-[11px] font-black uppercase tracking-widest">Total Members</p>
-          <h3 className="text-4xl font-black text-[#00629B] mt-2 italic">{stats.membersCount}</h3>
-        </div>
-
-        {/* كارت المشاريع */}
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group">
-          <div className="flex items-center justify-between mb-4">
-            <div className="bg-orange-50 p-4 rounded-2xl group-hover:scale-110 transition-transform">
-              <Layout className="w-7 h-7 text-orange-600" />
-            </div>
-            <ArrowUpRight className="w-5 h-5 text-slate-300" />
-          </div>
-          <p className="text-slate-400 text-[11px] font-black uppercase tracking-widest">Active Projects</p>
-          <h3 className="text-4xl font-black text-[#00629B] mt-2 italic">{stats.activeProjects}</h3>
-        </div>
-
-        {/* كارت المهام */}
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group">
-          <div className="flex items-center justify-between mb-4">
-            <div className="bg-green-50 p-4 rounded-2xl group-hover:scale-110 transition-transform">
-              <CheckCircle className="w-7 h-7 text-green-600" />
-            </div>
-            <ArrowUpRight className="w-5 h-5 text-slate-300" />
-          </div>
-          <p className="text-slate-400 text-[11px] font-black uppercase tracking-widest">Completed Tasks</p>
-          <h3 className="text-4xl font-black text-[#00629B] mt-2 italic">{stats.completedTasks}</h3>
-        </div>
-
+      {/* --- Statistics Grid --- */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <StatCard 
+          icon={<Users size={22} />} 
+          color="bg-blue-50 text-blue-600" 
+          label="Total Volunteers" 
+          value={stats?.total_members} 
+        />
+        <StatCard 
+          icon={<Layers size={22} />} 
+          color="bg-indigo-50 text-indigo-600" 
+          label="Active Projects" 
+          value={stats?.total_projects} 
+        />
+        <StatCard 
+          icon={<Clock size={22} />} 
+          color="bg-amber-50 text-amber-600" 
+          label="Pending Requests" 
+          value={stats?.ongoing_projects} 
+        />
+        <StatCard 
+          icon={<Briefcase size={22} />} 
+          color="bg-emerald-50 text-emerald-600" 
+          label="Ongoing Projects" 
+          value={stats?.completed_projects} 
+        />
       </div>
     </div>
   );
 };
+
+// --- المكون الفرعي للكارت (مطابق للصورة) ---
+const StatCard = ({ icon, color, label, value }) => (
+  <div className="bg-white p-8 rounded-[40px] shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-slate-50 relative group transition-all hover:shadow-xl hover:-translate-y-1">
+    {/* Live Badge */}
+    {/* <div className="absolute top-8 right-8 flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-full">
+      <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">Live</span>
+      <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+    </div> */}
+
+    {/* Icon Wrapper */}
+    <div className={`${color} w-16 h-16 rounded-[22px] flex items-center justify-center mb-10`}>
+      {icon}
+    </div>
+
+    {/* Content */}
+    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em] mb-3 leading-none">
+      {label}
+    </p>
+    <h3 className="text-[44px] font-[900] text-slate-800 italic leading-none tracking-tighter">
+      {value ?? 0}
+    </h3>
+  </div>
+);
 
 export default ChapterDashboard;
