@@ -48,6 +48,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/societies', [SocietyController::class, 'store']);
     Route::patch('/societies/{society_id}', [SocietyController::class, 'update']);
     Route::delete('/societies/{society_id}', [SocietyController::class, 'destroy']);
+    
+    // جلب مشاريع فصل محدد (للرؤساء، المدراء، وأعضاء الفصل)
+    Route::get('/chapters/{chapter_id}/projects', [ProjectController::class, 'getChapterProjects']);
 
 
     // --------------------------------------------------------------

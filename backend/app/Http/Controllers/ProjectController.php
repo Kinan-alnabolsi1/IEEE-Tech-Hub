@@ -209,4 +209,41 @@ class ProjectController extends Controller
             'data' => $project
         ]);
     }
+
+    /**
+     * جلب كافة المشاريع التابعة لفصل محدد (مع حماية الخصوصية)
+     * GET /api/chapters/{chapter_id}/projects
+     */
+    public function getChapterProjects(Request $request, $chapterId)
+    {
+        $chapter = \App\Models\Chapter::findOrFail($chapterId);
+        $currentUser = $request->user();
+
+        // 🛡️ 1. الحماية الأمنية (Authorization Logic)
+        if ($currentUser->role === 'Super Admin') {
+            // مسموح دائماً
+        } elseif ($currentUser->role === 'Branch Admin' && $currentUser->branch_id === $chapter->branch_id) {
+            // مسموح لمدير الفرع رؤية مشاريع الفصول التابعة لفرعه فقط
+        } elseif ($currentUser->role === 'Chapter Chair' && $chapter->chair_id === $currentUser->user_id) {
+            // مسموح لرئيس الفصل رؤية مشاريع فصله فقط
+        } else {
+            // 💡 إضافة ذكية: نسمح للمتطوع برؤية المشاريع (ليتمكن من التقديم عليها) 
+            // بشرط أن يكون منضماً كعضو في هذا الفصل تحديداً
+            $isMember = $chapter->members()->where('users.user_id', $currentUser->user_id)->exists();
+            if (!$isMember) {
+                return response()->json(['message' => 'Unauthorized to view this chapter\'s projects.'], 403);
+            }
+        }
+
+        // ✅ 2. جلب المشاريع
+        $projects = Project::where('chapter_id', $chapterId)
+                           ->with(['leader', 'members']) // جلب معلومات القائد والأعضاء للعرض
+                           ->latest() // ترتيب من الأحدث للأقدم
+                           ->get();
+
+        return response()->json([
+            'message' => 'Chapter projects retrieved successfully',
+            'data' => $projects
+        ]);
+    }
 }
