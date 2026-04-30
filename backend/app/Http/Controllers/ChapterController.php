@@ -92,14 +92,16 @@ class ChapterController extends Controller
     public function removeMember($chapterId, $userId)
     {
         $chapter = Chapter::findOrFail($chapterId);
+        $user = \App\Models\User::findOrFail($userId);
 
-        // 1. إزالة العضو من الجدول الوسيط (Pivot Table)
+        // 1. إزالة العضو من جدول الأعضاء
         $chapter->members()->detach($userId);
 
-        // 2. التحقق: إذا كان العضو المحذوف هو الـ Chair الحالي للفصل
+        // 2. إذا كان هو رئيس الفصل، نصفر الرئاسة ونرجع دوره لمتطوع
         if ($chapter->chair_id == $userId) {
             $chapter->update(['chair_id' => null]);
-            $message = "Member removed from chapter and chairmanship has been vacated.";
+            $user->update(['role' => 'Volunteer']);
+            $message = "Member removed and chairmanship vacated (Role reverted to Volunteer).";
         } else {
             $message = "Member removed from chapter.";
         }
@@ -183,6 +185,59 @@ class ChapterController extends Controller
 
         return response()->json([
             'message' => 'Chairmanship removed and user role reverted to Volunteer.'
+        ]);
+    }
+
+    /**
+     * جلب إحصائيات لوحة تحكم الفصل (Chapter Dashboard Stats)
+     * GET /api/chapters/{chapter_id}/stats
+     */
+    public function getStats(Request $request, $chapterId)
+    {
+        $chapter = \App\Models\Chapter::findOrFail($chapterId);
+        $currentUser = $request->user();
+
+        // 🛡️ 1. الحماية الأمنية (Authorization Logic)
+        if ($currentUser->role === 'Super Admin') {
+            // مسموح دائماً
+        } elseif ($currentUser->role === 'Branch Admin' && $currentUser->branch_id === $chapter->branch_id) {
+            // مسموح لمدير الفرع رؤية إحصائيات الفصول التابعة لفرعه فقط
+        } elseif ($currentUser->role === 'Chapter Chair' && $chapter->chair_id === $currentUser->user_id) {
+            // مسموح لرئيس الفصل رؤية إحصائيات فصله فقط
+        } else {
+            // طرد أي شخص آخر
+            return response()->json(['message' => 'Unauthorized to view these statistics.'], 403);
+        }
+
+        // 📊 2. جلب الإحصائيات (Stats Gathering)
+
+        // عدد أعضاء الفصل
+        $totalMembers = $chapter->members()->count();
+
+        // عدد مشاريع الفصل الإجمالية
+        $totalProjects = \App\Models\Project::where('chapter_id', $chapterId)->count();
+
+        // المشاريع قيد الإنجاز
+        $ongoingProjects = \App\Models\Project::where('chapter_id', $chapterId)
+                                ->where('status', 'Ongoing')
+                                ->count();
+
+        // المشاريع المكتملة
+        $completedProjects = \App\Models\Project::where('chapter_id', $chapterId)
+                                ->where('status', 'Completed')
+                                ->count();
+
+        // 🚀 3. إرجاع البيانات المجمعة
+        return response()->json([
+            'message' => 'Chapter statistics retrieved successfully',
+            'data' => [
+                'cards' => [
+                    'total_members' => $totalMembers,
+                    'total_projects' => $totalProjects,
+                    'ongoing_projects' => $ongoingProjects,
+                    'completed_projects' => $completedProjects,
+                ]
+            ]
         ]);
     }
 }
