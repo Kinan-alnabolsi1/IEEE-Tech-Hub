@@ -19,7 +19,7 @@ const DashboardLayout = ({ role }) => {
 
   return (
     // 🌟 استخدمنا min-h-screen و flex بدون overflow-hidden
-    <div className="min-h-screen bg-[#F8FAFC] flex relative overflow-y-auto">
+    <div className="min-h-screen bg-[#F8FAFC] flex relative overflow-y-auto ">
       
       {/* السايد بار */}
       <Sidebar 

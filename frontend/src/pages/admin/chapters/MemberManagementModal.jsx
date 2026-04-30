@@ -113,7 +113,11 @@ const MemberManagementModal = ({ isOpen, onClose, chapter, onSuccess }) => {
     return 0; // اترك الباقي على ترتيبهم الطبيعي
   });
 
-  const availableOptions = allVolunteers.filter(v => !currentMembers.some(m => m.user_id === v.user_id));
+  // 🚨 التعديل هون: فلترة للـ Active فقط بالإضافة لاستبعاد الموجودين مسبقاً
+  const availableOptions = allVolunteers.filter(v => 
+    !currentMembers.some(m => m.user_id === v.user_id) && 
+    (v.status?.toLowerCase() === 'active' || v.account_status?.toLowerCase() === 'active') // تأكدنا من جلب الـ Active فقط
+  );
 
   return (
     <BaseModal isOpen={isOpen} onClose={onClose} title="Manage Members" subtitle={chapter?.name}>
@@ -131,7 +135,7 @@ const MemberManagementModal = ({ isOpen, onClose, chapter, onSuccess }) => {
             >
               <div className="flex items-center gap-3">
                 <UserPlus size={16} className="text-[#00629B]" />
-                <span className="text-slate-400">Search branch volunteers...</span>
+                <span className="text-slate-400">Search active branch volunteers...</span>
               </div>
               <ChevronDown className={`w-4 h-4 text-[#00629B] transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -142,7 +146,7 @@ const MemberManagementModal = ({ isOpen, onClose, chapter, onSuccess }) => {
                   <div key={v.user_id} onClick={() => handleAdd(v.user_id)} className="flex items-center justify-between px-5 py-3 rounded-xl cursor-pointer hover:bg-blue-50 transition-all mb-1">
                     <span className="text-[11px] font-bold uppercase">{v.full_name}</span>
                   </div>
-                )) : <div className="p-4 text-center text-[10px] text-slate-300">No volunteers available</div>}
+                )) : <div className="p-4 text-center text-[10px] text-slate-300">No active volunteers available</div>}
               </div>
             )}
           </div>

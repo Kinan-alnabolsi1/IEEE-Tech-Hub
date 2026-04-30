@@ -14,12 +14,15 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isPending, setIsPending] = useState(false);
 
+  // التوجيه التلقائي الآمن (إذا كان المستخدم مسجل دخول من قبل)
   useEffect(() => {
     const token = localStorage.getItem('ieee_token');
     const role = localStorage.getItem('user_role');
+    
     if (token && role) {
-      if (role === 'super_admin') navigate('/super-admin');
-      else navigate('/admin');
+      if (role === 'super_admin') navigate('/super-admin', { replace: true });
+      else if (role === 'chapter_chair') navigate('/chapter-chair', { replace: true });
+      else if (role === 'admin') navigate('/admin', { replace: true });
     }
   }, [navigate]);
 
@@ -28,73 +31,66 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const cleanEmail = email.trim();
-      
-      const response = await postData('/login', { 
-        email: cleanEmail, 
-        password: password 
-      });
-      
+      const response = await postData('/login', { email: email.trim(), password });
       const data = response.data;
-      console.log(data, "data");
+      
       if (data.access_token) {
-        // 🌟 1. تخزين التوكن
+        // تنظيف الكاش القديم لتجنب أي تعارض
+        localStorage.clear(); 
+        
         localStorage.setItem('ieee_token', data.access_token);
+        localStorage.setItem('ieee_user', JSON.stringify(data.user));
         
-        // 🌟 2. تخزين كائن المستخدم بالكامل لضمان وجود كل البيانات (برمجياً أفضل)
-        if (data.user) {
-            localStorage.setItem('ieee_user', JSON.stringify(data.user));
-            
-            // 🌟 3. تخزين الـ branch_id بشكل صريح لحل مشكلة الداشبورد
-            // حاولنا نلقطه بأكثر من اسم حسب شو ممكن يبعت الباك إند
-            const bId = data.user.branch_id || data.user.branch?.id;
-            console.log(bId, "bId");
-            if (bId) {
-                localStorage.setItem('branch_id', bId);
-            }
-        }
+        // 🌟 تحديد الرتبة الذكي من الباك إند 🌟
+        let rawRole = String(data.user?.role || '').toLowerCase();
+        let normalizedRole = 'volunteer'; 
 
-        const normalizedRole = data.user?.role?.toLowerCase().replace(/\s+/g, '_') || 'admin';
-        localStorage.setItem('user_role', normalizedRole); 
-        
-        let exactName = 'System Administrator';
-        if (data.user) {
-           exactName = data.user.full_name || data.user.name || data.user.username || (normalizedRole === 'super_admin' ? 'System Administrator' : 'Branch Admin');
-        }
-        localStorage.setItem('user_name', exactName);
-
-        const branchName = data.user?.branch_name || data.user?.branch?.name;
-        if (branchName) {
-            localStorage.setItem('branch_name', branchName);
-        }
-        
-        toast.success(`Welcome back, ${exactName}!`);
-
-        if (normalizedRole === 'super_admin') {
-          navigate('/super-admin');
+        if (rawRole.includes('super')) {
+            normalizedRole = 'super_admin';
+        } else if (rawRole.includes('admin')) {
+            normalizedRole = 'admin';
+        } else if (rawRole.includes('chair') || rawRole.includes('chapter') || data.user?.chapter_id) {
+            normalizedRole = 'chapter_chair';
         } else {
-          navigate('/admin');
+            normalizedRole = rawRole || 'volunteer';
+        }
+
+        console.log("🎯 Determined Role (Clean):", normalizedRole);
+
+        localStorage.setItem('user_role', normalizedRole);
+        localStorage.setItem('user_name', data.user?.full_name || data.user?.name || 'Member');
+        
+        if (data.user?.branch_id) localStorage.setItem('branch_id', data.user.branch_id);
+        if (data.user?.chapter_id) localStorage.setItem('chapter_id', data.user.chapter_id);
+
+        toast.success(`Welcome back!`);
+
+        // التوجيه النهائي حسب الرتبة
+        if (normalizedRole === 'super_admin') {
+            navigate('/super-admin', { replace: true });
+        } else if (normalizedRole === 'chapter_chair') {
+            navigate('/chapter-chair', { replace: true });
+        } else if (normalizedRole === 'admin') {
+            navigate('/admin', { replace: true });
+        } else {
+            toast.error("Access restricted. You are logged in as a volunteer.");
+            localStorage.clear();
+            navigate('/', { replace: true });
         }
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.message || err.response?.data?.error || '';
-      const statusCode = err.response?.status;
-
-      if (
-        errorMsg.toLowerCase().includes('pending') || 
-        errorMsg.toLowerCase().includes('not approved') || 
-        errorMsg.toLowerCase().includes('inactive') ||
-        statusCode === 403 
-      ) {
+      const errorMsg = err.response?.data?.message || '';
+      if (errorMsg.toLowerCase().includes('pending') || err.response?.status === 403) {
         setIsPending(true);
       } else {
-        toast.error(errorMsg || 'Invalid Email or Password');
+        toast.error('Invalid Email or Password');
       }
     } finally {
       setIsLoading(false);
     }
   };
 
+  // ---------------- شاشة قيد المراجعة ----------------
   if (isPending) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-[#fcfcfd] font-sans selection:bg-blue-100 overflow-hidden relative">
@@ -102,7 +98,6 @@ const Login = () => {
           <div className="absolute top-[-10%] left-1/4 w-[500px] h-[500px] bg-blue-50/50 rounded-full blur-[100px] animate-pulse"></div>
           <div className="absolute bottom-[-10%] right-1/4 w-[400px] h-[400px] bg-indigo-50/30 rounded-full blur-[100px]"></div>
         </div>
-
         <div className="relative z-10 w-full max-w-[500px] px-6">
           <div className="flex flex-col items-center mb-8">
             <img className='w-12 mb-4 drop-shadow-sm' src={logo} alt="IEEE Logo"/>
@@ -110,7 +105,6 @@ const Login = () => {
               IEEE <span className="font-semibold text-[#00629B]">Tech-Hub</span>
             </h1>
           </div>
-
           <div className="bg-white p-10 rounded-[3rem] shadow-[0_20px_60px_rgba(0,0,0,0.03)] border border-slate-50 text-center animate-in fade-in zoom-in-95 duration-500">
             <div className="relative w-24 h-24 mx-auto mb-6">
               <div className="absolute inset-0 bg-amber-100 rounded-full animate-ping opacity-50"></div>
@@ -118,12 +112,10 @@ const Login = () => {
                 <Clock className="w-10 h-10 text-amber-500" />
               </div>
             </div>
-
             <h2 className="text-2xl font-black text-slate-800 tracking-tight mb-2">Account Under Review</h2>
             <p className="text-sm text-slate-400 font-medium leading-relaxed px-4 mb-8">
               Your registration was successful, but your account requires <span className="text-amber-500 font-bold">Administrator approval</span> before you can access the system.
             </p>
-
             <div className="space-y-4 mb-8 text-left bg-slate-50 p-6 rounded-[2rem]">
               <div className="flex items-start gap-3">
                 <ShieldCheck className="w-5 h-5 text-[#00629B] shrink-0 mt-0.5" />
@@ -141,12 +133,7 @@ const Login = () => {
                 </div>
               </div>
             </div>
-
-            <button 
-              type="button"
-              onClick={() => { setIsPending(false); setPassword(''); }} 
-              className="inline-flex items-center justify-center gap-2 w-full py-4 bg-white text-slate-600 border-2 border-slate-100 hover:border-[#00629B] hover:text-[#00629B] rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all group"
-            >
+            <button type="button" onClick={() => { setIsPending(false); setPassword(''); }} className="inline-flex items-center justify-center gap-2 w-full py-4 bg-white text-slate-600 border-2 border-slate-100 hover:border-[#00629B] hover:text-[#00629B] rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all group">
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
               Return to Login
             </button>
@@ -156,16 +143,15 @@ const Login = () => {
     );
   }
 
+  // ---------------- شاشة الدخول الرئيسية ----------------
   return (
     <>
-      {isLoading && <Loader message="Verifying Identity..." />}
-      
+      {isLoading && <Loader message="Authenticating..." />}
       <div className="h-screen w-full flex items-center justify-center bg-[#fcfcfd] font-sans selection:bg-blue-100 overflow-hidden relative">
         <div className="absolute inset-0 z-0 pointer-events-none">
           <div className="absolute top-[-10%] left-1/4 w-[500px] h-[500px] bg-blue-50/50 rounded-full blur-[100px]"></div>
           <div className="absolute bottom-[-10%] right-1/4 w-[400px] h-[400px] bg-indigo-50/30 rounded-full blur-[100px]"></div>
         </div>
-
         <div className="relative z-10 w-full max-w-[420px] px-6">
           <div className="flex flex-col items-center mb-6">
             <img className='w-12 mb-3 drop-shadow-sm' src={logo} alt="IEEE Logo"/>
@@ -173,7 +159,6 @@ const Login = () => {
               IEEE <span className="font-semibold text-[#00629B]">Tech-Hub</span>
             </h1>
           </div>
-
           <div className="bg-white p-8 rounded-[2.5rem] shadow-[0_15px_40px_rgba(0,0,0,0.03)] border border-slate-50 animate-in fade-in zoom-in-95 duration-300">
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-1">
@@ -187,7 +172,6 @@ const Login = () => {
                   onChange={(e) => setEmail(e.target.value)} 
                 />
               </div>
-
               <div className="space-y-1">
                 <div className="flex justify-between items-center px-1">
                   <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Password</label>
@@ -202,27 +186,17 @@ const Login = () => {
                     value={password} 
                     onChange={(e) => setPassword(e.target.value)} 
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-[#00629B] transition-colors"
-                  >
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-[#00629B]">
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
-
-              <button 
-                type="submit" 
-                disabled={isLoading} 
-                className="w-full mt-4 py-4 bg-[#00629B] text-white rounded-2xl font-bold text-[10px] uppercase tracking-[0.2em] shadow-lg hover:shadow-blue-200 hover:bg-[#005282] active:scale-[0.98] transition-all disabled:opacity-70"
-              >
+              <button type="submit" disabled={isLoading} className="w-full mt-4 py-4 bg-[#00629B] text-white rounded-2xl font-bold text-[10px] uppercase tracking-[0.2em] shadow-lg hover:bg-[#005282] active:scale-[0.98] transition-all disabled:opacity-70">
                 {isLoading ? 'Authenticating...' : 'Sign In to Portal'}
               </button>
             </form>
           </div>
-
-          <div className="mt-8 text-center animate-in fade-in duration-500">
+          <div className="mt-8 text-center">
             <Link to="/register" className="text-[10px] text-slate-400 hover:text-[#00629B] tracking-wide transition-colors">
               Don't have an account? <span className="font-bold text-[#00629B] border-b border-blue-100 ml-1">Join IEEE Community</span>
             </Link>

@@ -136,7 +136,7 @@ const Register = () => {
           <div className="absolute bottom-[-10%] right-1/4 w-[400px] h-[400px] bg-indigo-50/30 rounded-full blur-[100px]"></div>
         </div>
         
-        <div className="relative z-10 w-full max-w-[480px] px-6 mt-4">
+        <div className="relative z-10 w-full max-w-[480px] px-6 mt-4 ">
           <div className="flex flex-col items-center mb-4">
             <img className='w-10 mb-3' src={logo} alt="IEEE Logo"/>
             <h1 className="text-xl font-light text-slate-900 tracking-[0.15em] uppercase text-center">

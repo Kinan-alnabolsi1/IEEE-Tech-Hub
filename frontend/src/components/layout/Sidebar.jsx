@@ -10,35 +10,26 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
 
   const handleLogout = async () => {
     console.log("Checking Storage Keys:", Object.keys(localStorage)); 
-  const token = localStorage.getItem('ieee_token');
-  console.log("Token Value:", token);
+    const token = localStorage.getItem('ieee_token');
+    console.log("Token Value:", token);
     console.log("%c--- 🚀 Logout Process Started ---", "color: #00629B; font-weight: bold;");
     
-    // التأكد من وجود التوكن قبل البدء
     const currentToken = localStorage.getItem('ieee_token');
     console.log("1. Current Token in Storage:", currentToken ? "✅ Found" : "❌ Not Found");
 
     try {
       console.log("2. Sending POST request to /logout...");
-      
-      // طلب الـ Logout (التوكن سيمر عبر interceptor تلقائياً)
       const response = await api.post('/logout');
-
       console.log("3. API Response Success:", response.data);
-      
     } catch (err) {
-      // طباعة الخطأ بشكل مفصل في الكونسول
       console.error("3. API Logout Error Details:");
       console.log("Status Code:", err.response?.status);
       console.log("Error Message:", err.response?.data?.message || err.message);
-      
       if (err.response?.status === 401) {
         console.warn("⚠️ Token might be expired or invalid already.");
       }
     } finally {
       console.log("4. Final Step: Cleaning LocalStorage and Navigating...");
-      
-      // مسح البيانات محلياً بغض النظر عن نتيجة السيرفر لضمان خروج المستخدم
       localStorage.clear();
       console.log("LocalStorage Cleared ✅");
 
@@ -63,17 +54,23 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
       { name: 'Admins Control', path: '/super-admin/admins', icon: '🛡️' },
       { name: 'Global Branches', path: '/super-admin/branches', icon: '🌍' },
       { name: 'Societies Management', path: '/super-admin/societies', icon: '🧬' },
-      // { name: 'Reports Monitor', path: '/super-admin/reports', icon: '📄' },
     ],
     'admin': [
-    { name: 'Branch Dashboard', path: '/admin', icon: '🏠' },            // الصفحة 1
-    { name: 'Volunteer Members', path: '/admin/volunteers', icon: '👥' }, // الصفحة 2
-    { name: 'Technical Chapters', path: '/admin/chapters', icon: '⚙️' },  // الصفحة 3
-    { name: 'Project Approvals', path: '/admin/projects', icon: '🚀' },  // الصفحة 4
-    // { name: 'Branch Reports', path: '/admin/reports', icon: '📝' },      // الصفحة 5
-  ],
+      { name: 'Branch Dashboard', path: '/admin', icon: '🏠' },
+      { name: 'Volunteer Members', path: '/admin/volunteers', icon: '👥' },
+      { name: 'Technical Chapters', path: '/admin/chapters', icon: '⚙️' },
+      { name: 'Project Approvals', path: '/admin/projects', icon: '🚀' },
+    ],
+    // 🌟 القائمة الشاملة والصحيحة الخاصة برئيس الفصل (5 صفحات)
+    'chapter_chair': [
+      { name: 'Chapter Dashboard', path: '/chapter-chair', icon: '📊' },
+      { name: 'Manage Projects', path: '/chapter-chair/projects', icon: '🚀' },
+      { name: 'Applications', path: '/chapter-chair/applications', icon: '📥' },
+      { name: 'Chapter Members', path: '/chapter-chair/members', icon: '👥' },
+      { name: 'Tasks Overview', path: '/chapter-chair/tasks', icon: '📋' },
+    ],
     'volunteer': [
-      { name: 'My Tasks', path: '/admin', icon: '📋' },
+      { name: 'My Tasks', path: '/admin', icon: '📋' }, // تحتاج تعديل مسار لاحقاً
       { name: 'Events', path: '/admin/events', icon: '📅' },
     ]
   };
@@ -101,11 +98,12 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
           </button>
         </div>
 
-        <nav className="flex-1 px-4 py-4 space-y-1.5 overflow-y-auto mt-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-          <style>{`nav::-webkit-scrollbar { display: none; }`}</style>
+        <nav className="flex-1 px-4 py-4 space-y-1.5 overflow-y-auto mt-2 no-scrollbar">
           <p className="text-[9px] font-black text-blue-200/30 uppercase tracking-[0.4em] mb-4 px-3">Main Menu</p>
           {currentMenu.map((item) => {
-            const isActive = location.pathname === item.path;
+            // تحديث بسيط جداً لتفعيل اللون الأبيض (Active) حتى لو كنا بصفحة فرعية
+            const isActive = location.pathname === item.path || (location.pathname.startsWith(item.path) && item.path !== '/chapter-chair' && item.path !== '/admin' && item.path !== '/super-admin');
+            
             return (
               <Link 
                 key={item.path} 
