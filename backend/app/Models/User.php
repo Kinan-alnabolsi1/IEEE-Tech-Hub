@@ -28,6 +28,9 @@ class User extends Authenticatable
         'full_name', 'role', 'branch_id', 'status', 'phone', 'bio', 'profile_photo'
     ];
 
+    protected $appends = ['managed_chapter_id'];
+
+
     /**
      * The attributes that should be hidden for serialization.
      *
@@ -79,4 +82,21 @@ public function chapters()
 {
     return $this->belongsToMany(Chapter::class)->withPivot('role_in_chapter');
 }
+
+
+    // 2. علاقة المستخدم مع الفصل الذي يرأسه
+    public function chairedChapter()
+    {
+        return $this->hasOne(Chapter::class, 'chair_id', 'user_id');
+    }
+
+    // 3. تعريف الـ Accessor (الذي سيضيف الـ id للـ JSON)
+    public function getManagedChapterIdAttribute()
+    {
+        if ($this->role === 'Chapter Chair') {
+            // جلب الـ ID الخاص بالفصل الذي يرأسه هذا المستخدم
+            return $this->chairedChapter ? $this->chairedChapter->chapter_id : null;
+        }
+        return null;
+    }
 }
