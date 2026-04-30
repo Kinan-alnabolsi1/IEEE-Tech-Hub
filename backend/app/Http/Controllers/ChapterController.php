@@ -33,17 +33,38 @@ class ChapterController extends Controller
         return response()->json(['data' => $chapter]);
     }
 
-    // 4. تعيين رئيس للفصل (Assign Chair)
-    public function assignChair(Request $request, $chapterId) {
-        $request->validate(['user_id' => 'required|exists:users,user_id']);
-        
+    /**
+     * تعيين رئيس للفصل وتحديث دوره
+     * PATCH /api/chapters/{chapter_id}/assign-chair
+     */
+    public function assignChair(Request $request, $chapterId)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,user_id'
+        ]);
+
         $chapter = Chapter::findOrFail($chapterId);
-        $user = User::findOrFail($request->user_id);
+        $newUser = \App\Models\User::findOrFail($request->user_id);
 
-        // تحديث حقل رئيس الفصل
-        $chapter->update(['chair_id' => $user->user_id]);
+        // 1. التعامل مع الرئيس القديم (إذا وجد)
+        // إذا كان هناك رئيس سابق، نعيد دوره إلى متطوع عادي
+        if ($chapter->chair_id) {
+            $oldChair = \App\Models\User::find($chapter->chair_id);
+            if ($oldChair) {
+                $oldChair->update(['role' => 'Volunteer']);
+            }
+        }
 
-        return response()->json(['message' => "User {$user->full_name} is now the Chair of {$chapter->name}"]);
+        // 2. تحديث جدول الفصول لتعيين الرئيس الجديد
+        $chapter->update(['chair_id' => $newUser->user_id]);
+
+        // 3. تحديث دور المستخدم الجديد ليصبح Chapter Chair
+        $newUser->update(['role' => 'Chapter Chair']);
+
+        return response()->json([
+            'message' => "User assigned as Chapter Chair and their role has been updated.",
+            'data' => $chapter->load('chair')
+        ]);
     }
 
     // 5. إضافة متطوع للفصل (Join Chapter)
@@ -138,7 +159,7 @@ class ChapterController extends Controller
     }
 
     /**
-     * عزل رئيس الفصل (يبقى عضواً عادياً)
+     * عزل رئيس الفصل وإعادته لدور متطوع
      * DELETE /api/chapters/{chapter_id}/chair
      */
     public function removeChair($chapterId)
@@ -149,11 +170,19 @@ class ChapterController extends Controller
             return response()->json(['message' => 'This chapter already has no chair.'], 400);
         }
 
-        // تصفير حقل الرئيس فقط
+        // 1. جلب المستخدم الذي هو رئيس حالياً
+        $currentChair = \App\Models\User::find($chapter->chair_id);
+
+        // 2. تغيير دوره ليعود متطوعاً عادياً
+        if ($currentChair) {
+            $currentChair->update(['role' => 'Volunteer']);
+        }
+
+        // 3. تصفير حقل الرئاسة في الفصل
         $chapter->update(['chair_id' => null]);
 
         return response()->json([
-            'message' => 'Chairmanship removed successfully. The user is still a member of the chapter.'
+            'message' => 'Chairmanship removed and user role reverted to Volunteer.'
         ]);
     }
 }
