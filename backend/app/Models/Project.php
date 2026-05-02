@@ -27,4 +27,12 @@ class Project extends Model
     {
         return $this->hasMany(ProjectRole::class, 'project_id', 'project_id');
     }
+
+    /**
+     * علاقة المشروع بالفصل الذي ينتمي إليه
+     */
+    public function chapter()
+    {
+        return $this->belongsTo(Chapter::class, 'chapter_id', 'chapter_id');
+    }
 }
