@@ -24,25 +24,23 @@ class ProjectController extends Controller
      */
     public function store(CreateProjectRequest $request)
     {
-        // 1. إنشاء المشروع الأساسي
-        $project = Project::create($request->validated());
+        $validated = $request->validated();
 
-        // 2. إذا تم إرسال مصفوفة الأدوار المطلوبة (Roles)، نقوم بحفظها
-        if ($request->has('required_roles')) {
-            $rolesData = [];
-            foreach ($request->required_roles as $role) {
-                $rolesData[] = [
-                    'role_name' => $role['role_name'],
-                    'required_count' => $role['required_count'],
-                ];
-            }
-            // إنشاء الأدوار وربطها بالمشروع
-            $project->requiredRoles()->createMany($rolesData);
+        // ✂️ عزل الأدوار المطلوبة من الداتا الأساسية حتى ما تضرب الداتابيز
+        $roles = $validated['required_roles'] ?? null;
+        unset($validated['required_roles']);
+
+        // 1. إنشاء المشروع الأساسي بالداتا الصافية
+        $project = \App\Models\Project::create($validated);
+
+        // 2. إذا تم إرسال مصفوفة الأدوار المطلوبة، نقوم بإنشائها وربطها
+        if ($roles) {
+            $project->requiredRoles()->createMany($roles);
         }
 
         return response()->json([
             'message' => 'Project created successfully', 
-            'data' => $project->load('requiredRoles') // نرجع المشروع مع الأدوار اللي انطلبت
+            'data' => $project->load('requiredRoles')
         ], 201);
     }
 
@@ -62,11 +60,10 @@ class ProjectController extends Controller
      */
     public function update(Request $request, $id)
     {
-        // 💡 جلبنا المشروع مع الفصل لنتحقق من الصلاحيات
         $project = \App\Models\Project::with('chapter')->findOrFail($id);
         $currentUser = $request->user();
 
-        // 🛡️ 1. الحماية الأمنية (Authorization Check)
+        // 🛡️ 1. الحماية الأمنية
         $isSuperAdmin = $currentUser->role === 'Super Admin';
         $isBranchAdmin = $currentUser->role === 'Branch Admin' && $currentUser->branch_id === $project->chapter->branch_id;
         $isChapterChair = $currentUser->role === 'Chapter Chair' && $project->chapter->chair_id === $currentUser->user_id;
@@ -84,32 +81,30 @@ class ProjectController extends Controller
             'start_date' => 'sometimes|date',
             'end_date' => 'sometimes|date|after_or_equal:start_date',
             'status' => 'sometimes|in:Open,Ongoing,Completed,Cancelled',
-            
-            // التحقق من الأدوار المطلوبة عند التعديل
             'required_roles' => 'nullable|array',
             'required_roles.*.role_name' => 'required_with:required_roles|string|max:100',
             'required_roles.*.required_count' => 'required_with:required_roles|integer|min:1',
         ]);
 
+        // ✂️ عزل الأدوار المطلوبة من الداتا
+        $roles = $validated['required_roles'] ?? null;
+        // نستخدم array_key_exists لنتأكد إذا الفرونت بعت المصفوفة (حتى لو فاضية)
+        $hasRoles = array_key_exists('required_roles', $validated);
+        unset($validated['required_roles']);
+
         // 🔄 3. تحديث البيانات الأساسية للمشروع
         $project->update($validated);
 
-        // 👥 4. تحديث الأدوار (Project Roles) في حال تم إرسالها
-        if ($request->has('required_roles')) {
-            // نمسح الأدوار القديمة الخاصة بهذا المشروع
+        // 👥 4. تحديث الأدوار (Project Roles)
+        // إذا تم إرسال المفتاح required_roles، نقوم بتحديث الجدول المرتبط
+        if ($hasRoles) {
+            // نمسح الأدوار القديمة
             $project->requiredRoles()->delete();
             
-            // نجهز الأدوار الجديدة المحدثة
-            $rolesData = [];
-            foreach ($request->required_roles as $role) {
-                $rolesData[] = [
-                    'role_name' => $role['role_name'],
-                    'required_count' => $role['required_count'],
-                ];
+            // إذا المصفوفة مو فاضية، بنضيف الأدوار الجديدة
+            if (!empty($roles)) {
+                $project->requiredRoles()->createMany($roles);
             }
-            
-            // نحفظ الأدوار الجديدة بالداتابيز
-            $project->requiredRoles()->createMany($rolesData);
         }
 
         return response()->json([
