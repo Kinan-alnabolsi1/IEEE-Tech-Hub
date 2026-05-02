@@ -25,11 +25,11 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'ieee_membership_number', 'username', 'email', 'password', 
-        'full_name', 'role', 'branch_id', 'status', 'phone', 'bio', 'profile_photo'
+        'full_name', 'role', 'branch_id', 'status', 'phone', 'bio', 'profile_photo',
+        'faculty', 'major', 'current_study_year', 'enrollment_year', 'expected_graduation_date' // 👈 الحقول المحدثة
     ];
 
     protected $appends = ['managed_chapter_id'];
-
 
     /**
      * The attributes that should be hidden for serialization.
@@ -50,6 +50,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'expected_graduation_date' => 'date', // 👈 أضفنا هاد ليتم التعامل معه كـ Date Object
         ];
     }
 
@@ -74,15 +75,14 @@ class User extends Authenticatable
     }
 
     public function branch()
-{
-    return $this->belongsTo(Branch::class);
-}
+    {
+        return $this->belongsTo(Branch::class);
+    }
 
-public function chapters()
-{
-    return $this->belongsToMany(Chapter::class)->withPivot('role_in_chapter');
-}
-
+    public function chapters()
+    {
+        return $this->belongsToMany(Chapter::class)->withPivot('role_in_chapter');
+    }
 
     // 2. علاقة المستخدم مع الفصل الذي يرأسه
     public function chairedChapter()

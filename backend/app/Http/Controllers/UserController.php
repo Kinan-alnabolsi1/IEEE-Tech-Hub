@@ -114,4 +114,87 @@ class UserController extends Controller
             'data' => $user
         ]);
     }
+
+    /**
+     * إعداد الحساب (Onboarding / Create Profile)
+     * POST /api/profile/onboarding
+     */
+    /**
+     * إعداد الحساب وتحديث البيانات الشخصية والأكاديمية
+     * POST /api/profile/onboarding
+     */
+    public function createProfile(Request $request)
+    {
+        $user = $request->user();
+        
+        $validated = $request->validate([
+            'phone' => 'nullable|string|max:30',
+            'bio' => 'nullable|string',
+            'faculty' => 'nullable|string|max:150', // 👈 الكلية
+            'major' => 'nullable|string|max:150',   // 👈 التخصص
+            'current_study_year' => 'nullable|integer|min:1|max:7',
+            'enrollment_year' => 'nullable|integer|min:2000|max:' . (date('Y') + 1),
+            'expected_graduation_date' => 'nullable|date',
+            'skills' => 'nullable|array',
+            'skills.*' => 'exists:skills,skill_id' 
+        ]);
+
+        $user->update([
+            'phone' => $validated['phone'] ?? $user->phone,
+            'bio' => $validated['bio'] ?? $user->bio,
+            'faculty' => $validated['faculty'] ?? $user->faculty, // 👈 حفظ الكلية
+            'major' => $validated['major'] ?? $user->major,       // 👈 حفظ التخصص
+            'current_study_year' => $validated['current_study_year'] ?? $user->current_study_year,
+            'enrollment_year' => $validated['enrollment_year'] ?? $user->enrollment_year,
+            'expected_graduation_date' => $validated['expected_graduation_date'] ?? $user->expected_graduation_date,
+        ]);
+
+        if ($request->has('skills')) {
+            $user->skills()->sync($validated['skills']);
+        }
+
+        return response()->json([
+            'message' => 'Profile updated successfully',
+            'data' => $user->load('skills')
+        ]);
+    }
+
+    /**
+     * جلب مشاريعي وطلبات الانضمام (My Projects & Applications)
+     * GET /api/my-projects
+     */
+    public function myProjects(Request $request)
+    {
+        $user = $request->user();
+        
+        // نجلب المشاريع التي قدم عليها هذا المستخدم، مع جلب حالته فيها من الجدول الوسيط
+        $projects = $user->projects()
+                         ->withPivot('status', 'role', 'applied_at', 'joined_at')
+                         ->orderByPivot('applied_at', 'desc')
+                         ->get();
+
+        return response()->json([
+            'message' => 'My projects and applications retrieved successfully',
+            'data' => $projects
+        ]);
+    }
+
+    /**
+     * جلب مهامي (My Tasks)
+     * GET /api/my-tasks
+     */
+    public function myTasks(Request $request)
+    {
+        $user = $request->user();
+        
+        // نجلب التكليفات الخاصة بهذا المتطوع مع تفاصيل المهمة والمشروع التابع لها
+        $assignments = \App\Models\TaskAssignment::where('user_id', $user->user_id)
+            ->with(['task', 'task.project:project_id,title']) // نجلب المهمة، ومعلومات المشروع الأساسية
+            ->get();
+
+        return response()->json([
+            'message' => 'My tasks retrieved successfully',
+            'data' => $assignments
+        ]);
+    }
 }

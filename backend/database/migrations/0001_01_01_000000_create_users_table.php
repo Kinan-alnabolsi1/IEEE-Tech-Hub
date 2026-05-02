@@ -24,6 +24,14 @@ return new class extends Migration
             $table->string('phone', 30)->nullable();
             $table->text('bio')->nullable();
             $table->string('profile_photo', 255)->nullable();
+            
+// 🎓 الحقول الأكاديمية الشاملة
+            $table->string('faculty', 150)->nullable(); // الكلية (مثال: الهندسة المعلوماتية)
+            $table->string('major', 150)->nullable(); // التخصص إن وجد (مثال: ذكاء اصطناعي)
+            $table->integer('current_study_year')->nullable(); // السنة الدراسية الحالية
+            $table->integer('enrollment_year')->nullable(); // سنة الدخول
+            $table->date('expected_graduation_date')->nullable(); // التاريخ المتوقع للتخرج
+
             $table->timestamp('email_verified_at')->nullable();
             $table->rememberToken();
             $table->timestamps();

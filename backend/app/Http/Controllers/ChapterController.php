@@ -240,4 +240,46 @@ class ChapterController extends Controller
             ]
         ]);
     }
+
+    /**
+     * جلب قائمة أعضاء الفصل (مع دعم الفلترة)
+     * GET /api/chapters/{chapter_id}/members
+     */
+    public function getMembers(Request $request, $chapterId)
+    {
+        $chapter = \App\Models\Chapter::findOrFail($chapterId);
+        $currentUser = $request->user();
+
+        // 🛡️ 1. الحماية الأمنية (Authorization Logic)
+        $isSuperAdmin = $currentUser->role === 'Super Admin';
+        $isBranchAdmin = $currentUser->role === 'Branch Admin' && $currentUser->branch_id === $chapter->branch_id;
+        $isChapterChair = $currentUser->role === 'Chapter Chair' && $chapter->chair_id === $currentUser->user_id;
+        
+        // نسمح أيضاً لأعضاء الفصل أنفسهم برؤية زملائهم (اختياري، يمكنك حذفه إذا أردت السرية)
+        $isMember = $chapter->members()->where('users.user_id', $currentUser->user_id)->exists();
+
+        if (!$isSuperAdmin && !$isBranchAdmin && !$isChapterChair && !$isMember) {
+            return response()->json(['message' => 'Unauthorized to view chapter members.'], 403);
+        }
+
+        // ✅ 2. بناء الاستعلام لجلب الأعضاء
+        $query = $chapter->members(); // العلاقة المعرفة في الموديل
+
+        // 🔍 3. الفلترة الديناميكية (Query Parameters)
+        if ($request->has('role')) {
+            $query->where('users.role', $request->role);
+        }
+        
+        if ($request->has('status')) {
+            $query->where('users.status', $request->status);
+        }
+
+        $members = $query->get();
+
+        return response()->json([
+            'message' => 'Chapter members retrieved successfully',
+            'data' => $members
+        ]);
+    }
+    
 }

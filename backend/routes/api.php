@@ -48,9 +48,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/societies', [SocietyController::class, 'store']);
     Route::patch('/societies/{society_id}', [SocietyController::class, 'update']);
     Route::delete('/societies/{society_id}', [SocietyController::class, 'destroy']);
-    
+
     // جلب مشاريع فصل محدد (للرؤساء، المدراء، وأعضاء الفصل)
     Route::get('/chapters/{chapter_id}/projects', [ProjectController::class, 'getChapterProjects']);
+    // جلب قائمة أعضاء الفصل 
+    Route::get('/chapters/{chapter_id}/members', [ChapterController::class, 'getMembers']);
+
+    // 👤 Volunteer / User Profile & Dashboard
+    Route::post('/profile/onboarding', [UserController::class, 'createProfile']); // استكمال إنشاء البروفايل
+    Route::get('/my-projects', [UserController::class, 'myProjects']); // مشاريعي وطلباتي
+    Route::get('/my-tasks', [UserController::class, 'myTasks']); // مهامي من كل المشاريع
 
 
     // --------------------------------------------------------------
@@ -89,7 +96,7 @@ Route::middleware('auth:sanctum')->group(function () {
         
         // Branch Projects
         Route::get('/branches/{branch_id}/projects', [ProjectController::class, 'getBranchProjects']);
-        Route::patch('/projects/{project}/status', [ProjectController::class, 'updateStatus']);
+        // Route::patch('/projects/{project}/status', [ProjectController::class, 'updateStatus']);
 
         // Chapters Management (إدارة الفصول)
         Route::get('/chapters', [ChapterController::class, 'getAllChapters']);
@@ -115,6 +122,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/chapters/{chapter_id}/stats', [ChapterController::class, 'getStats']);
         // Projects CRUD (إضافة، تعديل، حذف)
         Route::apiResource('projects', ProjectController::class)->except(['index', 'show']);
+        Route::patch('/projects/{project}/status', [ProjectController::class, 'updateStatus']);
+        Route::patch('/projects/{project}/assign-leader', [ProjectController::class, 'assignLeader']);
+        Route::delete('/projects/{project}/leader', [ProjectController::class, 'removeLeader']);
     });
 
 
@@ -123,13 +133,19 @@ Route::middleware('auth:sanctum')->group(function () {
     // --------------------------------------------------------------
     Route::middleware('role:Super Admin,Branch Admin,Chapter Chair,Project Leader')->group(function () {
         
+        
         // Project Members Management (قبول/رفض المتطوعين في المشروع)
         Route::post('/projects/{project}/approve-member', [ProjectController::class, 'approveMember']);
         Route::post('/projects/{project}/reject-member', [ProjectController::class, 'rejectMember']);
 
+        Route::get('/projects/{project}/applications', [ProjectController::class, 'getApplications']);
+
         // Tasks Management (إدارة المهام)
         Route::apiResource('tasks', TaskController::class);
         Route::patch('/tasks/assignments/{assignmentId}/progress', [TaskController::class, 'updateProgress']);
+
+        // إحصائيات المشروع (لوحة تحكم القائد)
+        Route::get('/projects/{project}/stats', [ProjectController::class, 'getStats']);
 
         // Project Reports
         Route::get('/reports/{report_id}', [ReportController::class, 'show']);
