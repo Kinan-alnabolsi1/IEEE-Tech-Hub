@@ -22,4 +22,9 @@ class Project extends Model
         return $this->belongsToMany(Skill::class, 'project_required_skills', 'project_id', 'skill_id')
                     ->withPivot(['min_level', 'weight']);
     }
+
+    public function requiredRoles()
+    {
+        return $this->hasMany(ProjectRole::class, 'project_id', 'project_id');
+    }
 }
