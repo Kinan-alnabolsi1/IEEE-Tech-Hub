@@ -9,41 +9,13 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    console.log("Checking Storage Keys:", Object.keys(localStorage)); 
-    const token = localStorage.getItem('ieee_token');
-    console.log("Token Value:", token);
-    console.log("%c--- 🚀 Logout Process Started ---", "color: #00629B; font-weight: bold;");
-    
-    const currentToken = localStorage.getItem('ieee_token');
-    console.log("1. Current Token in Storage:", currentToken ? "✅ Found" : "❌ Not Found");
-
     try {
-      console.log("2. Sending POST request to /logout...");
-      const response = await api.post('/logout');
-      console.log("3. API Response Success:", response.data);
+      await api.post('/logout');
     } catch (err) {
-      console.error("3. API Logout Error Details:");
-      console.log("Status Code:", err.response?.status);
-      console.log("Error Message:", err.response?.data?.message || err.message);
-      if (err.response?.status === 401) {
-        console.warn("⚠️ Token might be expired or invalid already.");
-      }
+      console.error("Logout error", err);
     } finally {
-      console.log("4. Final Step: Cleaning LocalStorage and Navigating...");
       localStorage.clear();
-      console.log("LocalStorage Cleared ✅");
-
-      toast.success('Signed out successfully', {
-        style: {
-          borderRadius: '12px',
-          background: '#1e293b',
-          color: '#fff',
-          fontSize: '12px',
-          fontWeight: 'bold',
-        },
-      });
-
-      console.log("--- 🏁 Logout Finished ---");
+      toast.success('Signed out successfully');
       navigate('/', { replace: true });
     }
   };
@@ -64,12 +36,12 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
     'chapter_chair': [
       { name: 'Chapter Dashboard', path: '/chapter-chair', icon: '📊' },
       { name: 'Manage Projects', path: '/chapter-chair/projects', icon: '🚀' },
-      // { name: 'Applications', path: '/chapter-chair/applications', icon: '📥' },
       { name: 'Chapter Members', path: '/chapter-chair/members', icon: '👥' },
     ],
     'volunteer': [
-      { name: 'My Tasks', path: '/admin', icon: '📋' }, 
-      { name: 'Events', path: '/admin/events', icon: '📅' },
+      { name: 'My Tasks', path: '/volunteer/tasks', icon: '📋' }, 
+      { name: 'Explore Projects', path: '/volunteer/explore', icon: '🚀' },
+      { name: 'My Applications', path: '/volunteer/applications', icon: '📂' },
     ]
   };
 
@@ -100,13 +72,9 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
           <p className="text-[9px] font-black text-blue-200/30 uppercase tracking-[0.4em] mb-4 px-3">Main Menu</p>
           {currentMenu.map((item) => {
             
-            // 🌟 الحساب الأساسي لتفعيل الزر
-            let isActive = location.pathname === item.path || (location.pathname.startsWith(item.path) && item.path !== '/chapter-chair' && item.path !== '/admin' && item.path !== '/super-admin');
-            
-            // 🌟 التعديل السحري: إذا كنا بصفحة المهام، خلي زر المشاريع شغال ومضوي
-            if (item.path === '/chapter-chair/projects' && location.pathname.startsWith('/chapter-chair/tasks')) {
-                isActive = true;
-            }
+            // حساب الحالة النشطة بشكل أدق
+            const isActive = location.pathname === item.path || 
+                           (location.pathname.startsWith(item.path) && item.path !== '/volunteer' && item.path !== '/chapter-chair');
 
             return (
               <Link 
@@ -136,7 +104,7 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
             </div>
             <div className="bg-emerald-500/20 px-2 py-1 rounded-md shrink-0 border border-emerald-500/10">
               <p className="text-[7px] text-emerald-400 font-black uppercase tracking-tighter">
-                {role?.replace('_', ' ') || 'System Admin'}
+                {role?.replace('_', ' ') || 'Volunteer'}
               </p>
             </div>
           </div>

@@ -19,39 +19,54 @@ const ChapterMembers = () => {
         return 'bg-blue-50 text-[#00629B] border-blue-100';
     };
 
-    const getStatusColor = (status) => {
-        if (status === 'Active') return 'text-emerald-500 fill-emerald-500';
-        return 'text-slate-300 fill-slate-300';
+    // 🌟 رجعنا الحالات الأصلية للأعضاء (Active / Inactive) فقط
+    const getStatusBgColor = (status) => {
+        return (status === 'Active' || !status) ? 'bg-emerald-500' : 'bg-slate-300';
     };
 
-    const fetchMembers = async () => {
-        const chapterId = localStorage.getItem('chapter_id');
-        const currentUserId = localStorage.getItem('user_id'); 
+const fetchMembers = async () => {
+    const chapterId = localStorage.getItem('chapter_id');
+    const currentUserId = localStorage.getItem('user_id'); 
 
-        if (!chapterId) {
-            setLoading(false);
-            return;
-        }
+    if (!chapterId) {
+        setLoading(false);
+        return;
+    }
 
-        setLoading(true);
-        try {
-            const response = await chapterService.getChapterMembers(chapterId, roleFilter, statusFilter);
-            const allData = response.data?.data || response.data || [];
+    setLoading(true);
+    try {
+        // نطلب كل الأعضاء بدون فلتر حالة للسيرفر
+        const response = await chapterService.getChapterMembers(chapterId, roleFilter, '');
+        const allData = response.data?.data || response.data || [];
+        
+        const filteredMembers = allData.filter(member => {
+            const isMe = currentUserId && String(member.user_id) === String(currentUserId);
+            const isChapterChair = member.role === 'Chapter Chair';
             
-            // 🌟 فلترة صارمة لإخفاء حسابك (عن طريق الرتبة أو الـ ID)
-            const filteredMembers = allData.filter(member => {
-                const isChapterChair = member.role === 'Chapter Chair';
-                const isMe = currentUserId && String(member.user_id) === String(currentUserId);
-                return !isChapterChair && !isMe;
-            });
+            // 🌟 تنظيف مسمى الحالة القادم من السيرفر
+            const dbStatus = String(member.status || '').toLowerCase().trim();
+            const filterValue = statusFilter.toLowerCase().trim();
+            
+            let matchesStatus = true;
 
-            setMembers(filteredMembers);
-        } catch (error) {
-            toast.error("Failed to load chapter members.");
-        } finally {
-            setLoading(false);
-        }
-    };
+            if (filterValue === 'active') {
+                // نعتبره نشط إذا كان active أو إذا كان الحقل فارغاً
+                matchesStatus = (dbStatus === 'active' || dbStatus === '');
+            } else if (filterValue === 'inactive') {
+                // 🌟 التعديل الجوهري: نعتبره غير نشط إذا كان suspended أو inactive
+                matchesStatus = (dbStatus === 'suspended' || dbStatus === 'inactive');
+            }
+
+            return !isChapterChair && !isMe && matchesStatus;
+        });
+
+        setMembers(filteredMembers);
+    } catch (error) {
+        toast.error("Failed to load chapter members.");
+    } finally {
+        setLoading(false);
+    }
+};
 
     useEffect(() => { fetchMembers(); }, [roleFilter, statusFilter]);
 
@@ -77,61 +92,70 @@ const ChapterMembers = () => {
     ];
 
     return (
-        <div className="p-2 md:p-6 animate-in fade-in duration-700 max-w-7xl mx-auto min-h-screen">
+        /* 🌟 حل مشكلة التداخل: استخدام relative بدون margin-left ضخم يضرب السايد بار */
+        <div className="w-full p-6 md:p-10 animate-in fade-in duration-500 relative z-10">
             
-            <div className="flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-end mb-10">
-                <div>
-                    <h1 className="text-3xl md:text-4xl font-[900] text-[#00629B] italic tracking-tight uppercase">Chapter Members</h1>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em] mt-3 ml-1 flex items-center gap-2">
-                        <Users size={14} /> Volunteer Roster
+            {/* Header Section */}
+            <div className="flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-end mb-12 relative z-10">
+                <div className="lg:ml-4">
+                    <h1 className="text-4xl md:text-5xl font-[900] text-[#00629B] italic tracking-tight uppercase leading-tight">
+                        Chapter Members
+                    </h1>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.5em] mt-4 ml-1 flex items-center gap-2">
+                        <Users size={16} /> Volunteer Roster
                     </p>
                 </div>
-                <div className="flex gap-4 bg-white p-3 rounded-3xl border border-slate-100 shadow-sm w-full lg:w-auto">
-                    <div className="px-5 py-2 bg-slate-50 rounded-2xl flex flex-col items-center flex-1">
-                        <span className="text-xl font-black text-[#00629B]">{members.length}</span>
-                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Total</span>
+                
+                <div className="flex gap-4 bg-white p-3 rounded-[2rem] border border-slate-100 shadow-sm mr-4">
+                    <div className="px-8 py-3 bg-slate-50 rounded-2xl flex flex-col items-center min-w-[100px]">
+                        <span className="text-2xl font-black text-[#00629B]">{members.length}</span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total</span>
                     </div>
-                    <div className="px-5 py-2 bg-emerald-50 rounded-2xl flex flex-col items-center flex-1">
-                        <span className="text-xl font-black text-emerald-600">{members.filter(m => m.status === 'Active').length}</span>
-                        <span className="text-[8px] font-bold text-emerald-500 uppercase tracking-widest">Active</span>
+                    <div className="px-8 py-3 bg-emerald-50 rounded-2xl flex flex-col items-center min-w-[100px]">
+                        <span className="text-2xl font-black text-emerald-600">
+                            {members.filter(m => m.status === 'Active' || !m.status).length}
+                        </span>
+                        <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest">Active</span>
                     </div>
                 </div>
             </div>
 
-            <div className="bg-white p-5 rounded-[2.5rem] border border-slate-100 shadow-sm mb-12 flex flex-col md:flex-row gap-6 items-center relative z-[100]">
-                <div className="flex items-center gap-3 text-[#00629B] px-4 shrink-0">
-                    <div className="p-2 bg-blue-50 rounded-xl"><Filter size={18} strokeWidth={2.5} /></div>
-                    <span className="text-[11px] font-[900] uppercase tracking-[0.2em]">Filter</span>
+            {/* Filter Bar - z-index أقل من السايد بار لضمان عدم التداخل */}
+            <div className="bg-white p-6 rounded-[3rem] border border-slate-100 shadow-sm mb-16 flex flex-col md:flex-row gap-8 items-center relative z-20 max-w-[98%] mx-auto">
+                <div className="flex items-center gap-4 text-[#00629B] px-6 border-r border-slate-100 hidden md:flex">
+                    <div className="p-3 bg-blue-50 rounded-2xl"><Filter size={20} strokeWidth={3} /></div>
+                    <span className="text-sm font-[900] uppercase tracking-[0.2em]">Filter</span>
                 </div>
-                <div className="h-10 w-px bg-slate-100 hidden md:block"></div>
-                <div className="flex-1 w-full flex flex-col sm:flex-row gap-8">
+                
+                <div className="flex-1 w-full flex flex-col sm:flex-row gap-10">
                     <div className="relative flex-1" ref={roleRef}>
-                        <label className="absolute -top-2.5 left-5 bg-white px-2 text-[8px] font-black uppercase tracking-widest text-slate-400 z-20">Role</label>
-                        <button onClick={() => {setIsRoleOpen(!isRoleOpen); setIsStatusOpen(false);}} className={`w-full bg-slate-50/50 border rounded-2xl py-4 px-6 text-[11px] font-black text-slate-600 flex justify-between items-center transition-all ${isRoleOpen ? 'border-[#00629B] bg-white shadow-md' : 'border-slate-100 hover:border-blue-200'}`}>
+                        <label className="absolute -top-3 left-6 bg-white px-3 text-[10px] font-black uppercase tracking-widest text-slate-400 z-10">Role</label>
+                        <button onClick={() => {setIsRoleOpen(!isRoleOpen); setIsStatusOpen(false);}} className={`w-full bg-slate-50/50 border rounded-[1.8rem] py-5 px-8 text-xs font-black text-slate-600 flex justify-between items-center transition-all ${isRoleOpen ? 'border-[#00629B] bg-white shadow-md' : 'border-slate-50'}`}>
                             {roleOptions.find(o => o.value === roleFilter)?.label}
-                            <ChevronDown size={16} className={`transition-transform duration-300 ${isRoleOpen ? 'rotate-180 text-[#00629B]' : 'text-slate-300'}`} />
+                            <ChevronDown size={18} className={`transition-transform duration-300 ${isRoleOpen ? 'rotate-180 text-[#00629B]' : 'text-slate-300'}`} />
                         </button>
                         {isRoleOpen && (
-                            <div className="absolute top-[110%] left-0 w-full bg-white border border-slate-100 rounded-[1.8rem] shadow-2xl p-2 z-[110] animate-in zoom-in-95 duration-200">
+                            <div className="absolute top-[115%] left-0 w-full bg-white border border-slate-100 rounded-[2rem] shadow-2xl p-3 z-30">
                                 {roleOptions.map((opt) => (
-                                    <button key={opt.value} onClick={() => { setRoleFilter(opt.value); setIsRoleOpen(false); }} className={`w-full text-left px-5 py-3.5 rounded-2xl text-[10px] font-[800] uppercase tracking-widest flex justify-between items-center transition-colors mb-1 last:mb-0 ${roleFilter === opt.value ? 'bg-blue-50 text-[#00629B]' : 'text-slate-500 hover:bg-slate-50'}`}>
-                                        {opt.label}{roleFilter === opt.value && <Check size={14} strokeWidth={3} />}
+                                    <button key={opt.value} onClick={() => { setRoleFilter(opt.value); setIsRoleOpen(false); }} className={`w-full text-left px-6 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest flex justify-between items-center transition-all ${roleFilter === opt.value ? 'bg-blue-50 text-[#00629B]' : 'text-slate-500 hover:bg-slate-50'}`}>
+                                        {opt.label}
                                     </button>
                                 ))}
                             </div>
                         )}
                     </div>
+
                     <div className="relative flex-1" ref={statusRef}>
-                        <label className="absolute -top-2.5 left-5 bg-white px-2 text-[8px] font-black uppercase tracking-widest text-slate-400 z-20">Status</label>
-                        <button onClick={() => {setIsStatusOpen(!isStatusOpen); setIsRoleOpen(false);}} className={`w-full bg-slate-50/50 border rounded-2xl py-4 px-6 text-[11px] font-black text-slate-600 flex justify-between items-center transition-all ${isStatusOpen ? 'border-[#00629B] bg-white shadow-md' : 'border-slate-100 hover:border-blue-200'}`}>
+                        <label className="absolute -top-3 left-6 bg-white px-3 text-[10px] font-black uppercase tracking-widest text-slate-400 z-10">Status</label>
+                        <button onClick={() => {setIsStatusOpen(!isStatusOpen); setIsRoleOpen(false);}} className={`w-full bg-slate-50/50 border rounded-[1.8rem] py-5 px-8 text-xs font-black text-slate-600 flex justify-between items-center transition-all ${isStatusOpen ? 'border-[#00629B] bg-white shadow-md' : 'border-slate-50'}`}>
                             {statusOptions.find(o => o.value === statusFilter)?.label}
-                            <ChevronDown size={16} className={`transition-transform duration-300 ${isStatusOpen ? 'rotate-180 text-[#00629B]' : 'text-slate-300'}`} />
+                            <ChevronDown size={18} className={`transition-transform duration-300 ${isStatusOpen ? 'rotate-180 text-[#00629B]' : 'text-slate-300'}`} />
                         </button>
                         {isStatusOpen && (
-                            <div className="absolute top-[110%] left-0 w-full bg-white border border-slate-100 rounded-[1.8rem] shadow-2xl p-2 z-[110] animate-in zoom-in-95 duration-200">
+                            <div className="absolute top-[115%] left-0 w-full bg-white border border-slate-100 rounded-[2rem] shadow-2xl p-3 z-30">
                                 {statusOptions.map((opt) => (
-                                    <button key={opt.value} onClick={() => { setStatusFilter(opt.value); setIsStatusOpen(false); }} className={`w-full text-left px-5 py-3.5 rounded-2xl text-[10px] font-[800] uppercase tracking-widest flex justify-between items-center transition-colors mb-1 last:mb-0 ${statusFilter === opt.value ? 'bg-emerald-50 text-emerald-600' : 'text-slate-500 hover:bg-slate-50'}`}>
-                                        {opt.label}{statusFilter === opt.value && <Check size={14} strokeWidth={3} />}
+                                    <button key={opt.value} onClick={() => { setStatusFilter(opt.value); setIsStatusOpen(false); }} className={`w-full text-left px-6 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest flex justify-between items-center transition-all ${statusFilter === opt.value ? 'bg-blue-50 text-[#00629B]' : 'text-slate-500 hover:bg-slate-50'}`}>
+                                        {opt.label}
                                     </button>
                                 ))}
                             </div>
@@ -140,47 +164,41 @@ const ChapterMembers = () => {
                 </div>
             </div>
 
+            {/* Member Cards Grid */}
             {loading ? (
-                <Loader message="Syncing member database..." />
-            ) : members.length === 0 ? (
-                <div className="py-32 text-center bg-white rounded-[3.5rem] border border-slate-100 shadow-sm flex flex-col items-center gap-6">
-                    <div className="p-6 bg-slate-50 rounded-full text-slate-200"><UserX size={48} /></div>
-                    <p className="text-xs font-black text-slate-400 uppercase italic tracking-[0.3em]">No members found</p>
-                </div>
+                <Loader />
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10 px-4 pb-20">
                     {members.map((member) => (
-                        <div key={member.user_id} className="bg-white rounded-[2.8rem] p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all group flex flex-col relative overflow-hidden">
-                            <div className="flex justify-between items-start mb-8 relative z-10">
-                                <div className="relative">
-                                    <div className="w-20 h-20 rounded-[2rem] bg-gradient-to-br from-[#00629B] to-[#004266] text-white flex items-center justify-center text-2xl font-black shadow-xl group-hover:rotate-6 transition-all duration-500">
-                                        {member.full_name?.charAt(0).toUpperCase()}
-                                    </div>
-                                    <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-white shadow-sm ${member.status === 'Active' ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
+                        <div key={member.user_id} className="bg-white rounded-[3.5rem] p-10 border border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-3 transition-all duration-500 group flex flex-col items-center text-center relative overflow-visible">
+                            
+                            <div className="relative mb-8">
+                                <div className="w-24 h-24 rounded-[2.5rem] bg-[#00629B] text-white flex items-center justify-center text-3xl font-black shadow-xl group-hover:rotate-6 transition-transform duration-500">
+                                    {member.full_name?.charAt(0).toUpperCase()}
                                 </div>
-                                <span className={`px-4 py-2 text-[8px] font-[900] uppercase tracking-widest rounded-xl border shadow-sm ${getRoleBadgeConfig(member.role)}`}>
-                                    {member.role || 'Volunteer'}
-                                </span>
-                            </div>
-                            <div className="space-y-2 mb-8 flex-1 relative z-10">
-                                <h3 className="text-lg font-black text-slate-800 truncate group-hover:text-[#00629B] transition-colors tracking-tight">{member.full_name}</h3>
-                                <div className="flex items-center gap-2 text-slate-400">
-                                    <Mail size={12} className="shrink-0" /><p className="text-[10px] font-bold truncate">{member.email}</p>
-                                </div>
-                            </div>
-                            <hr className="border-slate-50 mb-6" />
-                            <div className="flex items-center justify-between relative z-10">
-                                <div className="flex items-center gap-2">
-                                    <Circle size={8} className={`${getStatusColor(member.status)} ${member.status === 'Active' ? 'animate-pulse' : ''}`} />
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                        {member.status === 'Active' ? 'Active Member' : 'Inactive Member'}
+                                
+                                {/* 🌟 النقطة المعبأة الخضراء مع rounded-full */}
+                                <div className={`absolute -bottom-2 -right-2 w-8 h-8 rounded-full border-[6px] border-white shadow-md ${getStatusBgColor(member.status)}`}></div>
+                                
+                                <div className="absolute -top-4 -right-12">
+                                    <span className={`px-4 py-1.5 text-[8px] font-black uppercase tracking-widest rounded-xl shadow-sm border ${getRoleBadgeConfig(member.role)}`}>
+                                        {member.role || 'Volunteer'}
                                     </span>
                                 </div>
-                                {member.role === 'Project Leader' && (
-                                    <div className="p-2.5 bg-purple-50 rounded-xl text-purple-500 shadow-sm border border-purple-100">
-                                        <ShieldCheck size={18} strokeWidth={2.5} />
-                                    </div>
-                                )}
+                            </div>
+
+                            <div className="space-y-3 mb-8 w-full">
+                                <h3 className="text-xl font-[900] text-slate-800 uppercase tracking-tight truncate px-2">{member.full_name}</h3>
+                                <div className="flex items-center justify-center gap-2 text-slate-400">
+                                    <Mail size={14} /><p className="text-[11px] font-bold truncate max-w-[150px]">{member.email}</p>
+                                </div>
+                            </div>
+
+                            <div className="w-full pt-8 border-t border-slate-50 flex items-center justify-center gap-3">
+                                <div className={`w-2.5 h-2.5 rounded-full ${getStatusBgColor(member.status)}`} />
+                                <span className="text-[10px] font-[900] text-slate-400 uppercase tracking-[0.2em]">
+                                    {member.status === 'Active' ? 'Active Member' : 'Inactive Member'}
+                                </span>
                             </div>
                         </div>
                     ))}

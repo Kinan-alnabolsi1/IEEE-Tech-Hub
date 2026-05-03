@@ -16,12 +16,26 @@ const Login = () => {
   useEffect(() => {
     const token = localStorage.getItem('ieee_token');
     const role = localStorage.getItem('user_role');
+    
     if (token && role) {
-      if (role === 'super_admin') navigate('/super-admin', { replace: true });
-      else if (role === 'chapter_chair') navigate('/chapter-chair', { replace: true });
-      else if (role === 'admin') navigate('/admin', { replace: true });
+      redirectUser(role);
     }
   }, [navigate]);
+
+  const redirectUser = (role, user = null) => {
+    if (role === 'super_admin') navigate('/super-admin', { replace: true });
+    else if (role === 'admin') navigate('/admin', { replace: true });
+    else if (role === 'chapter_chair') navigate('/chapter-chair', { replace: true });
+    else if (role === 'volunteer') {
+      // 🌟 التحقق من الـ Onboarding للمتطوع
+      // إذا لم يكن لديه كلية مخزنة، نعتبره بحاجة لإكمال البيانات
+      if (user && !user.faculty) {
+        navigate('/onboarding', { replace: true });
+      } else {
+        navigate('/volunteer', { replace: true });
+      }
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,31 +49,25 @@ const Login = () => {
         localStorage.clear(); 
         localStorage.setItem('ieee_token', data.access_token);
         localStorage.setItem('ieee_user', JSON.stringify(data.user));
+        localStorage.setItem('user_id', String(data.user?.id)); // مهم للبروفايل والفلترة
         localStorage.setItem('user_name', data.user?.full_name || 'Member');
+        
 
-        const chapterId = data.user?.managed_chapter_id;
-        if (chapterId) {
-          localStorage.setItem('chapter_id', String(chapterId));
-        }
+        const chapterId = data.user?.managed_chapter_id || data.user?.chapter_id;
+        if (chapterId) localStorage.setItem('chapter_id', String(chapterId));
 
         let rawRole = String(data.user?.role || '').toLowerCase();
         let normalizedRole = 'volunteer';
+        
         if (rawRole.includes('super')) normalizedRole = 'super_admin';
         else if (rawRole.includes('admin')) normalizedRole = 'admin';
-        else if (rawRole.includes('chair') || chapterId) normalizedRole = 'chapter_chair';
+        else if (rawRole.includes('chair') || data.user?.managed_chapter_id) normalizedRole = 'chapter_chair';
 
         localStorage.setItem('user_role', normalizedRole);
         if (data.user?.branch_id) localStorage.setItem('branch_id', String(data.user.branch_id));
 
-        toast.success(`Welcome back!`);
-
-        if (normalizedRole === 'super_admin') navigate('/super-admin', { replace: true });
-        else if (normalizedRole === 'chapter_chair') navigate('/chapter-chair', { replace: true });
-        else if (normalizedRole === 'admin') navigate('/admin', { replace: true });
-        else {
-          localStorage.clear();
-          navigate('/', { replace: true });
-        }
+        toast.success(`Welcome back, ${data.user.full_name}!`);
+        redirectUser(normalizedRole, data.user);
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Invalid Credentials');
