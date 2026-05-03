@@ -38,4 +38,21 @@ export const chapterService = {
 
   // 9. حذف فصل
   delete: (chapterId) => deleteData(`/chapters/${chapterId}`),
+
+  // --------------------------------------------------------
+  // 🌟 الدوال الجديدة الخاصة بصفحة أعضاء الفصل (Chapter Members)
+  // --------------------------------------------------------
+
+  // 10. جلب قائمة أعضاء الفصل مع إمكانية الفلترة (حسب الرتبة والحالة)
+  getChapterMembers: (chapterId, role = '', status = '') => {
+    let queryParams = new URLSearchParams();
+    
+    if (role) queryParams.append('role', role);
+    if (status) queryParams.append('status', status);
+    
+    const queryString = queryParams.toString();
+    const endpoint = `/chapters/${chapterId}/members${queryString ? `?${queryString}` : ''}`;
+    
+    return getData(endpoint);
+  }
 };

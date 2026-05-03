@@ -21,5 +21,22 @@ export const projectService = {
   deleteProject: (projectId) => deleteData(`/projects/${projectId}`),
   
   // 7. تغيير حالة المشروع (Open / Closed)
-  updateStatus: (projectId, status) => patchData(`/projects/${projectId}/status`, { status })
+  updateStatus: (projectId, status) => patchData(`/projects/${projectId}/status`, { status }),
+  
+
+  // --------------------------------------------------------
+  // 🌟 دوال إدارة قادة المشاريع (الجديدة)
+  // --------------------------------------------------------
+
+  // 8. جلب المتقدمين لمنصب قائد مشروع حصراً (للمودال)
+  getLeaderApplications: (projectId) => 
+    getData(`/projects/${projectId}/applications?status=Pending&role=${encodeURIComponent('Project Leader')}`),
+
+  // 9. تعيين قائد للمشروع من بين المتقدمين
+  assignProjectLeader: (projectId, userId) => 
+    patchData(`/projects/${projectId}/assign-leader`, { user_id: userId }),
+
+  // 10. عزل قائد المشروع
+  removeProjectLeader: (projectId) => 
+    deleteData(`/projects/${projectId}/leader`)
 };

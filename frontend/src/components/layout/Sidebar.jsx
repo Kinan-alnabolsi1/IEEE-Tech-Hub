@@ -61,17 +61,14 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
       { name: 'Technical Chapters', path: '/admin/chapters', icon: '⚙️' },
       { name: 'Project Approvals', path: '/admin/projects', icon: '🚀' },
     ],
-    // 🌟 القائمة الشاملة والصحيحة الخاصة برئيس الفصل (5 صفحات)
     'chapter_chair': [
       { name: 'Chapter Dashboard', path: '/chapter-chair', icon: '📊' },
       { name: 'Manage Projects', path: '/chapter-chair/projects', icon: '🚀' },
-      { name: 'Tasks Overview', path: '/chapter-chair/tasks', icon: '📋' },
-      { name: 'Applications', path: '/chapter-chair/applications', icon: '📥' },
+      // { name: 'Applications', path: '/chapter-chair/applications', icon: '📥' },
       { name: 'Chapter Members', path: '/chapter-chair/members', icon: '👥' },
-      
     ],
     'volunteer': [
-      { name: 'My Tasks', path: '/admin', icon: '📋' }, // تحتاج تعديل مسار لاحقاً
+      { name: 'My Tasks', path: '/admin', icon: '📋' }, 
       { name: 'Events', path: '/admin/events', icon: '📅' },
     ]
   };
@@ -102,9 +99,15 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
         <nav className="flex-1 px-4 py-4 space-y-1.5 overflow-y-auto mt-2 no-scrollbar">
           <p className="text-[9px] font-black text-blue-200/30 uppercase tracking-[0.4em] mb-4 px-3">Main Menu</p>
           {currentMenu.map((item) => {
-            // تحديث بسيط جداً لتفعيل اللون الأبيض (Active) حتى لو كنا بصفحة فرعية
-            const isActive = location.pathname === item.path || (location.pathname.startsWith(item.path) && item.path !== '/chapter-chair' && item.path !== '/admin' && item.path !== '/super-admin');
             
+            // 🌟 الحساب الأساسي لتفعيل الزر
+            let isActive = location.pathname === item.path || (location.pathname.startsWith(item.path) && item.path !== '/chapter-chair' && item.path !== '/admin' && item.path !== '/super-admin');
+            
+            // 🌟 التعديل السحري: إذا كنا بصفحة المهام، خلي زر المشاريع شغال ومضوي
+            if (item.path === '/chapter-chair/projects' && location.pathname.startsWith('/chapter-chair/tasks')) {
+                isActive = true;
+            }
+
             return (
               <Link 
                 key={item.path} 

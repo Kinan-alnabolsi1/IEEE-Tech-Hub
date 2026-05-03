@@ -23,6 +23,7 @@ import ProjectsIndex from './pages/admin/projects/ProjectsIndex';
 import ChapterDashboard from './pages/chapterChair/Dashboard/ChapterDashboard';
 import ProjectsManagement from './pages/chapterChair/Projects/ProjectsManagement';
 import TasksOverview from './pages/ChapterChair/Tasks/TasksOverview';
+import ChapterMembers from './pages/ChapterChair/members/ChapterMembers';
 // استدعي باقي صفحات التشابتر هون بس تصمميهم
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -96,6 +97,7 @@ function App() {
           <Route index element={<ChapterDashboard />} />
           <Route path="projects" element={<ProjectsManagement />} />
           <Route path="tasks" element={<TasksOverview />} />
+          <Route path="members" element={<ChapterMembers />} />
           
           {/* الصفحات الجاية (بس تجهزيها شيلي التعليق عنها) */}
           {/* <Route path="applications" element={<ApplicationsPage />} /> */}

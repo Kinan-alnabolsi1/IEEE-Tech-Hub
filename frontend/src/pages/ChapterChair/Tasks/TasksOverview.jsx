@@ -2,32 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Calendar, AlertCircle, ArrowLeft, ClipboardList } from 'lucide-react';
 import Loader from '../../../components/ui/Loader'; 
-
-// 🛑 داتا المهام الوهمية (مطابقة للـ API)
-const MOCK_TASKS = [
-  {
-    task_id: 1, project_id: 1, title: "تصميم واجهة المستخدم (UI/UX)", priority: "High", status: "In Progress", due_date: "2026-05-15",
-    assignedUsers: [
-      { user_id: 12, full_name: "Ahmad Yassin", pivot: { assignment_id: 1, completion_pct: 75, progress_note: "شغال على الصفحة الرئيسية" } },
-      { user_id: 15, full_name: "Sara Khaled", pivot: { assignment_id: 2, completion_pct: 30, progress_note: "عم بجمع الصور والأيقونات" } }
-    ]
-  },
-  {
-    task_id: 2, project_id: 1, title: "برمجة الباك إند وتجهيز قواعد البيانات", priority: "Critical", status: "Pending", due_date: "2026-05-20",
-    assignedUsers: [
-      { user_id: 22, full_name: "Omar Ali", pivot: { assignment_id: 3, completion_pct: 10, progress_note: "بدأت بتصميم الـ Schema" } }
-    ]
-  },
-  {
-    task_id: 3, project_id: 2, title: "تجهيز محتوى الدورة التدريبية", priority: "Medium", status: "Completed", due_date: "2026-04-30",
-    assignedUsers: [
-      { user_id: 18, full_name: "Laila Hasan", pivot: { assignment_id: 4, completion_pct: 100, progress_note: "تم رفع الملفات على الدرايف" } }
-    ]
-  }
-];
+import { taskService } from '../../../services/taskService'; // 🌟 استيراد الخدمة
+import toast from 'react-hot-toast'; // 🌟 استيراد التوست للأخطاء
 
 const TasksOverview = () => {
-  // 🌟 استخراج بيانات المشروع من الرابط (URL)
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const projectId = searchParams.get('project_id');
@@ -37,21 +15,27 @@ const TasksOverview = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // إذا مافي ID بالرابط، ما تعمل لودينغ ووقف
     if (!projectId) {
       setLoading(false);
       return;
     }
 
-    setLoading(true);
-    // محاكاة جلب المهام للمشروع الممرر بالرابط
-    const timer = setTimeout(() => {
-      const filteredTasks = MOCK_TASKS.filter(t => t.project_id === Number(projectId));
-      setTasks(filteredTasks);
-      setLoading(false);
-    }, 600);
+    // 🌟 دالة جلب المهام الحقيقية من الباك إند
+    const fetchTasks = async () => {
+      setLoading(true);
+      try {
+        const response = await taskService.getProjectTasks(projectId);
+        // التكيف مع شكل الاستجابة (سواء كانت داتا مباشرة أو مغلفة بـ data)
+        setTasks(response.data?.data || response.data || []);
+      } catch (error) {
+        console.error("Error fetching tasks:", error);
+        toast.error("Failed to load project tasks.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    return () => clearTimeout(timer);
+    fetchTasks();
   }, [projectId]);
 
   // دالة ألوان الأولوية
@@ -65,7 +49,7 @@ const TasksOverview = () => {
     }
   };
 
-  // 🛑 حالة: إذا اليوزر دخل الصفحة بدون ما يختار مشروع من صفحة المشاريع
+  // حالة: إذا اليوزر دخل الصفحة بدون ما يختار مشروع من صفحة المشاريع
   if (!projectId && !loading) {
     return (
       <div className="flex flex-col items-center justify-center py-40 space-y-6 animate-in fade-in">
