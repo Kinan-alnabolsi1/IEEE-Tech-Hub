@@ -163,34 +163,64 @@ const MemberManagementModal = ({ isOpen, onClose, chapter, onSuccess }) => {
               sortedMembers.map(m => {
                 const isChair = localChairId === m.user_id; // 🌟 فحص الرئيس بناءً على الحالة المحلية
                 return (
-                  <div key={m.user_id} className="flex items-center justify-between p-4 bg-[#F8FAFC] rounded-[1.5rem] border border-transparent hover:border-blue-100 transition-all group">
+                  <div
+                    key={m.user_id}
+                    className="flex items-center justify-between p-4 bg-[#F8FAFC] rounded-[1.5rem] border border-transparent hover:border-blue-100 transition-all group"
+                  >
                     <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs shadow-sm transition-all ${isChair ? 'bg-amber-100 text-amber-600 scale-105' : 'bg-white text-[#00629B]'}`}>
-                        {isChair ? <Crown size={16} /> : m.full_name?.charAt(0).toUpperCase()}
+                      <div
+                        className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs shadow-sm transition-all ${isChair ? "bg-amber-100 text-amber-600 scale-105" : "bg-white text-[#00629B]"}`}
+                      >
+                        {isChair ? (
+                          <Crown size={16} />
+                        ) : (
+                          m.full_name?.charAt(0).toUpperCase()
+                        )}
                       </div>
                       <div>
                         <div className="text-xs font-black text-slate-800 uppercase flex items-center gap-2">
-                          {m.full_name} 
-                          {isChair && <span className="px-2 py-0.5 bg-amber-100 text-amber-600 rounded-lg text-[8px] tracking-widest animate-in zoom-in duration-300">CHAIR</span>}
+                          {m.full_name}
+                          {isChair && (
+                            <span className="px-2 py-0.5 bg-amber-100 text-amber-600 rounded-lg text-[8px] tracking-widest animate-in zoom-in duration-300">
+                              CHAIR
+                            </span>
+                          )}
                         </div>
                         <div className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">
-                          {m.pivot?.role_in_chapter || 'Member'}
+                          {m.pivot?.role_in_chapter || "Member"}
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       {isChair ? (
-                        <button onClick={handleRemoveChair} disabled={actionLoading} className="p-2.5 text-amber-600 hover:bg-amber-100 rounded-xl transition-all" title="Remove as Chair">
+                        <button
+                          onClick={handleRemoveChair}
+                          disabled={actionLoading}
+                          className="p-2.5 text-amber-600 hover:bg-amber-100 rounded-xl transition-all"
+                          title="Remove as Chair"
+                        >
                           <ShieldX size={16} />
                         </button>
                       ) : (
-                        <button onClick={() => handleAssignChair(m.user_id)} disabled={actionLoading} className="p-2.5 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-all" title="Assign as Chair">
-                          <Crown size={16} />
-                        </button>
+                        !localChairId && ( // 👈 الشرط المهم هون
+                          <button
+                            onClick={() => handleAssignChair(m.user_id)}
+                            disabled={actionLoading}
+                            className="p-2.5 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-all"
+                            title="Assign as Chair"
+                          >
+                            <Crown size={16} />
+                          </button>
+                        )
                       )}
 
-                      <button onClick={() => handleRemoveMember(m.user_id)} disabled={actionLoading} className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all" title="Remove Member">
+                      <button
+                        onClick={() => handleRemoveMember(m.user_id)}
+                        disabled={actionLoading}
+                        className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                        title="Remove Member"
+                      >
                         <UserMinus size={16} />
                       </button>
                     </div>
