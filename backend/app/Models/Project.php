@@ -35,4 +35,12 @@ class Project extends Model
     {
         return $this->belongsTo(Chapter::class, 'chapter_id', 'chapter_id');
     }
+
+    /**
+     * اسم مستعار لعلاقة الفصل (لأن بعض أجزاء الكود تستخدم كلمة society بدل chapter)
+     */
+    public function society()
+    {
+        return $this->belongsTo(Chapter::class, 'chapter_id', 'chapter_id');
+    }
 }

@@ -245,7 +245,7 @@ class ProjectController extends Controller
 
         // ب. نجلب المشاريع التابعة لهذه الفصول
         $projects = Project::whereIn('chapter_id', $chapterIds)
-                           ->with(['leader', 'members', 'society']) // جلب العلاقات المهمة للعرض
+                           ->with(['leader', 'members', 'chapter']) // جلب العلاقات المهمة للعرض
                            ->latest()
                            ->get();
 
