@@ -65,9 +65,10 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
     'chapter_chair': [
       { name: 'Chapter Dashboard', path: '/chapter-chair', icon: '📊' },
       { name: 'Manage Projects', path: '/chapter-chair/projects', icon: '🚀' },
+      { name: 'Tasks Overview', path: '/chapter-chair/tasks', icon: '📋' },
       { name: 'Applications', path: '/chapter-chair/applications', icon: '📥' },
       { name: 'Chapter Members', path: '/chapter-chair/members', icon: '👥' },
-      { name: 'Tasks Overview', path: '/chapter-chair/tasks', icon: '📋' },
+      
     ],
     'volunteer': [
       { name: 'My Tasks', path: '/admin', icon: '📋' }, // تحتاج تعديل مسار لاحقاً
