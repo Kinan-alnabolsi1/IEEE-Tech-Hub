@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import BaseModal from '@/components/ui/BaseModal'; // 🌟 الاستيراد الصح تبعك
+import BaseModal from '@/components/ui/BaseModal'; 
 import { Save, Loader2, Plus, Trash2 } from 'lucide-react';
 import { projectService } from '../../../services/projectService';
 import toast from 'react-hot-toast';
@@ -103,12 +103,15 @@ const ProjectFormModal = ({ isOpen, onClose, projectToEdit, onSuccess }) => {
                     </div>
                     <div className="space-y-1">
                         <label className="text-[9px] font-black uppercase tracking-[0.2em] text-[#005587] ml-2 block">Status</label>
+                        {/* 🌟 تم تعديل الحالات هنا */}
                         <select 
                             value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}
                             className="w-full bg-slate-50 border border-slate-100 focus:border-[#005587] rounded-2xl px-5 py-3.5 text-xs font-bold outline-none cursor-pointer transition-all"
                         >
                             <option value="Open">Open</option>
-                            <option value="Closed">Closed</option>
+                            <option value="Ongoing">Ongoing</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
                         </select>
                     </div>
                 </div>
@@ -163,7 +166,6 @@ const ProjectFormModal = ({ isOpen, onClose, projectToEdit, onSuccess }) => {
                     ))}
                 </div>
 
-                {/* 🌟 Footer الأزرار نفس اللي معتمدتيه */}
                 <div className="pt-4 flex gap-3">
                     <button type="button" onClick={onClose} disabled={loading} className="flex-1 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400 border border-slate-100 rounded-2xl hover:bg-slate-50 transition-colors">
                         Abort
