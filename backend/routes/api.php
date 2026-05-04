@@ -16,8 +16,12 @@ use App\Http\Controllers\ReportController;
 // 🌍 Public Routes (مسارات عامة لا تحتاج تسجيل دخول)
 // ==================================================================
 Route::post('/register', [AuthController::class, 'register']);
+Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
+Route::post('/resend-otp', [AuthController::class, 'resendOtp']);
 Route::post('/login', [AuthController::class, 'login']);
-Route::get('/branches', [BranchController::class, 'index']); // استعراض الفروع للجميع
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+Route::get('/branches', [BranchController::class, 'index']);
 
 
 // ==================================================================
@@ -58,6 +62,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/profile/onboarding', [UserController::class, 'createProfile']); // استكمال إنشاء البروفايل
     Route::get('/my-projects', [UserController::class, 'myProjects']); // مشاريعي وطلباتي
     Route::get('/my-tasks', [UserController::class, 'myTasks']); // مهامي من كل المشاريع
+
+    Route::post('/tasks/{taskId}/evaluate-member/{userId}', [TaskController::class, 'evaluateTaskMember']);
+    Route::get('/users/{userId}/overview', [UserController::class, 'getUserOverview']);
 
 
     // --------------------------------------------------------------

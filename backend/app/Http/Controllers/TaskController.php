@@ -204,4 +204,60 @@ class TaskController extends Controller
 
         return response()->json(['message' => 'Progress updated', 'data' => $assignment]);
     }
+
+    /**
+     * تقييم أداء متطوع في مهمة محددة
+     * POST /api/tasks/{taskId}/evaluate-member/{userId}
+     */
+    public function evaluateTaskMember(Request $request, $taskId, $userId)
+    {
+        // 1. التحقق من المدخلات (التقييم من 1 لـ 5 إجباري، والتعليق اختياري)
+        $validated = $request->validate([
+            'rating' => 'required|integer|min:1|max:5',
+            'leader_feedback' => 'nullable|string|max:1000'
+        ]);
+
+        // 2. جلب المهمة مع المشروع التابعة له
+        $task = Task::with('project')->findOrFail($taskId);
+        $currentUser = $request->user();
+
+        // 🛡️ 3. الحماية: التأكد أن المستخدم الحالي هو الـ Project Leader لهذا المشروع حصراً
+        if ($currentUser->role !== 'Project Leader' || $task->project->leader_id !== $currentUser->user_id) {
+            return response()->json([
+                'message' => 'Unauthorized. Only the Project Leader of this project can evaluate members.'
+            ], 403);
+        }
+
+        // 4. التأكد أن المتطوع المراد تقييمه هو فعلاً موجود ضمن هذه المهمة
+        // (بافتراض أن علاقة المتطوعين في مودل Task اسمها assignees)
+        $volunteer = $task->assignees()->where('users.user_id', $userId)->first();
+
+        if (!$volunteer) {
+            return response()->json([
+                'message' => 'This volunteer is not assigned to this task.'
+            ], 404);
+        }
+
+        // 💡 5. (اختياري) يمكنك إضافة شرط يمنع التقييم إلا إذا كانت المهمة Completed
+        // if ($task->status !== 'Completed') {
+        //     return response()->json(['message' => 'Cannot evaluate an incomplete task.'], 400);
+        // }
+
+        // 🔄 6. تحديث الجدول الوسيط (task_assignments) بالتقييم
+        $task->assignees()->updateExistingPivot($userId, [
+            'rating' => $validated['rating'],
+            'leader_feedback' => $validated['leader_feedback'] ?? null,
+            'evaluated_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'Task evaluation submitted successfully.',
+            'data' => [
+                'user_id' => $userId,
+                'task_id' => $taskId,
+                'rating' => $validated['rating'],
+                'feedback' => $validated['leader_feedback'] ?? null,
+            ]
+        ]);
+    }
 }

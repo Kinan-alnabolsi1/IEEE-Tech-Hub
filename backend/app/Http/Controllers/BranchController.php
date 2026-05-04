@@ -281,7 +281,8 @@ class BranchController extends Controller
 
         // 1. بناء الاستعلام لجلب المتطوعين في هذا الفرع فقط
         $query = \App\Models\User::where('branch_id', $branchId)
-                                    ->where('role', 'Volunteer');
+                                    ->where('role', 'Volunteer')
+                                    ->whereNotNull('email_verified_at'); // 👈 السطر السحري انضاف هون
 
         // 2. فلتر اختياري: إذا أرسل الفرونت إند حالة معينة في الرابط
         if ($request->has('status')) {

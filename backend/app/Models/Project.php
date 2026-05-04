@@ -13,9 +13,10 @@ class Project extends Model
         return $this->belongsTo(User::class, 'leader_id', 'user_id');
     }
 
-    public function members() {
+    public function members(){
+        // 👈 اسم الجدول الوسيط هو project_members
         return $this->belongsToMany(User::class, 'project_members', 'project_id', 'user_id')
-                    ->withPivot(['role', 'status', 'applied_at']);
+                    ->withPivot(['role', 'status', 'applied_at', 'joined_at', 'final_rating', 'final_review', 'evaluated_at']); 
     }
 
     public function requiredSkills() {

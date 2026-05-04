@@ -197,4 +197,54 @@ class UserController extends Controller
             'data' => $assignments
         ]);
     }
+
+    /**
+     * النظرة العامة وتقييمات المتطوع
+     * GET /api/users/{userId}/overview
+     */
+    public function getUserOverview(Request $request, $userId)
+    {
+        $user = User::findOrFail($userId);
+
+        // 1. جلب المهام التابعة لهذا المستخدم والتي تم تقييمها فقط
+        // (بافتراض أن علاقة المهام في مودل User اسمها assignedTasks أو tasks)
+        $evaluatedTasks = $user->tasks() // 👈 غيرناها من assignedTasks لـ tasks لتطابق المودل تبعك
+                       ->with('project')
+                       ->wherePivotNotNull('rating')
+                       ->orderByPivot('evaluated_at', 'desc')
+                       ->get();
+
+        // 2. حساب متوسط التقييم (مثلاً 4.5 من 5)
+        // نستخدم دالة avg الجاهزة من لارافل على حقل الـ rating جوا الـ pivot
+        $averageRating = $evaluatedTasks->avg('pivot.rating');
+
+        // 3. ترتيب الداتا لتكون سهلة جداً للفرونت إند (Transformation)
+        $feedbacks = $evaluatedTasks->map(function ($task) {
+            return [
+                'task_id' => $task->task_id,
+                'task_name' => $task->title, // أو name حسب داتابيزك
+                'project_name' => $task->project->title ?? 'Unknown Project',
+                'rating' => $task->pivot->rating,
+                'feedback' => $task->pivot->leader_feedback,
+                'evaluated_at' => $task->pivot->evaluated_at,
+            ];
+        });
+
+        // 4. إرجاع النتيجة
+        return response()->json([
+            'message' => 'User overview retrieved successfully',
+            'data' => [
+                'user_info' => [
+                    'full_name' => $user->full_name,
+                    'role' => $user->role,
+                ],
+                'performance' => [
+                    // نقرب الرقم لخانة عشرية واحدة، وإذا مافي تقييمات نرجعه 0
+                    'average_rating' => $averageRating ? round($averageRating, 1) : 0, 
+                    'total_evaluated_tasks' => $evaluatedTasks->count(),
+                ],
+                'task_feedbacks' => $feedbacks // مصفوفة التعليقات والنجوم
+            ]
+        ]);
+    }
 }

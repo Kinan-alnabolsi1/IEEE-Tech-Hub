@@ -261,28 +261,29 @@ class ProjectController extends Controller
      */
     public function updateStatus(Request $request, $id)
     {
-        // 💡 جلبنا المشروع مع الـ chapter الخاص به لنعرف إلى أي فرع ينتمي
+        // 💡 جلبنا المشروع مع الـ chapter الخاص به لنعرف كل التفاصيل (الفرع، رئيس الفصل، والقائد)
         $project = Project::with('chapter')->findOrFail($id);
         $currentUser = $request->user();
 
         // 🛡️ 1. منطق الصلاحيات (Authorization Logic)
-        if ($currentUser->role === 'Super Admin') {
-            // السوبر أدمن يمر دائماً
-        } 
-        elseif ($currentUser->role === 'Branch Admin') {
-            // التأكد أن المشروع يتبع لفصل (Chapter) موجود ضمن فرع (Branch) هذا المدير
-            if ($project->chapter->branch_id !== $currentUser->branch_id) {
-                return response()->json([
-                    'message' => 'Unauthorized. You can only update projects within your own branch.'
-                ], 403);
-            }
-        } 
-        // 🌟 (اختياري) إذا كنت تريد السماح لقائد المشروع بتغيير حالته أيضاً:
-        //  elseif ($project->leader_id === $currentUser->user_id) {
-        //  يمر لأن هو قائد هذا المشروع
-        // }
-        else {
-            return response()->json(['message' => 'Unauthorized action.'], 403);
+        $isSuperAdmin = $currentUser->role === 'Super Admin';
+        
+        $isBranchAdmin = $currentUser->role === 'Branch Admin' 
+                        && $currentUser->branch_id === $project->chapter->branch_id;
+        
+        // شرط رئيس الفصل: يجب أن يكون هو رئيس الفصل (Chair) الذي يتبع له هذا المشروع
+        $isChapterChair = $currentUser->role === 'Chapter Chair' 
+                        && $project->chapter->chair_id === $currentUser->user_id;
+        
+        // شرط قائد المشروع: يجب أن يكون هو القائد (Leader) المعين لهذا المشروع تحديداً
+        $isProjectLeader = $currentUser->role === 'Project Leader' 
+                        && $project->leader_id === $currentUser->user_id;
+
+        // التحقق الشامل
+        if (!$isSuperAdmin && !$isBranchAdmin && !$isChapterChair && !$isProjectLeader) {
+            return response()->json([
+                'message' => 'Unauthorized. You do not have permission to update this project\'s status.'
+            ], 403);
         }
 
         // ✅ 2. التحقق من صحة البيانات

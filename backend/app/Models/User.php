@@ -26,10 +26,10 @@ class User extends Authenticatable
     protected $fillable = [
         'ieee_membership_number', 'username', 'email', 'password', 
         'full_name', 'role', 'branch_id', 'status', 'phone', 'bio', 'profile_photo',
-        'faculty', 'major', 'current_study_year', 'enrollment_year', 'expected_graduation_date' // 👈 الحقول المحدثة
+        'faculty', 'major', 'current_study_year', 'enrollment_year', 'expected_graduation_date','otp_code', 'otp_expires_at' ,"email_verified_at"
     ];
 
-    protected $appends = ['managed_chapter_id'];
+    protected $appends = ['managed_chapter_id', 'joined_chapters'];
 
     /**
      * The attributes that should be hidden for serialization.
@@ -38,6 +38,7 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'password',
+        'chapters',
     ];
 
     /**
@@ -50,7 +51,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'expected_graduation_date' => 'date', // 👈 أضفنا هاد ليتم التعامل معه كـ Date Object
+            'expected_graduation_date' => 'date',
+            'otp_expires_at' => 'datetime',
         ];
     }
 
@@ -61,7 +63,8 @@ class User extends Authenticatable
 
     public function enrolledProjects() {
         return $this->belongsToMany(Project::class, 'project_members', 'user_id', 'project_id')
-                    ->withPivot(['role', 'status', 'applied_at'])
+                    // 👈 ضفنا حقول التقييم النهائي هون
+                    ->withPivot(['role', 'status', 'applied_at', 'final_rating', 'final_review', 'evaluated_at']) 
                     ->wherePivot('status', 'Approved');
     }
 
@@ -71,7 +74,9 @@ class User extends Authenticatable
     }
 
     public function tasks() {
-        return $this->belongsToMany(Task::class, 'task_assignments', 'user_id', 'task_id');
+        return $this->belongsToMany(Task::class, 'task_assignments', 'user_id', 'task_id')
+                    // 👈 ضفنا حقول تقييم المهمة هون
+                    ->withPivot(['status', 'completion_pct', 'rating', 'leader_feedback', 'evaluated_at']); 
     }
 
     public function branch()
@@ -81,22 +86,34 @@ class User extends Authenticatable
 
     public function chapters()
     {
-        return $this->belongsToMany(Chapter::class)->withPivot('role_in_chapter');
+        // لازم نحدد اسم الجدول الوسيط والأعمدة يدوياً عشان لارافل ما يتفلسف من عنده
+        return $this->belongsToMany(Chapter::class, 'chapter_user', 'user_id', 'chapter_id')
+                    ->withPivot('role_in_chapter');
     }
 
-    // 2. علاقة المستخدم مع الفصل الذي يرأسه
     public function chairedChapter()
     {
         return $this->hasOne(Chapter::class, 'chair_id', 'user_id');
     }
 
-    // 3. تعريف الـ Accessor (الذي سيضيف الـ id للـ JSON)
     public function getManagedChapterIdAttribute()
     {
         if ($this->role === 'Chapter Chair') {
-            // جلب الـ ID الخاص بالفصل الذي يرأسه هذا المستخدم
             return $this->chairedChapter ? $this->chairedChapter->chapter_id : null;
         }
         return null;
+    }
+
+    // 🌟 الإضافة الجديدة: Accessor لطباعة الفصول اللي منضم إلها المتطوع 🌟
+    public function getJoinedChaptersAttribute()
+    {
+        // رح نلف على الفصول اللي هو فيها ونرجع معلوماتها بشكل خفيف ومرتب
+        // إذا كان اليوزر مو منضم لأي chapter بيرجع مصفوفة فاضية []
+        return $this->chapters->map(function($chapter) {
+            return [
+                'chapter_id' => $chapter->id ?? $chapter->chapter_id, // حسب شو مسمي الـ primary key عندك
+                'name' => $chapter->name ?? $chapter->title, // حسب شو مسمي حقل الاسم عندك
+            ];
+        });
     }
 }
