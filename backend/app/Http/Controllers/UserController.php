@@ -167,9 +167,8 @@ class UserController extends Controller
     {
         $user = $request->user();
         
-        // نجلب المشاريع التي قدم عليها هذا المستخدم، مع جلب حالته فيها من الجدول الوسيط
+        // 💡 بما أن withPivot موجودة في المودل، نحتاج فقط للترتيب والجلب
         $projects = $user->projects()
-                         ->withPivot('status', 'role', 'applied_at', 'joined_at')
                          ->orderByPivot('applied_at', 'desc')
                          ->get();
 

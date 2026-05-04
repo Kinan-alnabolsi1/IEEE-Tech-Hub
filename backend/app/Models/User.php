@@ -68,6 +68,16 @@ class User extends Authenticatable
                     ->wherePivot('status', 'Approved');
     }
 
+    /**
+     * جلب كل المشاريع التي قدم عليها المتطوع (بغض النظر عن حالة الطلب)
+     */
+    public function projects() 
+    {
+        // لاحظ استخدمنا اسم الجدول الوسيط الصحيح تبعك project_members
+        return $this->belongsToMany(Project::class, 'project_members', 'user_id', 'project_id')
+                    ->withPivot(['role', 'status', 'applied_at', 'joined_at', 'final_rating', 'final_review', 'evaluated_at']);
+    }
+
     public function skills() {
         return $this->belongsToMany(Skill::class, 'user_skills', 'user_id', 'skill_id')
                     ->withPivot(['level', 'experience_years']);
