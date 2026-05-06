@@ -23,7 +23,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/branches', [BranchController::class, 'index']);
-
+Route::get('/skills', [SkillController::class, 'index']);
 
 // ==================================================================
 // 🔒 Protected Routes (يجب أن يكون مسجل دخول أولاً)
@@ -161,8 +161,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // إحصائيات المشروع (لوحة تحكم القائد)
         Route::get('/projects/{project}/stats', [ProjectController::class, 'getStats']);
-
-        Route::get('/skills', [SkillController::class, 'index']);
 
         // Project Reports
         Route::get('/reports/{report_id}', [ReportController::class, 'show']);
