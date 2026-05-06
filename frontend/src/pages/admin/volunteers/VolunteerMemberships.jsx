@@ -73,7 +73,7 @@ const VolunteerMemberships = () => {
             <p className="text-[10px] text-slate-400 font-bold tracking-[0.3em] mt-2 uppercase">Branch Control Panel</p>
           </div>
           <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shadow-sm">
-            {['Pending', 'Active', 'Rejected'].map((tab) => (
+            {['Pending', 'Active', 'Suspended'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -126,7 +126,7 @@ const VolunteerMemberships = () => {
                               <button onClick={() => handleAction(item.user_id, 'Active')} className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm" title="Approve">
                                 <Check size={16} strokeWidth={3} />
                               </button>
-                              <button onClick={() => handleAction(item.user_id, 'Rejected')} className="p-2.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition-all shadow-sm" title="Reject">
+                              <button onClick={() => handleAction(item.user_id, 'Suspended')} className="p-2.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition-all shadow-sm" title="Reject">
                                 <X size={16} strokeWidth={3} />
                               </button>
                             </>
@@ -139,8 +139,8 @@ const VolunteerMemberships = () => {
                             </button>
                           )}
 
-                          {/* أزرار تاب الـ Rejected */}
-                          {activeTab === 'Rejected' && (
+                          {/* أزرار تاب الـ Suspended */}
+                          {activeTab === 'Suspended' && (
                             <button onClick={() => handleAction(item.user_id, 'Pending')} className="p-2.5 rounded-xl bg-blue-50 text-[#00629B] hover:bg-[#00629B] hover:text-white transition-all shadow-sm flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-4 italic">
                               <User size={14} /> Restore to Pending
                             </button>

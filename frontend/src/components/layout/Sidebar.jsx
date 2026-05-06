@@ -50,11 +50,13 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
 
   return (
     <>
-      <aside className={`
+      <aside 
+      className={`
         fixed inset-0 z-[100] bg-[#00629B] text-white transition-transform duration-500 ease-in-out transform flex flex-col
         ${isOpen ? 'translate-x-0' : '-translate-x-full'} 
         lg:translate-x-0 lg:w-64 lg:inset-y-0 lg:left-0 lg:z-50
-      `}>
+      `}
+      >
         
         <div className="h-20 flex items-center justify-between px-8 border-b border-white/10 shrink-0">
           <div className="flex items-center space-x-3">

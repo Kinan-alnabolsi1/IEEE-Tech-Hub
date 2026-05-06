@@ -1,25 +1,26 @@
-// src/pages/admin/projects/components/ProjectsTable.jsx
 import React from 'react';
-import { Eye, CheckCircle2, XCircle, Clock, FolderOpen } from 'lucide-react';
+import { Eye, CheckCircle2, XCircle, Clock, FolderOpen, PlayCircle, StopCircle } from 'lucide-react';
 
 const ProjectsTable = ({ projects, onView, onApprove, onReject }) => {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'Pending Approval':
         return <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-600 rounded-xl text-[9px] font-black uppercase tracking-widest border border-amber-100"><Clock size={12} /> Pending</span>;
+      case 'Open':
+        return <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl text-[9px] font-black uppercase tracking-widest border border-emerald-100">Open</span>;
       case 'Ongoing':
         return <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-[#00629B] rounded-xl text-[9px] font-black uppercase tracking-widest border border-blue-100">Ongoing</span>;
       case 'Completed':
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl text-[9px] font-black uppercase tracking-widest border border-emerald-100">Completed</span>;
+        return <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 text-violet-600 rounded-xl text-[9px] font-black uppercase tracking-widest border border-violet-100">Completed</span>;
+      case 'Cancelled':
       case 'Rejected':
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-100">Rejected</span>;
+        return <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-100">{status}</span>;
       default:
         return <span className="px-3 py-1.5 bg-slate-100 text-slate-500 rounded-xl text-[9px] font-black uppercase tracking-widest">{status}</span>;
     }
   };
 
   return (
-    // 🌟 التعديل الأساسي هون: شلنا الـ border والـ rounded من الجدول
     <div className="w-full overflow-x-auto no-scrollbar">
       <table className="w-full text-left min-w-[900px]">
         <thead className="bg-[#F8FAFC]">
@@ -50,12 +51,12 @@ const ProjectsTable = ({ projects, onView, onApprove, onReject }) => {
                 </td>
                 <td className="px-8 py-5">
                   <span className="text-xs font-bold text-slate-500">
-                    {project.chapter.name}
+                    {project.chapter?.name || "N/A"}
                   </span>
                 </td>
                 <td className="px-8 py-5">
                   <span className="text-xs font-bold text-slate-600">
-                    {project.leader ? project.leader : "N/A"}
+                    {project.leader?.full_name || project.leader || "N/A"}
                   </span>
                 </td>
                 <td className="px-8 py-5">{getStatusBadge(project.status)}</td>
@@ -69,30 +70,46 @@ const ProjectsTable = ({ projects, onView, onApprove, onReject }) => {
                       <Eye size={16} />
                     </button>
 
+                    {/* 🌟 أزرار التحكم للأدمن (أصبحت تظهر بناءً على حالة المشروع الحالية) */}
+                    
+                    {/* إذا كان ناطر موافقة -> يظهر زر الموافقة */}
                     {project.status === "Pending Approval" && (
-                      <>
-                        <button
-                          onClick={() => onApprove(project.project_id)}
-                          className="p-2.5 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all"
-                          title="Approve"
-                        >
-                          <CheckCircle2 size={16} />
-                        </button>
-                        <button
-                          onClick={() => onReject(project.project_id)}
-                          className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                          title="Reject"
-                        >
-                          <XCircle size={16} />
-                        </button>
-                      </>
+                      <button
+                        onClick={() => onApprove(project.project_id)}
+                        className="p-2.5 text-amber-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-all"
+                        title="Approve Project"
+                      >
+                        <CheckCircle2 size={16} />
+                      </button>
                     )}
+
+                    {/* إذا كان مفتوح -> الأدمن بيقدر يعمله Ongoing */}
+                    {project.status === "Open" && (
+                      <button
+                        onClick={() => onApprove(project.project_id)} // onApprove بالاندكس بتحول لـ Ongoing
+                        className="p-2.5 text-emerald-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                        title="Start Project (Set Ongoing)"
+                      >
+                        <PlayCircle size={16} />
+                      </button>
+                    )}
+
+                    {/* زر الرفض / الإغلاق يظهر دائماً إلا لو كان المشروع أساساً مغلق */}
+                    {project.status !== "Cancelled" && project.status !== "Rejected" && project.status !== "Completed" && (
+                      <button
+                        onClick={() => onReject(project.project_id)} // onReject بالاندكس بتحول لـ Rejected (أو فيك تخليها Cancelled)
+                        className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                        title="Reject / Cancel Project"
+                      >
+                        <XCircle size={16} />
+                      </button>
+                    )}
+
                   </div>
                 </td>
               </tr>
             ))
           ) : (
-            // 🌟 تصميم فخم لحالة الجدول الفاضي
             <tr>
               <td colSpan="5" className="px-8 py-32">
                 <div className="flex flex-col items-center justify-center space-y-3">

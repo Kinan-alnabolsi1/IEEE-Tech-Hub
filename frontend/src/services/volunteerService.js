@@ -1,9 +1,11 @@
+// src/services/volunteerService.js
 import { getData, postData, patchData } from '../api/apiMethods';
 
 export const volunteerService = {
   // --- 👤 Profile & Onboarding ---
   getProfile: () => getData('/profile'),
   completeOnboarding: (data) => postData('/profile/onboarding', data),
+  getSkills: () => getData('/skills'), // 🌟 الإضافة الجديدة لجلب المهارات
 
   // --- 🔍 Projects Exploration ---
   getChapterProjects: (chapterId) => getData(`/chapters/${chapterId}/projects`),
@@ -20,11 +22,11 @@ export const volunteerService = {
       progress_note: note
     }),
 
-  // --- 🏢 Admin Utils (المعدلة لحل المشكلة) ---
+  // --- 🏢 Admin Utils ---
   getBranches: () => getData('/branches'),
   getChapters: (branchId) => getData(`/chapters?branch_id=${branchId}`),
   
-  // 🌟 جلب المتطوعين مع التأكد من إرسال حالة active افتراضياً
+  // جلب المتطوعين مع التأكد من إرسال حالة active افتراضياً
   getByBranch: (branchId, status = 'active') => {
     const query = status ? `?status=${status}` : '';
     return getData(`/branches/${branchId}/volunteers${query}`);
