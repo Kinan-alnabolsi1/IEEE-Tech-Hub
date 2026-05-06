@@ -121,7 +121,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/chapters/{chapter_id}/chair', [ChapterController::class, 'removeChair']);
 
         // مسارات المهارات (Skills)
-        Route::get('/skills', [SkillController::class, 'index']);
+        
         Route::post('/skills', [SkillController::class, 'store']);
 
         Route::patch('/projects/{id}/approve', [ProjectController::class, 'approveProject']);
@@ -161,6 +161,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // إحصائيات المشروع (لوحة تحكم القائد)
         Route::get('/projects/{project}/stats', [ProjectController::class, 'getStats']);
+
+        Route::get('/skills', [SkillController::class, 'index']);
 
         // Project Reports
         Route::get('/reports/{report_id}', [ReportController::class, 'show']);
