@@ -123,39 +123,62 @@ class UserController extends Controller
      * إعداد الحساب وتحديث البيانات الشخصية والأكاديمية
      * POST /api/profile/onboarding
      */
+    /**
+     * إعداد الحساب وتحديث البيانات الشخصية والأكاديمية والمهارات
+     * POST /api/profile/onboarding
+     */
     public function createProfile(Request $request)
     {
         $user = $request->user();
         
+        // 1. التحقق من صحة البيانات
         $validated = $request->validate([
             'phone' => 'nullable|string|max:30',
             'bio' => 'nullable|string',
-            'faculty' => 'nullable|string|max:150', // 👈 الكلية
-            'major' => 'nullable|string|max:150',   // 👈 التخصص
+            'faculty' => 'nullable|string|max:150',
+            'major' => 'nullable|string|max:150',
             'current_study_year' => 'nullable|integer|min:1|max:7',
             'enrollment_year' => 'nullable|integer|min:2000|max:' . (date('Y') + 1),
             'expected_graduation_date' => 'nullable|date',
+            
+            // 👈 التحقق من مصفوفة المهارات الجديدة
             'skills' => 'nullable|array',
-            'skills.*' => 'exists:skills,skill_id' 
+            'skills.*.skill_id' => 'required_with:skills|exists:skills,skill_id',
+            'skills.*.name' => 'nullable|string',
+            'skills.*.level' => 'required_with:skills|integer|min:1|max:5', // نتوقع رقم من 1 لـ 5
+            'skills.*.experience_years' => 'required_with:skills|integer|min:0'
         ]);
 
+        // 2. تحديث بيانات المستخدم الأساسية
         $user->update([
             'phone' => $validated['phone'] ?? $user->phone,
             'bio' => $validated['bio'] ?? $user->bio,
-            'faculty' => $validated['faculty'] ?? $user->faculty, // 👈 حفظ الكلية
-            'major' => $validated['major'] ?? $user->major,       // 👈 حفظ التخصص
+            'faculty' => $validated['faculty'] ?? $user->faculty,
+            'major' => $validated['major'] ?? $user->major,
             'current_study_year' => $validated['current_study_year'] ?? $user->current_study_year,
             'enrollment_year' => $validated['enrollment_year'] ?? $user->enrollment_year,
             'expected_graduation_date' => $validated['expected_graduation_date'] ?? $user->expected_graduation_date,
         ]);
 
+        // 3. 🪄 السحر هنا: معالجة المهارات وربطها بجدول user_skills
         if ($request->has('skills')) {
-            $user->skills()->sync($validated['skills']);
+            $syncData = [];
+            
+            // تحويل المصفوفة للشكل الذي تقبله دالة sync في لارافل
+            foreach ($request->skills as $skill) {
+                $syncData[$skill['skill_id']] = [
+                    'level' => $skill['level'],
+                    'experience_years' => $skill['experience_years']
+                ];
+            }
+            
+            // تنفيذ الربط (سيقوم بمسح المهارات القديمة وإضافة الجديدة مع تفاصيلها)
+            $user->skills()->sync($syncData);
         }
 
         return response()->json([
             'message' => 'Profile updated successfully',
-            'data' => $user->load('skills')
+            'data' => $user->load('skills') // نرجع المستخدم مع مهاراته للتأكيد
         ]);
     }
 

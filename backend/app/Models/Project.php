@@ -8,6 +8,9 @@ class Project extends Model
 {
     protected $primaryKey = 'project_id';
     protected $guarded = [];
+    protected $casts = [
+        'admin_approval' => 'boolean',
+    ];
 
     public function leader() {
         return $this->belongsTo(User::class, 'leader_id', 'user_id');

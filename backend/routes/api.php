@@ -11,6 +11,7 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SocietyController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SkillController;
 
 // ==================================================================
 // 🌍 Public Routes (مسارات عامة لا تحتاج تسجيل دخول)
@@ -118,6 +119,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/chapters/{chapter_id}/members/{user_id}', [ChapterController::class, 'removeMember']);
         Route::patch('/chapters/{chapter_id}/assign-chair', [ChapterController::class, 'assignChair']);
         Route::delete('/chapters/{chapter_id}/chair', [ChapterController::class, 'removeChair']);
+
+        // مسارات المهارات (Skills)
+        Route::get('/skills', [SkillController::class, 'index']);
+        Route::post('/skills', [SkillController::class, 'store']);
     });
 
 
