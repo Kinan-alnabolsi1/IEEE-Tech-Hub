@@ -1,42 +1,43 @@
 import { getData, postData, putData, deleteData, patchData } from '../api/apiMethods';
 
 export const projectService = {
-  // 1. جلب مشاريع الفرع (للأدمن)
-  getByBranch: (branchId) => getData(`/branches/${branchId}/projects`),
+  // 1. جلب مشاريع الفرع (للأدمن) مع فلتر حالة الموافقة
+  getByBranch: (branchId, approvalStatus = 'Pending') => 
+    getData(`/branches/${branchId}/projects?approval_status=${approvalStatus}`),
   
-  // 2. 🌟 جلب مشاريع الفصل (رئيس الفصل)
-  getChapterProjects: (chapterId) => getData(`/chapters/${chapterId}/projects`),
+  // 2. جلب مشاريع الفصل (رئيس الفصل) مع فلتر حالة الموافقة
+  getChapterProjects: (chapterId, approvalStatus = 'Pending') => 
+    getData(`/chapters/${chapterId}/projects?approval_status=${approvalStatus}`),
 
-  // 3. 🌟 جلب طلبات الانضمام لمشروع محدد مع فلتر الحالة
+  // 3. 🌟 جلب المشاريع للمتطوعين (موافق عليها + مفتوحة للتقديم حصراً)
+  getVolunteerProjects: (chapterId) => 
+    getData(`/chapters/${chapterId}/projects?approval_status=Approved&status=Open`),
+
+  // 4. 🌟 دوال قبول ورفض المشاريع (للأدمن)
+  approveProject: (projectId) => patchData(`/projects/${projectId}/approve`),
+  rejectProject: (projectId) => patchData(`/projects/${projectId}/reject`),
+
+  // 5. جلب طلبات الانضمام لمشروع محدد
   getProjectApplications: (projectId, status = 'Pending') => 
     getData(`/projects/${projectId}/applications?status=${status}`),
 
-  // 4. إنشاء مشروع جديد
+  // 6. إنشاء وتعديل وحذف المشروع
   createProject: (data) => postData('/projects', data),
-
-  // 5. تعديل مشروع
   updateProject: (projectId, data) => putData(`/projects/${projectId}`, data),
-
-  // 6. حذف مشروع
   deleteProject: (projectId) => deleteData(`/projects/${projectId}`),
   
-  // 7. تغيير حالة المشروع (Open / Closed)
+  // 7. تغيير حالة المشروع (Open / Ongoing / Completed / Cancelled)
   updateStatus: (projectId, status) => patchData(`/projects/${projectId}/status`, { status }),
   
-
   // --------------------------------------------------------
-  // 🌟 دوال إدارة قادة المشاريع (الجديدة)
+  // 🌟 دوال إدارة قادة المشاريع
   // --------------------------------------------------------
-
-  // 8. جلب المتقدمين لمنصب قائد مشروع حصراً (للمودال)
   getLeaderApplications: (projectId) => 
     getData(`/projects/${projectId}/applications?status=Pending&role=${encodeURIComponent('Project Leader')}`),
 
-  // 9. تعيين قائد للمشروع من بين المتقدمين
   assignProjectLeader: (projectId, userId) => 
     patchData(`/projects/${projectId}/assign-leader`, { user_id: userId }),
 
-  // 10. عزل قائد المشروع
   removeProjectLeader: (projectId) => 
     deleteData(`/projects/${projectId}/leader`)
 };
