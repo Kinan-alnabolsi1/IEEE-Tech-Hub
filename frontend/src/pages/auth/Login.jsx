@@ -27,8 +27,7 @@ const Login = () => {
     else if (role === 'admin') navigate('/admin', { replace: true });
     else if (role === 'chapter_chair') navigate('/chapter-chair', { replace: true });
     else if (role === 'volunteer') {
-      // 🌟 التحقق من الـ Onboarding للمتطوع
-      // إذا لم يكن لديه كلية مخزنة، نعتبره بحاجة لإكمال البيانات
+      // التحقق من الـ Onboarding للمتطوع
       if (user && !user.faculty) {
         navigate('/onboarding', { replace: true });
       } else {
@@ -45,16 +44,21 @@ const Login = () => {
       const response = await postData('/login', { email: email.trim(), password });
       const data = response.data;
       
-      if (data.access_token) {
+      if (data.access_token || data.token) {
         localStorage.clear(); 
-        localStorage.setItem('ieee_token', data.access_token);
+        const token = data.access_token || data.token;
+        
+        localStorage.setItem('ieee_token', token);
         localStorage.setItem('ieee_user', JSON.stringify(data.user));
-        localStorage.setItem('user_id', String(data.user?.id)); // مهم للبروفايل والفلترة
+        localStorage.setItem('user_id', String(data.user?.user_id || data.user?.id)); 
         localStorage.setItem('user_name', data.user?.full_name || 'Member');
         
-
-        const chapterId = data.user?.managed_chapter_id || data.user?.chapter_id;
-        if (chapterId) localStorage.setItem('chapter_id', String(chapterId));
+        // 🌟 التعديل الجديد للتعامل مع الـ Array اللي رجعها الباك إند
+        const chapterId = data.user?.managed_chapter_id || data.user?.joined_chapters?.[0]?.chapter_id;
+        
+        if (chapterId) {
+            localStorage.setItem('chapter_id', String(chapterId));
+        }
 
         let rawRole = String(data.user?.role || '').toLowerCase();
         let normalizedRole = 'volunteer';
@@ -118,4 +122,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Login; 

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { volunteerService } from '../../services/volunteerService';
-import { CheckCircle2, Clock, LayoutList, MessageSquare, ClipboardCheck, Loader2, Search, AlertCircle } from 'lucide-react';
+import { CheckCircle2, Clock, LayoutList, MessageSquare, Loader2, Search, Target } from 'lucide-react';
 import toast from 'react-hot-toast';
+import Loader from '../../components/ui/Loader'; // 🌟 استدعاء اللودر المخصص تبعك
 
 const MyTasks = () => {
     const [tasks, setTasks] = useState([]);
@@ -9,62 +10,24 @@ const MyTasks = () => {
     const [updatingId, setUpdatingId] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
 
-    // 🌟 بيانات وهمية للمعاينة (Mock Data)
-    const mockTasks = [
-        {
-            id: 1,
-            completion_pct: 75,
-            progress_note: "Working on the secondary pages",
-            project: { name: "IEEE Tech Hub Website" },
-            task: { 
-                title: "Frontend Development - UI Kit", 
-                description: "Implement the reusable UI components using Tailwind CSS and Lucide icons.",
-                due_date: "2026-05-15"
-            }
-        },
-        {
-            id: 2,
-            completion_pct: 100,
-            progress_note: "All assets delivered",
-            project: { name: "IEEE Brand Identity" },
-            task: { 
-                title: "Social Media Graphics", 
-                description: "Design 10 templates for Instagram posts regarding the upcoming workshop.",
-                due_date: "2026-05-01"
-            }
-        },
-        {
-            id: 3,
-            completion_pct: 30,
-            progress_note: "Initial research completed",
-            project: { name: "Robotics Workshop" },
-            task: { 
-                title: "Content Writing", 
-                description: "Write the curriculum for the basic Arduino module and prepare the slides.",
-                due_date: "2026-06-10"
-            }
-        }
-    ];
-
     const fetchTasks = async () => {
         try {
             setLoading(true);
             const response = await volunteerService.getMyTasks();
             const realData = response.data?.data || response.data || [];
-            
-            // 🌟 إذا لم تتوفر بيانات من السيرفر، نعرض البيانات الوهمية
-            setTasks(realData.length > 0 ? realData : mockTasks);
+            setTasks(realData);
         } catch (error) {
-            console.log("Using Mock Data for preview...");
-            setTasks(mockTasks); // عرض البيانات الوهمية في حال فشل الـ API
+            console.error("Error fetching tasks:", error);
+            toast.error("Failed to fetch your tasks");
+            setTasks([]);
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => { fetchTasks(); }, []);
-
-    // ... باقي الدوال (handleUpdateProgress, Filter) تبقى كما هي ...
+    useEffect(() => { 
+        fetchTasks(); 
+    }, []);
 
     const handleUpdateProgress = async (assignmentId, currentPct) => {
         const newPct = prompt("Enter new completion percentage (0-100):", currentPct);
@@ -76,9 +39,20 @@ const MyTasks = () => {
             return;
         }
 
-        // ملاحظة: هنا سنقوم بتحديث الحالة محلياً فقط للمعاينة إذا كانت البيانات وهمية
-        setTasks(tasks.map(t => t.id === assignmentId ? { ...t, completion_pct: pctValue } : t));
-        toast.success("Progress updated locally (Preview Mode)");
+        try {
+            setUpdatingId(assignmentId);
+            // استدعاء الـ API الحقيقي لتحديث النسبة
+            await volunteerService.updateTaskProgress(assignmentId, { completion_pct: pctValue });
+            
+            // تحديث الواجهة بعد نجاح الطلب
+            setTasks(tasks.map(t => t.id === assignmentId ? { ...t, completion_pct: pctValue } : t));
+            toast.success("Progress updated successfully!");
+        } catch (error) {
+            console.error("Update Progress Error:", error);
+            toast.error(error.response?.data?.message || "Failed to update progress");
+        } finally {
+            setUpdatingId(null);
+        }
     };
 
     const filteredTasks = tasks.filter(t => 
@@ -86,12 +60,8 @@ const MyTasks = () => {
         t.project?.name?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    if (loading) return (
-        <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
-            <Loader2 className="animate-spin text-[#00629B]" size={40} />
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Syncing missions...</span>
-        </div>
-    );
+    // 🌟 استخدام اللودر المخصص تبعك هنا
+    if (loading) return <Loader message="Syncing missions..." />;
 
     return (
         <div className="p-4 md:p-10 animate-in fade-in duration-700 max-w-7xl mx-auto">
@@ -119,72 +89,79 @@ const MyTasks = () => {
                 </div>
             </div>
 
-            {/* Banner Mode (Optional) */}
-            <div className="mb-8 p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-center gap-3 text-amber-700">
-                <AlertCircle size={18} />
-                <span className="text-[10px] font-black uppercase tracking-widest">Preview Mode: Displaying sample tasks</span>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {filteredTasks.map((assignment) => (
-                    <div key={assignment.id} className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group relative overflow-hidden">
-                        
-                        <div className="flex items-center gap-2 mb-6">
-                            <span className="px-4 py-1.5 bg-blue-50 text-[#00629B] text-[9px] font-black uppercase tracking-widest rounded-xl border border-blue-100">
-                                {assignment.project?.name}
-                            </span>
-                            {assignment.completion_pct === 100 && (
-                                <span className="px-4 py-1.5 bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-widest rounded-xl border border-emerald-100 flex items-center gap-1">
-                                    <CheckCircle2 size={10} /> Done
-                                </span>
-                            )}
-                        </div>
-
-                        <div className="space-y-4">
-                            <h3 className="text-xl font-black text-slate-800 leading-tight group-hover:text-[#00629B] transition-colors uppercase italic tracking-tight">
-                                {assignment.task?.title}
-                            </h3>
-                            <p className="text-xs font-medium text-slate-500 leading-relaxed line-clamp-2">
-                                {assignment.task?.description}
-                            </p>
-                        </div>
-
-                        <div className="mt-10 space-y-4">
-                            <div className="flex justify-between items-end">
-                                <div className="space-y-1">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Progress</span>
-                                    <div className="text-2xl font-black text-[#00629B]">{assignment.completion_pct}%</div>
-                                </div>
-                                <button 
-                                    onClick={() => handleUpdateProgress(assignment.id, assignment.completion_pct)}
-                                    className="bg-slate-900 text-white px-6 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-[#00629B] transition-all"
-                                >
-                                    <Clock size={12} /> Update
-                                </button>
-                            </div>
+            {/* حالة عدم وجود مهام (Empty State) */}
+            {filteredTasks.length === 0 ? (
+                <div className="py-32 text-center bg-white rounded-[3.5rem] border border-slate-100 shadow-sm flex flex-col items-center gap-6">
+                    <div className="p-6 bg-slate-50 rounded-full text-slate-200"><Target size={48} /></div>
+                    <p className="text-xs font-black text-slate-400 uppercase italic tracking-[0.3em]">No tasks assigned to you yet</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pb-20">
+                    {filteredTasks.map((assignment) => (
+                        <div key={assignment.id} className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group relative overflow-hidden">
                             
-                            <div className="h-3 bg-slate-50 rounded-full overflow-hidden border border-slate-100">
-                                <div 
-                                    className={`h-full transition-all duration-1000 ${assignment.completion_pct === 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-[#00629B] to-blue-400'}`}
-                                    style={{ width: `${assignment.completion_pct}%` }}
-                                ></div>
+                            <div className="flex items-center gap-2 mb-6">
+                                <span className="px-4 py-1.5 bg-blue-50 text-[#00629B] text-[9px] font-black uppercase tracking-widest rounded-xl border border-blue-100">
+                                    {assignment.project?.name || "General"}
+                                </span>
+                                {assignment.completion_pct === 100 && (
+                                    <span className="px-4 py-1.5 bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-widest rounded-xl border border-emerald-100 flex items-center gap-1">
+                                        <CheckCircle2 size={10} /> Done
+                                    </span>
+                                )}
                             </div>
-                        </div>
 
-                        <div className="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between">
-                            <div className="flex items-center gap-4 text-slate-400">
-                                <div className="flex items-center gap-1.5">
-                                    <MessageSquare size={14} />
-                                    <span className="text-[10px] font-bold">{assignment.progress_note ? "Active Logs" : "No notes"}</span>
+                            <div className="space-y-4">
+                                <h3 className="text-xl font-black text-slate-800 leading-tight group-hover:text-[#00629B] transition-colors uppercase italic tracking-tight">
+                                    {assignment.task?.title}
+                                </h3>
+                                <p className="text-xs font-medium text-slate-500 leading-relaxed line-clamp-2">
+                                    {assignment.task?.description}
+                                </p>
+                            </div>
+
+                            <div className="mt-10 space-y-4">
+                                <div className="flex justify-between items-end">
+                                    <div className="space-y-1">
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Progress</span>
+                                        <div className="text-2xl font-black text-[#00629B]">{assignment.completion_pct}%</div>
+                                    </div>
+                                    <button 
+                                        disabled={updatingId === assignment.id || assignment.completion_pct === 100}
+                                        onClick={() => handleUpdateProgress(assignment.id, assignment.completion_pct)}
+                                        className="bg-slate-900 text-white px-6 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-[#00629B] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {updatingId === assignment.id ? (
+                                            <><Loader2 size={12} className="animate-spin" /> Updating...</>
+                                        ) : (
+                                            <><Clock size={12} /> Update</>
+                                        )}
+                                    </button>
+                                </div>
+                                
+                                <div className="h-3 bg-slate-50 rounded-full overflow-hidden border border-slate-100">
+                                    <div 
+                                        className={`h-full transition-all duration-1000 ${assignment.completion_pct === 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-[#00629B] to-blue-400'}`}
+                                        style={{ width: `${assignment.completion_pct}%` }}
+                                    ></div>
                                 </div>
                             </div>
-                            <div className="text-[9px] font-black text-slate-300 uppercase italic">
-                                Deadline: {assignment.task?.due_date}
+
+                            <div className="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between">
+                                <div className="flex items-center gap-4 text-slate-400">
+                                    <div className="flex items-center gap-1.5">
+                                        <MessageSquare size={14} />
+                                        <span className="text-[10px] font-bold">{assignment.progress_note ? "Active Logs" : "No notes"}</span>
+                                    </div>
+                                </div>
+                                <div className="text-[9px] font-black text-slate-300 uppercase italic">
+                                    Deadline: {assignment.task?.due_date || "TBD"}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { volunteerService } from '../../services/volunteerService';
-import { Rocket, Target, Users, Search, Info, ChevronRight, CheckCircle, Send, Loader2, AlertCircle } from 'lucide-react';
+import { Rocket, Target, Users, Search, ChevronRight, Send, Loader2, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import BaseModal from '@/components/ui/BaseModal';
+import Loader from '../../components/ui/Loader'; // 🌟 استدعاء اللودر المخصص
 
 const BrowseProjects = () => {
     const [projects, setProjects] = useState([]);
@@ -13,7 +14,6 @@ const BrowseProjects = () => {
     const [searchQuery, setSearchQuery] = useState("");
 
     const fetchProjects = async () => {
-        // 1. جلب الـ ID والتأكد من وجوده
         const storedChapterId = localStorage.getItem('chapter_id');
         
         if (!storedChapterId || storedChapterId === 'null' || storedChapterId === 'undefined') {
@@ -24,7 +24,6 @@ const BrowseProjects = () => {
 
         try {
             setLoading(true);
-            // 2. استخدام اسم الدالة المطابق لملف volunteerService.js عندك
             const response = await volunteerService.getChapterProjects(storedChapterId);
             const data = response.data?.data || response.data || [];
             setProjects(data);
@@ -47,7 +46,7 @@ const BrowseProjects = () => {
             const response = await volunteerService.getProjectDetails(projectId);
             setSelectedProject(response.data?.data || response.data);
         } catch (error) {
-            toast.error("Failed to load project details");
+            toast.error("Failed to load project details" , error);
             setIsModalOpen(false);
         }
     };
@@ -57,7 +56,6 @@ const BrowseProjects = () => {
         
         setSubmitting(true);
         try {
-            // 3. استخدام اسم الدالة joinProject المطابق للسيرفس
             await volunteerService.joinProject(selectedProject.id, roleName);
             toast.success(`Application sent for ${roleName}!`);
             setIsModalOpen(false);
@@ -74,12 +72,8 @@ const BrowseProjects = () => {
         p.name?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    if (loading) return (
-        <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
-            <Loader2 className="animate-spin text-[#00629B]" size={40} />
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Scanning Missions...</span>
-        </div>
-    );
+    // 🌟 استخدام اللودر المخصص لتحميل الصفحة الأساسية
+    if (loading) return <Loader message="Scanning Missions..." />;
 
     const chapterId = localStorage.getItem('chapter_id');
 
@@ -186,6 +180,7 @@ const BrowseProjects = () => {
                                                 onClick={() => handleJoinRequest(role)}
                                                 className="w-full sm:w-auto px-8 py-3 bg-[#00629B] text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-slate-900 shadow-md hover:shadow-blue-200/50 transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95"
                                             >
+                                                {/* تم الإبقاء على Loader2 هنا لأنه أنسب كحجم داخل الزر */}
                                                 {submitting ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />} Apply Now
                                             </button>
                                         </div>
@@ -197,9 +192,9 @@ const BrowseProjects = () => {
                         </div>
                     </div>
                 ) : (
-                    <div className="py-20 flex flex-col items-center">
-                        <Loader2 className="animate-spin text-[#00629B] mb-4" size={32} />
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Intel incoming...</span>
+                    // 🌟 استخدام اللودر المخصص لانتظار بيانات المودال
+                    <div className="py-20 relative">
+                        <Loader message="Intel incoming..." />
                     </div>
                 )}
             </BaseModal>

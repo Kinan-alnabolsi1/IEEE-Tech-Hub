@@ -3,26 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Users, Edit2, Trash2, Clock, Briefcase, CheckSquare, ShieldAlert } from 'lucide-react';
 import { projectService } from '../../../services/projectService';
 import ProjectFormModal from './ProjectFormModal';
-import LeaderManagementModal from './LeaderManagementModal'; // 🌟 استيراد مودال القائد
+import LeaderManagementModal from './LeaderManagementModal'; 
 import Loader from '../../../components/ui/Loader';
 import toast from 'react-hot-toast';
 
 const ProjectsManagement = () => {
   const navigate = useNavigate(); 
   
-  // States للمشاريع
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // States لمودال إنشاء/تعديل المشروع
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   
-  // States لمودال إدارة القائد
   const [isLeaderModalOpen, setIsLeaderModalOpen] = useState(false);
   const [projectForLeader, setProjectForLeader] = useState(null);
 
-  // 1️⃣ جلب المشاريع من الـ API الحقيقي
   const fetchProjects = async () => {
     try {
       setLoading(true);
@@ -42,7 +38,6 @@ const ProjectsManagement = () => {
     fetchProjects(); 
   }, []);
 
-  // 2️⃣ حذف المشروع
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this project? This action cannot be undone.")) return;
     
@@ -50,9 +45,20 @@ const ProjectsManagement = () => {
     try {
       await projectService.deleteProject(id);
       toast.success("Project deleted successfully", { id: loadingToast });
-      fetchProjects(); // تحديث القائمة فوراً
+      fetchProjects(); 
     } catch (_error) {
       toast.error("Failed to delete project", { id: loadingToast });
+    }
+  };
+
+  // 🌟 دالة لتعيين لون مختلف لكل حالة
+  const getStatusColors = (status) => {
+    switch(status?.toLowerCase()) {
+      case 'open': return { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100' };
+      case 'ongoing': return { bg: 'bg-blue-50', text: 'text-[#005587]', border: 'border-blue-100' };
+      case 'completed': return { bg: 'bg-violet-50', text: 'text-violet-600', border: 'border-violet-100' };
+      case 'cancelled': return { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-100' };
+      default: return { bg: 'bg-slate-100', text: 'text-slate-400', border: 'border-slate-200' };
     }
   };
 
@@ -61,7 +67,6 @@ const ProjectsManagement = () => {
   return (
     <div className="p-2 animate-in fade-in duration-700">
       
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
         <div>
           <h1 className="text-[38px] font-[900] text-[#005587] italic tracking-tight leading-none uppercase">
@@ -80,7 +85,6 @@ const ProjectsManagement = () => {
         </button>
       </div>
 
-      {/* Projects Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {projects.length === 0 ? (
           <div className="col-span-full py-24 text-center bg-white rounded-[40px] border border-slate-50 shadow-sm">
@@ -89,83 +93,80 @@ const ProjectsManagement = () => {
               </p>
           </div>
         ) : (
-          projects.map((project) => (
-            <div key={project.project_id} className="bg-white p-8 rounded-[40px] shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-slate-50 relative group transition-all hover:shadow-xl flex flex-col">
-              
-              {/* Actions Menu (Edit & Delete) */}
-              <div className="absolute top-8 right-8 flex gap-2">
-                <button 
-                  onClick={() => { setSelectedProject(project); setIsModalOpen(true); }}
-                  className="p-3 bg-slate-50 text-slate-400 hover:bg-amber-50 hover:text-amber-600 rounded-xl transition-all"
-                  title="Edit Project"
-                >
-                  <Edit2 size={16} />
-                </button>
-                <button 
-                  onClick={() => handleDelete(project.project_id)}
-                  className="p-3 bg-slate-50 text-slate-400 hover:bg-rose-50 hover:text-rose-600 rounded-xl transition-all"
-                  title="Delete Project"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-
-              {/* Status */}
-              <div className="flex items-center gap-3 mb-8">
-                <div className={`${project.status === 'Open' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'} p-3 rounded-2xl`}>
-                  <Briefcase size={20} />
-                </div>
-                <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
-                  project.status === 'Open' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-100 text-slate-400 border-slate-200'
-                }`}>
-                  {project.status}
-                </span>
-              </div>
-
-              <h3 className="text-2xl font-[900] text-slate-800 mb-8 uppercase tracking-tight italic group-hover:text-[#005587] transition-colors">
-                {project.title}
-              </h3>
-              
-              <div className="grid grid-cols-2 gap-4 mb-8 flex-1">
-                <div className="bg-slate-50/50 p-5 rounded-[25px] border border-transparent">
-                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 leading-none">Leader</p>
-                  <div className="text-slate-700 font-bold text-xs flex items-center gap-2">
-                    <Users size={14} className="text-[#005587]" /> {project.leader?.full_name || 'Not Assigned'}
-                  </div>
-                </div>
-                <div className="bg-slate-50/50 p-5 rounded-[25px] border border-transparent">
-                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 leading-none">Volunteers</p>
-                  <div className="text-slate-700 font-bold text-xs flex items-center gap-2">
-                    <Clock size={14} className="text-[#005587]" /> {project.members?.length || 0} Joined
-                  </div>
-                </div>
-              </div>
-
-              {/* Split Actions Layout */}
-              <div className="flex flex-col sm:flex-row gap-3 mt-auto">
-                {/* 🌟 زر إدارة القائد */}
-                <button 
-                  onClick={() => { setProjectForLeader(project); setIsLeaderModalOpen(true); }}
-                  className="flex-1 py-4 bg-slate-50 text-slate-600 font-black text-[10px] uppercase tracking-[0.1em] rounded-[20px] hover:bg-slate-100 hover:text-slate-800 transition-all flex items-center justify-center gap-2 border border-slate-100"
-                >
-                  <ShieldAlert size={16} className="text-amber-500" /> Manage Leader
-                </button>
+          projects.map((project) => {
+            const statusColors = getStatusColors(project.status); // جلب ألوان الحالة
+            
+            return (
+              <div key={project.project_id} className="bg-white p-8 rounded-[40px] shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-slate-50 relative group transition-all hover:shadow-xl flex flex-col">
                 
-                {/* 🌟 زر عرض المهام */}
-                <button 
-                  onClick={() => navigate(`/chapter-chair/tasks?project_id=${project.project_id}&title=${encodeURIComponent(project.title)}`)}
-                  className="flex-1 py-4 bg-[#005587] text-white font-black text-[10px] uppercase tracking-[0.1em] rounded-[20px] hover:-translate-y-0.5 hover:shadow-lg shadow-blue-100 transition-all flex items-center justify-center gap-2"
-                >
-                  <CheckSquare size={16} /> View Tasks
-                </button>
-              </div>
+                <div className="absolute top-8 right-8 flex gap-2">
+                  <button 
+                    onClick={() => { setSelectedProject(project); setIsModalOpen(true); }}
+                    className="p-3 bg-slate-50 text-slate-400 hover:bg-amber-50 hover:text-amber-600 rounded-xl transition-all"
+                    title="Edit Project"
+                  >
+                    <Edit2 size={16} />
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(project.project_id)}
+                    className="p-3 bg-slate-50 text-slate-400 hover:bg-rose-50 hover:text-rose-600 rounded-xl transition-all"
+                    title="Delete Project"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
 
-            </div>
-          ))
+                {/* 🌟 استخدام الألوان الديناميكية هنا */}
+                <div className="flex items-center gap-3 mb-8">
+                  <div className={`${statusColors.bg} ${statusColors.text} p-3 rounded-2xl`}>
+                    <Briefcase size={20} />
+                  </div>
+                  <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${statusColors.bg} ${statusColors.text} ${statusColors.border}`}>
+                    {project.status}
+                  </span>
+                </div>
+
+                <h3 className="text-2xl font-[900] text-slate-800 mb-8 uppercase tracking-tight italic group-hover:text-[#005587] transition-colors">
+                  {project.title}
+                </h3>
+                
+                <div className="grid grid-cols-2 gap-4 mb-8 flex-1">
+                  <div className="bg-slate-50/50 p-5 rounded-[25px] border border-transparent">
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 leading-none">Leader</p>
+                    <div className="text-slate-700 font-bold text-xs flex items-center gap-2">
+                      <Users size={14} className="text-[#005587]" /> {project.leader?.full_name || 'Not Assigned'}
+                    </div>
+                  </div>
+                  <div className="bg-slate-50/50 p-5 rounded-[25px] border border-transparent">
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 leading-none">Volunteers</p>
+                    <div className="text-slate-700 font-bold text-xs flex items-center gap-2">
+                      <Clock size={14} className="text-[#005587]" /> {project.members?.length || 0} Joined
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 mt-auto">
+                  <button 
+                    onClick={() => { setProjectForLeader(project); setIsLeaderModalOpen(true); }}
+                    className="flex-1 py-4 bg-slate-50 text-slate-600 font-black text-[10px] uppercase tracking-[0.1em] rounded-[20px] hover:bg-slate-100 hover:text-slate-800 transition-all flex items-center justify-center gap-2 border border-slate-100"
+                  >
+                    <ShieldAlert size={16} className="text-amber-500" /> Manage Leader
+                  </button>
+                  
+                  <button 
+                    onClick={() => navigate(`/chapter-chair/tasks?project_id=${project.project_id}&title=${encodeURIComponent(project.title)}`)}
+                    className="flex-1 py-4 bg-[#005587] text-white font-black text-[10px] uppercase tracking-[0.1em] rounded-[20px] hover:-translate-y-0.5 hover:shadow-lg shadow-blue-100 transition-all flex items-center justify-center gap-2"
+                  >
+                    <CheckSquare size={16} /> View Tasks
+                  </button>
+                </div>
+
+              </div>
+            );
+          })
         )}
       </div>
 
-      {/* 🌟 مودال إنشاء وتعديل المشاريع */}
       <ProjectFormModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
@@ -173,7 +174,6 @@ const ProjectsManagement = () => {
         onSuccess={() => { setIsModalOpen(false); fetchProjects(); }} 
       />
 
-      {/* 🌟 مودال إدارة القائد (تعيين / عزل) */}
       <LeaderManagementModal 
         isOpen={isLeaderModalOpen}
         onClose={() => setIsLeaderModalOpen(false)}

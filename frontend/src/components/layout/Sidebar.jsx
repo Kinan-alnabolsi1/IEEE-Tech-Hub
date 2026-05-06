@@ -72,9 +72,19 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
           <p className="text-[9px] font-black text-blue-200/30 uppercase tracking-[0.4em] mb-4 px-3">Main Menu</p>
           {currentMenu.map((item) => {
             
-            // حساب الحالة النشطة بشكل أدق
-            const isActive = location.pathname === item.path || 
-                           (location.pathname.startsWith(item.path) && item.path !== '/volunteer' && item.path !== '/chapter-chair');
+            // 🌟 المنطق الذكي للتحديد (Active State):
+            // 1. نحدد الـ Dashboard الأساسي لكل رتبة
+            const isMainDashboard = ['/super-admin', '/admin', '/chapter-chair'].includes(item.path);
+
+            let isActive = false;
+
+            if (isMainDashboard) {
+                // للداشبورد الرئيسي: لازم يكون المسار مطابق تماماً
+                isActive = location.pathname === item.path;
+            } else {
+                // لباقي الصفحات: نستخدم startsWith عشان لو فيه مسارات فرعية تضوي الصفحة الأم
+                isActive = location.pathname.startsWith(item.path);
+            }
 
             return (
               <Link 
@@ -94,6 +104,7 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
           })}
         </nav>
 
+        {/* User Info & Logout Section */}
         <div className="p-4 border-t border-white/10 bg-black/5 shrink-0">
           <div className="bg-blue-900/30 px-4 py-3 rounded-2xl border border-white/5 mb-3 flex items-center justify-between shadow-inner">
             <div className="flex flex-col ">

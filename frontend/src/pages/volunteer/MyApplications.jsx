@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { volunteerService } from '../../services/volunteerService';
 import { LayoutGrid, Hourglass, CheckCircle2, XCircle, ShieldCheck, Briefcase } from 'lucide-react';
+import toast from 'react-hot-toast';
+import Loader from '../../components/ui/Loader'; // 🌟 استدعاء اللودر الخاص بك
 
 const MyApplications = () => {
     const [applications, setApplications] = useState([]);
@@ -10,15 +12,20 @@ const MyApplications = () => {
         try {
             setLoading(true);
             const response = await volunteerService.getMyProjects();
-            setApplications(response.data?.data || response.data || []);
+            const realData = response.data?.data || response.data || [];
+            setApplications(realData);
         } catch (error) {
-            console.error("Error fetching apps");
+            console.error("Error fetching apps:", error);
+            toast.error("Failed to load your applications"); // 🌟 استخدام toast هنا أزال الخط الأحمر
+            setApplications([]);
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => { fetchMyProjects(); }, []);
+    useEffect(() => { 
+        fetchMyProjects(); 
+    }, []);
 
     const getStatusStyle = (status) => {
         switch(status?.toLowerCase()) {
@@ -29,8 +36,11 @@ const MyApplications = () => {
         }
     };
 
+    // 🌟 استخدام اللودر المخصص تبعك
+    if (loading) return <Loader message="Scanning records..." />;
+
     return (
-        <div className="p-4 md:p-10 animate-in fade-in duration-700">
+        <div className="p-4 md:p-10 animate-in fade-in duration-700 max-w-7xl mx-auto">
             <div className="mb-12">
                 <h1 className="text-4xl font-[900] text-[#00629B] italic uppercase tracking-tight">My Journey</h1>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em] mt-3 flex items-center gap-2">
@@ -38,14 +48,14 @@ const MyApplications = () => {
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-6">
+            <div className="grid grid-cols-1 gap-6 pb-20">
                 {applications.length === 0 ? (
-                    <div className="bg-white rounded-[3rem] p-20 text-center border border-slate-100 italic font-bold text-slate-300 uppercase tracking-widest">
+                    <div className="bg-white rounded-[3rem] p-20 text-center border border-slate-100 italic font-bold text-slate-300 uppercase tracking-widest shadow-sm">
                         You haven't applied to any projects yet.
                     </div>
                 ) : (
                     applications.map((app) => (
-                        <div key={app.id} className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 hover:shadow-md transition-all">
+                        <div key={app.id} className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 hover:shadow-xl hover:-translate-y-1 transition-all">
                             <div className="flex items-center gap-6 flex-1">
                                 <div className="w-16 h-16 bg-blue-50 rounded-[1.5rem] flex items-center justify-center text-[#00629B] shrink-0">
                                     <LayoutGrid size={24} />
@@ -54,16 +64,19 @@ const MyApplications = () => {
                                     <h3 className="text-lg font-black text-slate-800 uppercase italic tracking-tight">{app.name}</h3>
                                     <div className="flex items-center gap-2 mt-1">
                                         <ShieldCheck size={12} className="text-slate-400" />
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Role Applied: {app.pivot?.role}</span>
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                            Role Applied: {app.pivot?.role || "General"}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
 
                             <div className="flex items-center gap-4 w-full md:w-auto">
-                                <div className={`px-6 py-3 rounded-2xl border text-[10px] font-black uppercase tracking-widest flex items-center gap-2 ${getStatusStyle(app.pivot?.status)}`}>
+                                <div className={`px-6 py-3 rounded-2xl border text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 w-full md:w-32 ${getStatusStyle(app.pivot?.status)}`}>
                                     {app.pivot?.status?.toLowerCase() === 'pending' && <Hourglass size={14} className="animate-spin-slow" />}
                                     {app.pivot?.status?.toLowerCase() === 'approved' && <CheckCircle2 size={14} />}
-                                    {app.pivot?.status}
+                                    {app.pivot?.status?.toLowerCase() === 'rejected' && <XCircle size={14} />}
+                                    {app.pivot?.status || "Pending"}
                                 </div>
                             </div>
                         </div>
