@@ -216,7 +216,7 @@ class ProjectController extends Controller
 
 
     /**
-     * جلب كافة المشاريع التابعة لفرع محدد (مع حماية الخصوصية)
+     * جلب كافة المشاريع التابعة لفرع محدد (مع حماية الخصوصية وفلترة حالة الموافقة)
      * GET /api/branches/{branch_id}/projects
      */
     public function getBranchProjects(Request $request, $branchId)
@@ -243,11 +243,18 @@ class ProjectController extends Controller
         // أ. نجلب أرقام الفصول التابعة لهذا الفرع
         $chapterIds = \App\Models\Chapter::where('branch_id', $branchId)->pluck('chapter_id');
 
-        // ب. نجلب المشاريع التابعة لهذه الفصول
-        $projects = Project::whereIn('chapter_id', $chapterIds)
-                           ->with(['leader', 'members', 'chapter']) // جلب العلاقات المهمة للعرض
-                           ->latest()
-                           ->get();
+        // ب. نبدأ ببناء استعلام المشاريع التابعة لهذه الفصول
+        $query = \App\Models\Project::whereIn('chapter_id', $chapterIds)
+                                    ->with(['leader', 'members', 'chapter']); // جلب العلاقات المهمة للعرض
+
+        // 🔍 ج. تطبيق فلتر حالة الموافقة (Approval Status)
+        // الإدارة يمكنها فلترة المشاريع عبر الرابط (مثال: ?approval_status=Pending أو Approved أو Rejected)
+        if ($request->has('approval_status')) {
+            $query->where('approval_status', $request->query('approval_status'));
+        }
+
+        // د. جلب النتائج (أحدثها أولاً)
+        $projects = $query->latest()->get();
 
         return response()->json([
             'message' => 'Branch projects retrieved successfully',
@@ -301,7 +308,7 @@ class ProjectController extends Controller
     }
 
     /**
-     * جلب كافة المشاريع التابعة لفصل محدد (مع حماية الخصوصية)
+     * جلب كافة المشاريع التابعة لفصل محدد (مع حماية الخصوصية وفلتر الموافقة والحالة)
      * GET /api/chapters/{chapter_id}/projects
      */
     public function getChapterProjects(Request $request, $chapterId)
@@ -317,19 +324,33 @@ class ProjectController extends Controller
         } elseif ($currentUser->role === 'Chapter Chair' && $chapter->chair_id === $currentUser->user_id) {
             // مسموح لرئيس الفصل رؤية مشاريع فصله فقط
         } else {
-            // 💡 إضافة ذكية: نسمح للمتطوع برؤية المشاريع (ليتمكن من التقديم عليها) 
-            // بشرط أن يكون منضماً كعضو في هذا الفصل تحديداً
+            // 💡 نسمح للمتطوع برؤية المشاريع بشرط أن يكون منضماً كعضو في هذا الفصل تحديداً
             $isMember = $chapter->members()->where('users.user_id', $currentUser->user_id)->exists();
             if (!$isMember) {
                 return response()->json(['message' => 'Unauthorized to view this chapter\'s projects.'], 403);
             }
         }
 
-        // ✅ 2. جلب المشاريع
-        $projects = Project::where('chapter_id', $chapterId)
-                           ->with(['leader', 'members']) // جلب معلومات القائد والأعضاء للعرض
-                           ->latest() // ترتيب من الأحدث للأقدم
-                           ->get();
+        // ✅ 2. جلب المشاريع (مع تطبيق الفلاتر)
+        $query = \App\Models\Project::where('chapter_id', $chapterId)
+                                    ->with(['leader', 'members']); // جلب معلومات القائد والأعضاء للعرض
+
+        // 🛡️ حماية إضافية ذكية (Approval Status)
+        if (!in_array($currentUser->role, ['Super Admin', 'Branch Admin', 'Chapter Chair'])) {
+            $query->where('approval_status', 'Approved');
+        } else {
+            if ($request->has('approval_status')) {
+                $query->where('approval_status', $request->query('approval_status'));
+            }
+        }
+
+        // 🔍 فلترة جديدة: حسب حالة المشروع (Project Status)
+        // مسموحة للجميع (إدارة أو متطوعين) ليتمكنوا من تصفية المشاريع (مثلاً: المفتوحة فقط)
+        if ($request->has('status')) {
+            $query->where('status', $request->query('status'));
+        }
+
+        $projects = $query->latest()->get();
 
         return response()->json([
             'message' => 'Chapter projects retrieved successfully',
@@ -537,6 +558,70 @@ class ProjectController extends Controller
                     'pending_applications' => $pendingApplications,
                 ]
             ]
+        ]);
+    }
+
+    /**
+     * موافقة الإدارة على المشروع
+     * PATCH /api/projects/{id}/approve
+     */
+    public function approveProject(Request $request, $id)
+    {
+        $project = \App\Models\Project::with('chapter')->findOrFail($id);
+        $currentUser = $request->user();
+
+        // 🛡️ الحماية الأمنية
+        if ($currentUser->role === 'Super Admin') {
+            // مسموح
+        } elseif ($currentUser->role === 'Branch Admin') {
+            if ($project->chapter && $project->chapter->branch_id !== $currentUser->branch_id) {
+                return response()->json(['message' => 'Unauthorized. You can only approve projects within your own branch.'], 403);
+            }
+        } else {
+            return response()->json(['message' => 'Unauthorized action. Only Admins can approve projects.'], 403);
+        }
+
+        // التحقق إذا كان موافق عليه مسبقاً
+        if ($project->approval_status === 'Approved') {
+            return response()->json(['message' => 'Project is already approved.', 'data' => $project], 200);
+        }
+
+        // 🔄 السحر هنا: تحديث حالة الموافقة، وحالة المشروع، وتسجيل بيانات الأدمن
+        $project->update([
+            'approval_status' => 'Approved',
+            'status' => 'Open', // تحويل حالة المشروع لـ Open ليتاح للمتطوعين
+            'approved_by' => $currentUser->user_id, // تسجيل من قام بالموافقة
+            'approved_at' => now() // تسجيل وقت الموافقة
+        ]);
+
+        return response()->json([
+            'message' => 'Project has been approved and is now Open.',
+            'data' => $project
+        ]);
+    }
+
+    /**
+     * رفض الإدارة للمشروع
+     * PATCH /api/projects/{id}/reject
+     */
+    public function rejectProject(Request $request, $id)
+    {
+        $project = \App\Models\Project::with('chapter')->findOrFail($id);
+        $currentUser = $request->user();
+
+        // نفس الحماية الأمنية تماماً تبع الموافقة
+        if ($currentUser->role !== 'Super Admin' && !($currentUser->role === 'Branch Admin' && $project->chapter->branch_id === $currentUser->branch_id)) {
+            return response()->json(['message' => 'Unauthorized action.'], 403);
+        }
+
+        $project->update([
+            'approval_status' => 'Rejected',
+            'status' => 'Cancelled' // إذا انرفض، بيصير ملغى
+        ]);
+
+        return response()->json([
+            'message' => 'Project has been rejected.',
+            'data' => $project
         ]);
     }
 }

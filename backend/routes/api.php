@@ -123,6 +123,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // مسارات المهارات (Skills)
         Route::get('/skills', [SkillController::class, 'index']);
         Route::post('/skills', [SkillController::class, 'store']);
+
+        Route::patch('/projects/{id}/approve', [ProjectController::class, 'approveProject']);
+        Route::patch('/projects/{id}/reject', [ProjectController::class, 'rejectProject']);
     });
 
 
