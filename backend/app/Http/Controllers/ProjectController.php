@@ -333,7 +333,7 @@ class ProjectController extends Controller
 
         // ✅ 2. جلب المشاريع (مع تطبيق الفلاتر)
         $query = \App\Models\Project::where('chapter_id', $chapterId)
-                                    ->with(['leader', 'members']); // جلب معلومات القائد والأعضاء للعرض
+                                    ->with(['leader', 'members', 'requiredRoles']); // جلب معلومات القائد والأعضاء للعرض
 
         // 🛡️ حماية إضافية ذكية (Approval Status)
         if (!in_array($currentUser->role, ['Super Admin', 'Branch Admin', 'Chapter Chair'])) {
