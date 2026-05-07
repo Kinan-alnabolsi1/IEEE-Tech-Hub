@@ -140,6 +140,55 @@ class UserController extends Controller
     }
 
     /**
+     * تحديث بيانات الملف الشخصي للمستخدم
+     * PUT /api/profile/update
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        // 1. التحقق من صحة البيانات المرسلة (Validation)
+        $validated = $request->validate([
+            'full_name'      => 'sometimes|string|max:255',
+            'phone'          => 'sometimes|string|max:20',
+            'bio'            => 'nullable|string',
+            'faculty'        => 'sometimes|string|max:150',
+            'major'          => 'sometimes|string|max:150',
+            'current_study_year' => 'sometimes|integer|min:1|max:7',
+            
+            // تحديث المهارات (اختياري)
+            'skills'                    => 'nullable|array',
+            'skills.*.skill_id'         => 'required_with:skills|exists:skills,skill_id',
+            'skills.*.level'            => 'required_with:skills|integer|min:1|max:5',
+            'skills.*.experience_years' => 'required_with:skills|integer|min:0',
+        ]);
+
+        // 2. تحديث البيانات الأساسية للمستخدم
+        // استبعدنا الـ skills من مصفوفة التحديث الأساسية
+        $userData = collect($validated)->except(['skills'])->toArray();
+        $user->update($userData);
+
+        // 3. تحديث المهارات (إذا تم إرسالها)
+        if ($request->has('skills')) {
+            $syncData = [];
+            foreach ($validated['skills'] as $skill) {
+                $syncData[$skill['skill_id']] = [
+                    'level' => $skill['level'],
+                    'experience_years' => $skill['experience_years']
+                ];
+            }
+            // استخدام sync يمسح المهارات القديمة ويضيف الجديدة للحفاظ على نظافة البيانات
+            $user->skills()->sync($syncData);
+        }
+
+        // 4. إرجاع البيانات كاملة بعد التحديث للتأكيد
+        return response()->json([
+            'message' => 'Profile updated successfully',
+            'data' => $user->load('skills')
+        ]);
+    }
+
+    /**
      * إعداد الحساب (Onboarding / Create Profile)
      * POST /api/profile/onboarding
      */

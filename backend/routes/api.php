@@ -59,6 +59,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     return response()->json($userData);
 });
+    Route::put('/profile/update', [UserController::class, 'updateProfile']);
     Route::get('/profile/{user_id}', [UserController::class, 'showProfile']);
     
     // Branch & Project Applications (تقديم الطلبات)
