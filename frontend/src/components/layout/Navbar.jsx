@@ -1,9 +1,10 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Navbar = ({ toggleSidebar, role, user }) => {
-  // بناءً على الـ Debug اللي شفناه:
-  // الداتا واصلة كـ: {"name":"al nablsi", "role":"branch_admin", "branch":"IEEE Branch"}
   const displayName = user?.name || "Shahed Almahmod";
+  // 🌟 القديم كان بيعالج المسافات بس، هلق صار يعالج المسافات والشحطة السفلية ويحولهم لشحطة عادية:
+const currentRolePath = role?.toLowerCase().replace(/[\s_]+/g, '-') || 'volunteer';
 
   return (
     <nav className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-40 px-6 lg:px-10 flex items-center justify-between font-sans">
@@ -25,9 +26,14 @@ const Navbar = ({ toggleSidebar, role, user }) => {
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      {/* 🌟 تم تحويل هذا القسم إلى Link يوجه للبروفايل */}
+      <Link 
+        to={`/${currentRolePath}/profile`} 
+        className="flex items-center gap-4 group cursor-pointer hover:bg-slate-50 p-2 rounded-2xl transition-all"
+        title="View Profile"
+      >
         <div className="hidden sm:flex flex-col items-end min-w-fit">
-          <p className="text-[13px] font-black text-slate-800 leading-none uppercase tracking-tighter whitespace-nowrap italic">
+          <p className="text-[13px] font-black text-slate-800 leading-none uppercase tracking-tighter whitespace-nowrap italic group-hover:text-[#00629B] transition-colors">
             {displayName}
           </p>
           <p className="text-[9px] text-blue-600 font-bold mt-1.5 uppercase tracking-widest italic">
@@ -35,11 +41,11 @@ const Navbar = ({ toggleSidebar, role, user }) => {
           </p>
         </div>
 
-        <div className={`w-11 h-11 flex-shrink-0 rounded-2xl flex items-center justify-center text-white text-sm font-black shadow-lg shadow-blue-100 border-2 border-white
+        <div className={`w-11 h-11 flex-shrink-0 rounded-2xl flex items-center justify-center text-white text-sm font-black shadow-lg shadow-blue-100 border-2 border-white group-hover:scale-105 transition-transform
           ${role === 'super_admin' ? 'bg-indigo-600' : 'bg-[#00629B]'}`}>
           {displayName.charAt(0).toUpperCase()}
         </div>
-      </div>
+      </Link>
     </nav>
   );
 };

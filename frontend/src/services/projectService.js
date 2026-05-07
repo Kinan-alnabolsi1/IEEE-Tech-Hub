@@ -39,5 +39,49 @@ export const projectService = {
     patchData(`/projects/${projectId}/assign-leader`, { user_id: userId }),
 
   removeProjectLeader: (projectId) => 
-    deleteData(`/projects/${projectId}/leader`)
+    deleteData(`/projects/${projectId}/leader`),
+
+  // --------------------------------------------------------
+  // 🎯 دوال مساحة عمل قائد المشروع (الجديدة)
+  // --------------------------------------------------------
+  getProjectDetails: (projectId) => 
+    getData(`/projects/${projectId}`),
+    
+  getProjectStats: (projectId) => 
+    getData(`/projects/${projectId}/stats`),
+
+  // قبول متطوع في المشروع
+  approveProjectMember: (projectId, userId) => 
+    postData(`/projects/${projectId}/approve-member`, { user_id: userId }),
+
+  // رفض متطوع
+  rejectProjectMember: (projectId, userId) => 
+    postData(`/projects/${projectId}/reject-member`, { user_id: userId }),
+
+  // --------------------------------------------------------
+  // 🚀 دوال لوحة المهام (Kanban Tasks) والمهارات
+  // --------------------------------------------------------
+  
+  // جلب قائمة المهارات (للذكاء الاصطناعي وإنشاء المشاريع)
+  getSkills: () => getData('/skills'),
+
+  // جلب مهام المشروع (للقائد)
+  getProjectTasks: (projectId, params = {}) => {
+    const queryParams = new URLSearchParams({ project_id: projectId, ...params }).toString();
+    return getData(`/tasks?${queryParams}`);
+  },
+  
+  // 🌟 جلب مهام المتطوع الشخصية (المسندة إليه فقط)
+  getMyTasks: () => 
+    getData('/my-tasks'),
+
+  // إنشاء مهمة جديدة وتوزيعها
+  createTask: (data) => postData('/tasks', data),
+  
+  // تعديل المهمة (العنوان، الحالة، أو الأولوية)
+  updateTask: (taskId, data) => patchData(`/tasks/${taskId}`, data),
+  
+  // حذف المهمة
+  deleteTask: (taskId) => deleteData(`/tasks/${taskId}`)
+
 };

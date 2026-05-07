@@ -8,6 +8,9 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Onboarding from './pages/volunteer/Onboarding'; 
 
+// --- Shared Pages ---
+import Profile from './pages/shared/Profile'; // 🌟 استيراد صفحة البروفايل الموحدة
+
 // --- Super Admin Pages ---
 import SuperAdminDashboard from './pages/super-admin/SuperAdminDashboard'; 
 import BranchesIndex from './pages/super-admin/branches/components/BranchesIndex'; 
@@ -26,6 +29,11 @@ import ProjectsManagement from './pages/chapterChair/Projects/ProjectsManagement
 import TasksOverview from './pages/ChapterChair/Tasks/TasksOverview';
 import ChapterMembers from './pages/ChapterChair/members/ChapterMembers';
 
+// --- 🎯 Project Leader Pages ---
+import LeaderDashboard from './pages/project-leader/LeaderDashboard';
+import TeamManagement from './pages/project-leader/TeamManagement';
+import TasksBoard from './pages/project-leader/TasksBoard';
+
 // --- Volunteer Pages ---
 import MyTasks from './pages/volunteer/MyTasks';
 import BrowseProjects from './pages/volunteer/BrowseProjects';
@@ -43,6 +51,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     if (userRole === 'super_admin') return <Navigate to="/super-admin" replace />;
     if (userRole === 'admin') return <Navigate to="/admin" replace />;
     if (userRole === 'chapter_chair') return <Navigate to="/chapter-chair" replace />;
+    if (userRole === 'project_leader') return <Navigate to="/project-leader" replace />; 
     if (userRole === 'volunteer') return <Navigate to="/volunteer" replace />;
     
     localStorage.clear();
@@ -105,6 +114,19 @@ function App() {
           <Route path="projects" element={<ProjectsManagement />} />
           <Route path="tasks" element={<TasksOverview />} />
           <Route path="members" element={<ChapterMembers />} />
+          <Route path="profile" element={<Profile />} /> {/* 🌟 مسار البروفايل */}
+        </Route>
+
+        {/* 🎯 Project Leader */}
+        <Route path="/project-leader" element={
+          <ProtectedRoute allowedRoles={['project_leader']}>
+            <DashboardLayout role="project_leader" />
+          </ProtectedRoute>
+        }>
+          <Route index element={<LeaderDashboard />} />
+          <Route path="team" element={<TeamManagement />} />
+          <Route path="tasks" element={<TasksBoard />} />
+          <Route path="profile" element={<Profile />} /> {/* 🌟 مسار البروفايل */}
         </Route>
 
         {/* 🦾 Volunteer */}
@@ -113,11 +135,11 @@ function App() {
             <DashboardLayout role="volunteer" />
           </ProtectedRoute>
         }>
-          {/* التعديل هنا: توجيه تلقائي لصفحة المهام لضمان تفعيل السايد بار */}
           <Route index element={<Navigate to="/volunteer/tasks" replace />} /> 
           <Route path="tasks" element={<MyTasks />} />
           <Route path="explore" element={<BrowseProjects />} />
           <Route path="applications" element={<MyApplications />} />
+          <Route path="profile" element={<Profile />} /> {/* 🌟 مسار البروفايل */}
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

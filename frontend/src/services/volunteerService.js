@@ -1,32 +1,33 @@
 // src/services/volunteerService.js
-import { getData, postData, patchData } from '../api/apiMethods';
+import { getData, postData, patchData, putData } from '../api/apiMethods'; // 🌟 ضفنا putData هون
 
 export const volunteerService = {
-  // --- 👤 Profile & Onboarding ---
+  // --- 👤 Profile & Onboarding (بدون تغيير) ---
   getProfile: () => getData('/profile'),
   completeOnboarding: (data) => postData('/profile/onboarding', data),
-  getSkills: () => getData('/skills'), // 🌟 الإضافة الجديدة لجلب المهارات
+  getSkills: () => getData('/skills'), 
+  
+  // 🌟 التعديل هنا: استخدام putData والمسار الصحيح بناءً على كلام الباك إند
+  updateProfile: (data) => putData('/profile/update', data),
 
-  // --- 🔍 Projects Exploration ---
+  // --- 🔍 Projects Exploration (بدون تغيير) ---
   getChapterProjects: (chapterId) => getData(`/chapters/${chapterId}/projects`),
   getProjectDetails: (projectId) => getData(`/projects/${projectId}`),
   joinProject: (projectId, roleName) => 
     postData(`/projects/${projectId}/join`, { role: roleName }),
 
-  // --- 📁 Applications & Tasks ---
+  // --- 📁 Applications & Tasks (تعديل آمن للدالة) ---
   getMyProjects: () => getData('/my-projects'),
   getMyTasks: () => getData('/my-tasks'),
-  updateTaskProgress: (assignmentId, completionPct, note) => 
-    patchData(`/tasks/assignments/${assignmentId}/progress`, {
-      completion_pct: completionPct,
-      progress_note: note
-    }),
+  
+  // 🌟 تعديل الدالة لتستقبل Object (data) بدل متغيرات منفصلة
+  updateTaskProgress: (assignmentId, data) => 
+    patchData(`/tasks/assignments/${assignmentId}/progress`, data),
 
-  // --- 🏢 Admin Utils ---
+  // --- 🏢 Admin Utils (بدون تغيير) ---
   getBranches: () => getData('/branches'),
   getChapters: (branchId) => getData(`/chapters?branch_id=${branchId}`),
   
-  // جلب المتطوعين مع التأكد من إرسال حالة active افتراضياً
   getByBranch: (branchId, status = 'active') => {
     const query = status ? `?status=${status}` : '';
     return getData(`/branches/${branchId}/volunteers${query}`);

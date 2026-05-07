@@ -24,29 +24,49 @@ const Onboarding = () => {
         skills: [] 
     });
 
-    // 🌟 التعديل هنا: شلنا الداتا الوهمية وصار يقرأ من السيرفر فقط
     useEffect(() => {
         const fetchSkills = async () => {
             try {
                 const res = await volunteerService.getSkills();
-                // أخذنا الداتا الحقيقية من السيرفر
                 setAvailableSkills(res.data?.data || res.data || []);
             } catch (error) {
-                console.error("Failed to load skills from backend:", error);
-                toast.error("Could not load skills list from server.");
+                console.error("Failed to load skills:", error);
+                toast.error("Could not load skills list.");
             }
         };
         fetchSkills();
     }, []);
 
-    const handleNext = () => setStep(s => s + 1);
+    // 🌟 دالة التحقق من صحة البيانات قبل الانتقال لكل خطوة
+    const validateStep = () => {
+        if (step === 1) {
+            if (!formData.faculty.trim()) { toast.error("Faculty is required."); return false; }
+            if (!formData.enrollment_year) { toast.error("Enrollment year is required."); return false; }
+            if (!formData.expected_graduation_date) { toast.error("Expected graduation date is required."); return false; }
+        }
+        if (step === 3) {
+            if (!formData.bio.trim() || formData.bio.length < 20) {
+                toast.error("Please write a bio (at least 20 characters).");
+                return false;
+            }
+        }
+        return true;
+    };
+
+    const handleNext = () => {
+        if (validateStep()) setStep(s => s + 1);
+    };
+
     const handleBack = () => setStep(s => s - 1);
 
     const handleAddSkill = () => {
         if (!currentSkill.skill_id) return toast.error("Please select a skill.");
         
+        // التحقق من المستوى (بما أنه إجباري للمهارة المضافة)
+        if (currentSkill.level < 1 || currentSkill.level > 5) return toast.error("Level must be 1-5.");
+
         if (formData.skills.some(s => String(s.skill_id) === String(currentSkill.skill_id))) {
-            return toast.error("You already added this skill!");
+            return toast.error("Skill already added.");
         }
 
         const skillObj = availableSkills.find(s => String(s.skill_id) === String(currentSkill.skill_id));
@@ -59,7 +79,7 @@ const Onboarding = () => {
                     skill_id: parseInt(currentSkill.skill_id),
                     name: skillObj?.name,
                     level: parseInt(currentSkill.level),
-                    experience_years: parseInt(currentSkill.experience_years)
+                    experience_years: parseInt(currentSkill.experience_years) || 0 // الخبرة يمكن أن تكون 0
                 }
             ]
         });
@@ -78,14 +98,17 @@ const Onboarding = () => {
     const decrementYear = () => setFormData(prev => ({ ...prev, current_study_year: Math.max(1, prev.current_study_year - 1) }));
 
     const handleFinish = async () => {
+        if (!formData.phone || formData.phone.length < 9) {
+            return toast.error("Please enter a valid 9-digit phone number.");
+        }
+
         setLoading(true);
         try {
             const submissionData = {
                 ...formData,
                 enrollment_year: parseInt(formData.enrollment_year),
                 current_study_year: parseInt(formData.current_study_year),
-                expected_graduation_date: formData.expected_graduation_date,
-                phone: formData.phone ? `+963${formData.phone}` : ''
+                phone: `+963${formData.phone}`
             };
 
             await volunteerService.completeOnboarding(submissionData);
@@ -96,7 +119,6 @@ const Onboarding = () => {
             const message = serverErrors 
                 ? Object.values(serverErrors).flat()[0] 
                 : (error.response?.data?.message || "Check your data and try again");
-            
             toast.error(message);
         } finally {
             setLoading(false);
@@ -107,8 +129,9 @@ const Onboarding = () => {
 
     return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-2xl bg-white rounded-[3rem] shadow-2xl shadow-blue-100/50 overflow-hidden relative border border-slate-100">
+            <div className="w-full max-w-2xl bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden relative">
                 
+                {/* Progress Bar */}
                 <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-50 flex">
                     <div className="h-full bg-[#00629B] transition-all duration-500" style={{ width: `${(step / 4) * 100}%` }}></div>
                 </div>
@@ -133,59 +156,88 @@ const Onboarding = () => {
                     <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
                         
                         {/* STEP 1: Academic Info */}
-                        {step === 1 && (
-                            <div className="space-y-4 animate-in slide-in-from-right-5 duration-300">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-2">Faculty</label>
-                                        <input required className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-100" placeholder="e.g. Engineering" value={formData.faculty} onChange={e => setFormData({...formData, faculty: e.target.value})} />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-2">Major</label>
-                                        <input required className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-100" placeholder="e.g. AI & Robotics" value={formData.major} onChange={e => setFormData({...formData, major: e.target.value})} />
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-2">Study Year</label>
-                                        <div className="flex bg-slate-50 rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-100">
-                                            <button type="button" onClick={decrementYear} className="px-4 text-[#00629B] hover:bg-slate-200 transition-colors flex items-center justify-center">
-                                                <Minus size={14} strokeWidth={3} />
-                                            </button>
-                                            <input 
-                                                type="number" required 
-                                                className="w-full bg-transparent border-none py-4 text-center text-xs font-black outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-                                                value={formData.current_study_year} 
-                                                onChange={e => setFormData({...formData, current_study_year: parseInt(e.target.value) || ''})} 
-                                            />
-                                            <button type="button" onClick={incrementYear} className="px-4 text-[#00629B] hover:bg-slate-200 transition-colors flex items-center justify-center">
-                                                <Plus size={14} strokeWidth={3} />
-                                            </button>
-                                        </div>
-                                    </div>
+                        {/* STEP 1: Academic Info */}
+{step === 1 && (
+    <div className="space-y-6 animate-in slide-in-from-right-5 duration-300">
+        {/* السطر الأول: الكلية والتخصص */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Faculty *</label>
+                <input 
+                    required 
+                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all" 
+                    placeholder="e.g. Engineering" 
+                    value={formData.faculty} 
+                    onChange={e => setFormData({...formData, faculty: e.target.value})} 
+                />
+            </div>
+            <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Major (Optional)</label>
+                <input 
+                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all" 
+                    placeholder="e.g. Computer Science" 
+                    value={formData.major} 
+                    onChange={e => setFormData({...formData, major: e.target.value})} 
+                />
+            </div>
+        </div>
 
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-2">Enrollment Year</label>
-                                        <input type="number" required className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-100" placeholder="e.g. 2022" value={formData.enrollment_year} onChange={e => setFormData({...formData, enrollment_year: e.target.value})} />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-2">Expected Grad</label>
-                                        <input type="date" required className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-100 text-slate-500 cursor-pointer" value={formData.expected_graduation_date} onChange={e => setFormData({...formData, expected_graduation_date: e.target.value})} />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+        {/* السطر الثاني: السنة الدراسية الحالية - جعلناه منفصلاً ليعطي مساحة */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+            <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Current Study Year</label>
+                <div className="flex bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden h-[54px]">
+                    <button type="button" onClick={decrementYear} className="px-5 text-[#00629B] hover:bg-slate-200 transition-colors flex items-center justify-center border-r border-slate-100">
+                        <Minus size={16} strokeWidth={3} />
+                    </button>
+                    <div className="flex-1 flex items-center justify-center text-xs font-black text-slate-700 bg-white">
+                        {formData.current_study_year}
+                    </div>
+                    <button type="button" onClick={incrementYear} className="px-5 text-[#00629B] hover:bg-slate-200 transition-colors flex items-center justify-center border-l border-slate-100">
+                        <Plus size={16} strokeWidth={3} />
+                    </button>
+                </div>
+            </div>
+
+            {/* تم تحويل الـ Enrollment لحقل إدخال عادي */}
+            <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Enrollment Year *</label>
+                <input 
+                    type="number" 
+                    required 
+                    min="2000"
+                    max="2026"
+                    placeholder="2022"
+                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-100 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                    value={formData.enrollment_year} 
+                    onChange={e => setFormData({...formData, enrollment_year: e.target.value})} 
+                />
+            </div>
+
+            <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Graduation Date *</label>
+                <input 
+                    type="date" 
+                    required 
+                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-100 text-slate-500 cursor-pointer" 
+                    value={formData.expected_graduation_date} 
+                    onChange={e => setFormData({...formData, expected_graduation_date: e.target.value})} 
+                />
+            </div>
+        </div>
+    </div>
+)}
 
                         {/* STEP 2: Skills */}
                         {step === 2 && (
                             <div className="space-y-6 animate-in slide-in-from-right-5 duration-300">
                                 <div className="space-y-2">
-                                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-2">Add Your Skills</label>
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-2">Add Your Skills (Optional)</label>
                                     <div className="bg-slate-50 p-4 rounded-[2rem] border border-slate-100 flex flex-col md:flex-row gap-3 items-center">
                                         <select 
                                             value={currentSkill.skill_id} 
                                             onChange={e => setCurrentSkill({...currentSkill, skill_id: e.target.value})}
-                                            className="w-full md:flex-[2] bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold outline-none text-slate-700 cursor-pointer"
+                                            className="w-full md:flex-[2] bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold outline-none text-slate-700"
                                         >
                                             <option value="" disabled>Select Skill...</option>
                                             {availableSkills.map(skill => (
@@ -194,38 +246,32 @@ const Onboarding = () => {
                                         </select>
                                         
                                         <div className="flex w-full md:w-auto gap-3 flex-1">
-                                            <div className="flex-1 bg-white border border-slate-100 rounded-xl px-3 py-1 flex items-center flex-col justify-center">
-                                                <span className="text-[8px] font-black uppercase text-slate-400">Level (1-5)</span>
+                                            <div className="flex-1 bg-white border border-slate-100 rounded-xl px-3 py-1 flex flex-col items-center">
+                                                <span className="text-[8px] font-black text-slate-400 uppercase">Level *</span>
                                                 <input type="number" min="1" max="5" value={currentSkill.level} onChange={e => setCurrentSkill({...currentSkill, level: e.target.value})} className="w-full text-center text-xs font-bold outline-none bg-transparent"/>
                                             </div>
-                                            <div className="flex-1 bg-white border border-slate-100 rounded-xl px-3 py-1 flex items-center flex-col justify-center">
-                                                <span className="text-[8px] font-black uppercase text-slate-400">Exp (Yrs)</span>
+                                            <div className="flex-1 bg-white border border-slate-100 rounded-xl px-3 py-1 flex flex-col items-center">
+                                                <span className="text-[8px] font-black text-slate-400 uppercase">Exp (Yrs)</span>
                                                 <input type="number" min="0" value={currentSkill.experience_years} onChange={e => setCurrentSkill({...currentSkill, experience_years: e.target.value})} className="w-full text-center text-xs font-bold outline-none bg-transparent"/>
                                             </div>
                                         </div>
 
-                                        <button onClick={handleAddSkill} className="w-full md:w-auto bg-[#00629B] text-white p-3 rounded-xl hover:bg-slate-900 transition-colors shadow-sm flex justify-center items-center">
+                                        <button type="button" onClick={handleAddSkill} className="w-full md:w-auto bg-[#00629B] text-white p-3 rounded-xl hover:bg-slate-900 transition-colors shadow-sm">
                                             <Plus size={18} strokeWidth={3}/>
                                         </button>
                                     </div>
 
                                     <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         {formData.skills.map((skill, index) => (
-                                            <div key={index} className="bg-white border border-slate-100 p-4 rounded-2xl flex items-center justify-between shadow-sm group hover:border-blue-100 transition-all">
+                                            <div key={index} className="bg-white border border-slate-100 p-4 rounded-2xl flex items-center justify-between shadow-sm">
                                                 <div>
                                                     <h4 className="text-xs font-black text-slate-800 uppercase">{skill.name}</h4>
-                                                    <div className="flex items-center gap-3 mt-1.5">
-                                                        <div className="flex items-center gap-1 text-amber-400">
-                                                            <Star size={10} fill="currentColor" />
-                                                            <span className="text-[10px] font-bold text-slate-600">Lvl {skill.level}</span>
-                                                        </div>
-                                                        <div className="w-1 h-1 rounded-full bg-slate-200"></div>
-                                                        <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">{skill.experience_years} Yrs Exp</span>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <span className="text-[10px] font-bold text-amber-500">Lvl {skill.level}</span>
+                                                        <span className="text-[9px] font-bold text-slate-400">{skill.experience_years} Yrs Exp</span>
                                                     </div>
                                                 </div>
-                                                <button onClick={() => handleRemoveSkill(index)} className="p-2 text-slate-300 hover:text-rose-500 bg-slate-50 hover:bg-rose-50 rounded-lg transition-colors">
-                                                    <Trash2 size={14} />
-                                                </button>
+                                                <button onClick={() => handleRemoveSkill(index)} className="p-2 text-slate-300 hover:text-rose-500"><Trash2 size={14} /></button>
                                             </div>
                                         ))}
                                     </div>
@@ -233,15 +279,15 @@ const Onboarding = () => {
                             </div>
                         )}
 
-                        {/* STEP 3: Professional Bio */}
+                        {/* STEP 3: Bio */}
                         {step === 3 && (
                             <div className="space-y-4 animate-in slide-in-from-right-5 duration-300">
                                 <div className="space-y-2">
-                                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-2">Tell us your story</label>
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-2">Bio (Required) *</label>
                                     <textarea 
                                         rows="8" 
                                         className="w-full bg-slate-50 border-none rounded-[2rem] p-6 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-100 resize-none leading-relaxed" 
-                                        placeholder="Write a brief professional bio about your passion, what you aim to achieve in this chapter, and your volunteering spirit..." 
+                                        placeholder="Write about your passion and goals (min 20 characters)..." 
                                         value={formData.bio} 
                                         onChange={e => setFormData({...formData, bio: e.target.value})}
                                     ></textarea>
@@ -249,20 +295,19 @@ const Onboarding = () => {
                             </div>
                         )}
 
-                        {/* STEP 4: Phone & Finish */}
+                        {/* STEP 4: Phone */}
                         {step === 4 && (
                             <div className="space-y-8 animate-in slide-in-from-right-5 duration-300">
                                 <div className="p-8 bg-blue-50/50 rounded-[2.5rem] border border-blue-100 text-center space-y-4">
                                     <Sparkles className="mx-auto text-blue-500" size={40} />
-                                    <h3 className="text-lg font-black text-slate-800 tracking-tight">Ready to Join?</h3>
-                                    <p className="text-[11px] font-bold text-slate-500 leading-relaxed">Your professional profile is ready. Project leaders can now see your expertise.</p>
+                                    <h3 className="text-lg font-black text-slate-800 tracking-tight">Final Setup</h3>
+                                    <p className="text-[11px] font-bold text-slate-500 leading-relaxed">Your professional profile is ready to be deployed.</p>
                                 </div>
-                                
-                                <div className="space-y-2 px-2 md:px-8">
-                                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-2">WhatsApp / Phone Number</label>
+                                <div className="space-y-2 px-8">
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-2">Phone Number *</label>
                                     <div className="flex bg-slate-50 rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-100">
-                                        <div className="flex items-center justify-center px-4 bg-slate-100 border-r border-slate-200">
-                                            <span className="text-xs font-black text-slate-600 tracking-widest">+963</span>
+                                        <div className="flex items-center px-4 bg-slate-100 border-r border-slate-200">
+                                            <span className="text-xs font-black text-slate-600">+963</span>
                                         </div>
                                         <input 
                                             type="tel" 
@@ -280,7 +325,7 @@ const Onboarding = () => {
                         {/* Navigation Buttons */}
                         <div className="flex gap-4 pt-6">
                             {step > 1 && (
-                                <button type="button" onClick={handleBack} className="flex-1 py-4 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-colors hover:bg-slate-200 hover:text-slate-600">
+                                <button type="button" onClick={handleBack} className="flex-1 py-4 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-colors hover:bg-slate-200">
                                     <ChevronLeft size={16} /> Back
                                 </button>
                             )}
@@ -289,7 +334,7 @@ const Onboarding = () => {
                                     Next Phase <ChevronRight size={16} />
                                 </button>
                             ) : (
-                                <button type="button" onClick={handleFinish} className="flex-[2] py-4 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-2 transition-all hover:-translate-y-1 hover:shadow-emerald-500/30">
+                                <button type="button" onClick={handleFinish} className="flex-[2] py-4 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-2 transition-all hover:-translate-y-1">
                                     Finish Setup <Save size={16} />
                                 </button>
                             )}

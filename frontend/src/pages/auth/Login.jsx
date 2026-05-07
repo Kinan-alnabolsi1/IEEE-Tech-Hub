@@ -26,8 +26,8 @@ const Login = () => {
     if (role === 'super_admin') navigate('/super-admin', { replace: true });
     else if (role === 'admin') navigate('/admin', { replace: true });
     else if (role === 'chapter_chair') navigate('/chapter-chair', { replace: true });
+    else if (role === 'project_leader') navigate('/project-leader', { replace: true }); 
     else if (role === 'volunteer') {
-      // التحقق من الـ Onboarding للمتطوع
       if (user && !user.faculty) {
         navigate('/onboarding', { replace: true });
       } else {
@@ -47,31 +47,41 @@ const Login = () => {
       if (data.access_token || data.token) {
         localStorage.clear(); 
         const token = data.access_token || data.token;
+        const user = data.user; // حفظنا اليوزر بمتغير لتسهيل القراءة
         
         localStorage.setItem('ieee_token', token);
-        localStorage.setItem('ieee_user', JSON.stringify(data.user));
-        localStorage.setItem('user_id', String(data.user?.user_id || data.user?.id)); 
-        localStorage.setItem('user_name', data.user?.full_name || 'Member');
+        localStorage.setItem('ieee_user', JSON.stringify(user));
+        localStorage.setItem('user_id', String(user?.user_id || user?.id)); 
+        localStorage.setItem('user_name', user?.full_name || 'Member');
         
-        // 🌟 التعديل الجديد للتعامل مع الـ Array اللي رجعها الباك إند
-        const chapterId = data.user?.managed_chapter_id || data.user?.joined_chapters?.[0]?.chapter_id;
-        
+        // حفظ الشابتر
+        const chapterId = user?.managed_chapter_id || user?.joined_chapters?.[0]?.chapter_id;
         if (chapterId) {
             localStorage.setItem('chapter_id', String(chapterId));
         }
 
-        let rawRole = String(data.user?.role || '').toLowerCase();
+        // 🌟 التعديل السحري هون: الدخول لمصفوفة projects وسحب الـ ID تبع المشروع القيادي
+        if (user?.projects && user.projects.length > 0) {
+            const leaderProject = user.projects.find(p => p.role_in_project === 'Project Leader');
+            if (leaderProject) {
+                localStorage.setItem('managed_project_id', String(leaderProject.project_id));
+            }
+        }
+
+        // تحديد الرتبة وتوجيه اليوزر
+        let rawRole = String(user?.role || '').toLowerCase();
         let normalizedRole = 'volunteer';
         
         if (rawRole.includes('super')) normalizedRole = 'super_admin';
         else if (rawRole.includes('admin')) normalizedRole = 'admin';
-        else if (rawRole.includes('chair') || data.user?.managed_chapter_id) normalizedRole = 'chapter_chair';
+        else if (rawRole.includes('chair') || user?.managed_chapter_id) normalizedRole = 'chapter_chair';
+        else if (rawRole.includes('leader') || rawRole === 'project leader') normalizedRole = 'project_leader';
 
         localStorage.setItem('user_role', normalizedRole);
-        if (data.user?.branch_id) localStorage.setItem('branch_id', String(data.user.branch_id));
+        if (user?.branch_id) localStorage.setItem('branch_id', String(user.branch_id));
 
-        toast.success(`Welcome back, ${data.user.full_name}!`);
-        redirectUser(normalizedRole, data.user);
+        toast.success(`Welcome back, ${user.full_name}!`);
+        redirectUser(normalizedRole, user);
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Invalid Credentials');
@@ -122,4 +132,4 @@ const Login = () => {
   );
 };
 
-export default Login; 
+export default Login;

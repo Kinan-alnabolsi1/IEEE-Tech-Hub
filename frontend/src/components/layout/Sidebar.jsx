@@ -38,6 +38,12 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
       { name: 'Manage Projects', path: '/chapter-chair/projects', icon: '🚀' },
       { name: 'Chapter Members', path: '/chapter-chair/members', icon: '👥' },
     ],
+    // 🌟 ضفنا قائمة قائد المشروع هون 
+    'project_leader': [
+      { name: 'Command Center', path: '/project-leader', icon: '📊' },
+      { name: 'Manage Team', path: '/project-leader/team', icon: '👥' },
+      { name: 'Tasks Board', path: '/project-leader/tasks', icon: '📋' },
+    ],
     'volunteer': [
       { name: 'My Tasks', path: '/volunteer/tasks', icon: '📋' }, 
       { name: 'Explore Projects', path: '/volunteer/explore', icon: '🚀' },
@@ -75,8 +81,8 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
           {currentMenu.map((item) => {
             
             // 🌟 المنطق الذكي للتحديد (Active State):
-            // 1. نحدد الـ Dashboard الأساسي لكل رتبة
-            const isMainDashboard = ['/super-admin', '/admin', '/chapter-chair'].includes(item.path);
+            // 1. نحدد الـ Dashboard الأساسي لكل رتبة (ضفنا مسار قائد المشروع هون)
+            const isMainDashboard = ['/super-admin', '/admin', '/chapter-chair', '/project-leader'].includes(item.path);
 
             let isActive = false;
 
