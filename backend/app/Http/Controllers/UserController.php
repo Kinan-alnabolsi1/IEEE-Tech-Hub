@@ -225,9 +225,14 @@ class UserController extends Controller
     {
         $user = $request->user();
         
-        // نجلب التكليفات الخاصة بهذا المتطوع مع تفاصيل المهمة والمشروع التابع لها
+        // جلب التكليفات مع المهمة، ومع المهمة نجلب المشروع التابع لها
         $assignments = \App\Models\TaskAssignment::where('user_id', $user->user_id)
-            ->with(['task', 'task.project:project_id,title']) // نجلب المهمة، ومعلومات المشروع الأساسية
+            ->with([
+                'task' => function($query) {
+                    $query->with('project:project_id,title'); // جلب بيانات المشروع المختصرة
+                }
+            ])
+            ->latest('assigned_at') // ترتيب المهام من الأحدث للقديم
             ->get();
 
         return response()->json([
