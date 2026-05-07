@@ -34,6 +34,11 @@ class ProjectController extends Controller
         // 1. إنشاء المشروع الأساسي بالداتا الصافية
         $project = \App\Models\Project::create($validated);
 
+
+        // 1. 🛑 إنشاء وربط الأدوار (هذا الجزء كان مفقوداً!)
+        if ($roles) {
+            $project->requiredRoles()->createMany($roles);
+        }
         // 2. إذا تم إرسال مصفوفة الأدوار المطلوبة، نقوم بإنشائها وربطها
         if ($skills) {
             foreach ($skills as $skill) {
