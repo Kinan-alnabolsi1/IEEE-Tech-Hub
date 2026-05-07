@@ -14,7 +14,7 @@ class ProjectController extends Controller
     public function index()
     {
         // جلب المشاريع مع معلومات القائد والأعضاء لتسهيل عرضها بالفرونت إند
-        $projects = Project::with(['leader', 'members'])->get();
+        $projects = Project::with(['leader', 'members', 'requiredRoles', 'requiredSkills'])->get();
         return response()->json($projects);
     }
 
@@ -28,30 +28,64 @@ class ProjectController extends Controller
 
         // ✂️ عزل الأدوار المطلوبة من الداتا الأساسية حتى ما تضرب الداتابيز
         $roles = $validated['required_roles'] ?? null;
-        unset($validated['required_roles']);
+        $skills = $validated['required_skills'] ?? null;
+        unset($validated['required_roles'], $validated['required_skills']);
 
         // 1. إنشاء المشروع الأساسي بالداتا الصافية
         $project = \App\Models\Project::create($validated);
 
         // 2. إذا تم إرسال مصفوفة الأدوار المطلوبة، نقوم بإنشائها وربطها
-        if ($roles) {
-            $project->requiredRoles()->createMany($roles);
+        if ($skills) {
+            foreach ($skills as $skill) {
+                $project->requiredSkills()->attach($skill['skill_id'], [
+                    'min_level' => $skill['min_level'],
+                    'weight' => $skill['weight']
+                ]);
+            }
         }
 
         return response()->json([
             'message' => 'Project created successfully', 
-            'data' => $project->load('requiredRoles')
+            'data' => $project->load(['requiredRoles', 'requiredSkills'])
         ], 201);
     }
 
     /**
      * Display the specified project with its details.
      */
-    public function show($id)
+    /**
+     * جلب تفاصيل مشروع محدد (Get Project Details)
+     * GET /api/projects/{id}
+     */
+    public function show(Request $request, $id)
     {
-        // ضفنا requiredRoles هون
-        $project = Project::with(['leader', 'members', 'requiredSkills', 'requiredRoles'])->findOrFail($id);
-        return response()->json($project);
+        // 1. جلب المشروع مع كافة العلاقات المهمة (الفصل، القائد، الأدوار، المهارات، والأعضاء)
+        $project = \App\Models\Project::with([
+            'chapter',
+            'leader:user_id,full_name,email,profile_photo', // نكتفي بجلب البيانات الأساسية للقائد
+            'requiredRoles',
+            'requiredSkills',
+            'members'
+        ])->findOrFail($id);
+
+        $currentUser = $request->user();
+
+        // حماية أمنية
+        $isAdmin = in_array($currentUser->role, ['Super Admin', 'Branch Admin', 'Chapter Chair']);
+        $isLeader = $project->leader_id === $currentUser->user_id;
+
+        // 💡 منطق الحماية للمتطوع العادي:
+        // إذا كان المستخدم متطوعاً وليس له صفة إدارية على هذا المشروع،
+        // يُمنع من رؤية تفاصيل المشروع إذا كان لا يزال قيد الانتظار (Pending) أو مرفوضاً (Rejected).
+        if (!$isAdmin && !$isLeader && $project->approval_status !== 'Approved') {
+            return response()->json(['message' => 'Unauthorized view.'], 403);
+        }
+
+        // ✅ 3. إرجاع النتيجة
+        return response()->json([
+            'message' => 'Project details retrieved successfully',
+            'data' => $project
+        ]);
     }
 
     /**
@@ -81,35 +115,30 @@ class ProjectController extends Controller
             'start_date' => 'sometimes|date',
             'end_date' => 'sometimes|date|after_or_equal:start_date',
             'status' => 'sometimes|in:Open,Ongoing,Completed,Cancelled',
+            // المهارات المطلوبة
+            'required_skills' => 'nullable|array',
+            'required_skills.*.skill_id' => 'required_with:required_skills|exists:skills,skill_id',
+            'required_skills.*.min_level' => 'required_with:required_skills|integer|min:1|max:5',
+            'required_skills.*.weight' => 'required_with:required_skills|numeric|min:0',
+            // الأدوار المطلوبة
             'required_roles' => 'nullable|array',
-            'required_roles.*.role_name' => 'required_with:required_roles|string|max:100',
-            'required_roles.*.required_count' => 'required_with:required_roles|integer|min:1',
+            'required_roles.*.role_name' => 'required_with:required_roles|string',
+            'required_roles.*.required_count' => 'required_with:required_roles|integer',
         ]);
-
-        // ✂️ عزل الأدوار المطلوبة من الداتا
-        $roles = $validated['required_roles'] ?? null;
-        // نستخدم array_key_exists لنتأكد إذا الفرونت بعت المصفوفة (حتى لو فاضية)
-        $hasRoles = array_key_exists('required_roles', $validated);
-        unset($validated['required_roles']);
-
-        // 🔄 3. تحديث البيانات الأساسية للمشروع
-        $project->update($validated);
-
-        // 👥 4. تحديث الأدوار (Project Roles)
-        // إذا تم إرسال المفتاح required_roles، نقوم بتحديث الجدول المرتبط
-        if ($hasRoles) {
-            // نمسح الأدوار القديمة
+// 🔄 تحديث الأدوار (حذف وإعادة إنشاء)
+        if (array_key_exists('required_roles', $validated)) {
             $project->requiredRoles()->delete();
-            
-            // إذا المصفوفة مو فاضية، بنضيف الأدوار الجديدة
-            if (!empty($roles)) {
-                $project->requiredRoles()->createMany($roles);
+            if (!empty($validated['required_roles'])) {
+                $project->requiredRoles()->createMany($validated['required_roles']);
             }
+            unset($validated['required_roles']);
         }
+
+        $project->update($validated);
 
         return response()->json([
             'message' => 'Project updated successfully', 
-            'data' => $project->load('requiredRoles')
+            'data' => $project->load(['requiredRoles', 'requiredSkills'])
         ]);
     }
 
@@ -219,13 +248,17 @@ class ProjectController extends Controller
      * جلب كافة المشاريع التابعة لفرع محدد (مع حماية الخصوصية وفلترة حالة الموافقة)
      * GET /api/branches/{branch_id}/projects
      */
+    /**
+     * جلب كافة المشاريع التابعة لفرع محدد (مع حماية الخصوصية وفلترة حالة الموافقة والحالة)
+     * GET /api/branches/{branch_id}/projects
+     */
     public function getBranchProjects(Request $request, $branchId)
     {
         $currentUser = $request->user();
 
-        // 🛡️ منطق الحماية:
-        // 1. السوبر أدمن مسموح له يشوف أي برانش.
-        // 2. مدير الفرع مسموح له فقط إذا كان الـ branch_id في الرابط يطابق الـ branch_id تبعه.
+        // 🛡️ 1. منطق الحماية (Authorization Logic) - هاد الجزء المفقود والمهم جداً!
+        // أ. السوبر أدمن مسموح له يشوف أي برانش في النظام.
+        // ب. مدير الفرع مسموح له فقط إذا كان الـ branch_id في الرابط يطابق الـ branch_id تبعه.
         if ($currentUser->role === 'Branch Admin') {
             if ((int)$branchId !== (int)$currentUser->branch_id) {
                 return response()->json([
@@ -233,27 +266,31 @@ class ProjectController extends Controller
                 ], 403);
             }
         } 
-        // 3. أي دور آخر (متطوع مثلاً) ممنوع من الوصول لهذه القائمة الشاملة
+        // ج. أي دور آخر (متطوع مثلاً) ممنوع من الوصول لهذه القائمة الشاملة للفرع
         elseif ($currentUser->role !== 'Super Admin') {
             return response()->json(['message' => 'Unauthorized action.'], 403);
         }
 
-        // ✅ إذا اجتاز الفحص، نقوم بجلب البيانات:
+        // ✅ 2. جلب البيانات (مع تطبيق الفلاتر والعلاقات):
         
         // أ. نجلب أرقام الفصول التابعة لهذا الفرع
         $chapterIds = \App\Models\Chapter::where('branch_id', $branchId)->pluck('chapter_id');
 
         // ب. نبدأ ببناء استعلام المشاريع التابعة لهذه الفصول
         $query = \App\Models\Project::whereIn('chapter_id', $chapterIds)
-                                    ->with(['leader', 'members', 'chapter']); // جلب العلاقات المهمة للعرض
+                                    ->with(['leader', 'members', 'chapter', 'requiredRoles', 'requiredSkills']);
 
         // 🔍 ج. تطبيق فلتر حالة الموافقة (Approval Status)
-        // الإدارة يمكنها فلترة المشاريع عبر الرابط (مثال: ?approval_status=Pending أو Approved أو Rejected)
         if ($request->has('approval_status')) {
             $query->where('approval_status', $request->query('approval_status'));
         }
 
-        // د. جلب النتائج (أحدثها أولاً)
+        // 🔍 د. تطبيق فلتر حالة المشروع (Project Status) - كان مفقوداً في نسختك
+        if ($request->has('status')) {
+            $query->where('status', $request->query('status'));
+        }
+
+        // هـ. جلب النتائج (أحدثها أولاً)
         $projects = $query->latest()->get();
 
         return response()->json([
@@ -403,10 +440,6 @@ class ProjectController extends Controller
     }
 
     /**
-     * تعيين أو تغيير قائد المشروع (Assign Project Leader)
-     * PATCH /api/projects/{project_id}/assign-leader
-     */
-    /**
      * تعيين أو قبول قائد المشروع من بين المتقدمين (Assign Project Leader)
      * PATCH /api/projects/{project_id}/assign-leader
      */
@@ -425,8 +458,8 @@ class ProjectController extends Controller
             if ($oldLeader) {
                 // نرجعه لمتطوع فقط إذا لم يكن قائداً لمشاريع أخرى
                 $leadsOtherProjects = \App\Models\Project::where('leader_id', $oldLeader->user_id)
-                                                         ->where('project_id', '!=', $projectId)
-                                                         ->exists();
+                                                        ->where('project_id', '!=', $projectId)
+                                                        ->exists();
                 if (!$leadsOtherProjects) {
                     $oldLeader->update(['role' => 'Volunteer']);
                 }

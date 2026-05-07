@@ -19,9 +19,11 @@ class Project extends Model
                     ->withPivot(['role', 'status', 'applied_at', 'joined_at', 'final_rating', 'final_review', 'evaluated_at']); 
     }
 
-    public function requiredSkills() {
-        return $this->belongsToMany(Skill::class, 'project_required_skills', 'project_id', 'skill_id')
-                    ->withPivot(['min_level', 'weight']);
+    public function requiredSkills() 
+    {
+        return $this->belongsToMany(Skill::class, 'project_skills', 'project_id', 'skill_id')
+                    ->withPivot(['min_level', 'weight'])
+                    ->withTimestamps();
     }
 
     public function requiredRoles()

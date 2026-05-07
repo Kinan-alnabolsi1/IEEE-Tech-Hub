@@ -179,6 +179,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('tasks', TaskController::class);
         Route::patch('/tasks/assignments/{assignmentId}/progress', [TaskController::class, 'updateProgress']);
 
+        Route::get('/projects/{id}', [ProjectController::class, 'show']);
         // إحصائيات المشروع (لوحة تحكم القائد)
         Route::get('/projects/{project}/stats', [ProjectController::class, 'getStats']);
 
