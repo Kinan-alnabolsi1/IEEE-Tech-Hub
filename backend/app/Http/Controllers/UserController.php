@@ -102,29 +102,45 @@ class UserController extends Controller
      */
     public function showProfile($user_id)
     {
-        // جلب المستخدم مع مهاراته والمشاريع المنضم إليها والمشاريع التي يقودها
-        $user = User::with([
-            'skills', 
-            'enrolledProjects', 
-            'projectsAsLeader'
+        // 1. جلب المستخدم مع مهاراته والمشاريع المقبول فيها
+        $user = \App\Models\User::with([
+            'skills',
+            'enrolledProjects' // تعتمد على الجدول الوسيط الذي يحتوي على الـ Role
         ])->findOrFail($user_id);
 
+        // 2. ترتيب بيانات المشاريع لتكون واضحة جداً للفرونت إند (Transformation)
+        $formattedProjects = $user->enrolledProjects->map(function ($project) {
+            return [
+                'project_id' => $project->project_id,
+                'title' => $project->title,
+                'status' => $project->status,
+                // 💡 السحر هنا: نسحب الدور من الجدول الوسيط
+                'role_in_project' => $project->pivot->role ?? 'Member',
+                'joined_at' => $project->pivot->joined_at,
+            ];
+        });
+
+        // 3. إرجاع النتيجة مرتبة
         return response()->json([
             'message' => 'User profile retrieved successfully',
-            'data' => $user
+            'data' => [
+                'user_info' => [
+                    'user_id' => $user->user_id,
+                    'full_name' => $user->full_name,
+                    'email' => $user->email,
+                    'role' => $user->role, // الدور العام في النظام (مثلاً: Project Leader أو Volunteer)
+                    'faculty' => $user->faculty,
+                    'major' => $user->major,
+                    'bio' => $user->bio,
+                ],
+                'skills' => $user->skills, // ستتضمن الـ pivot الخاص بالتقييم والخبرة كما برمجناها سابقاً
+                'projects' => $formattedProjects // 👈 مصفوفة المشاريع المنسقة
+            ]
         ]);
     }
 
     /**
      * إعداد الحساب (Onboarding / Create Profile)
-     * POST /api/profile/onboarding
-     */
-    /**
-     * إعداد الحساب وتحديث البيانات الشخصية والأكاديمية
-     * POST /api/profile/onboarding
-     */
-    /**
-     * إعداد الحساب وتحديث البيانات الشخصية والأكاديمية والمهارات
      * POST /api/profile/onboarding
      */
     public function createProfile(Request $request)

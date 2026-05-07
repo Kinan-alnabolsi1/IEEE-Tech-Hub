@@ -37,8 +37,28 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth & Profile
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/profile', function (Request $request) {
-        return response()->json($request->user()->load('skills'));
+    // 1. جلب بيانات المستخدم مع مهاراته والمشاريع اللي منضم إلها
+    $user = $request->user()->load(['skills', 'enrolledProjects']);
+
+    // 2. إخفاء العلاقة الافتراضية المعقدة عشان ما تتكرر بالـ JSON
+    $user->makeHidden('enrolledProjects');
+
+    // 3. تحويل بيانات المستخدم لمصفوفة (Array)
+    $userData = $user->toArray();
+
+    // 4. إضافة المشاريع بشكل مرتب ونظيف مع سحب الدور (Role) من الجدول الوسيط
+    $userData['projects'] = $user->enrolledProjects->map(function ($project) {
+        return [
+            'project_id' => $project->project_id,
+            'title' => $project->title,
+            'status' => $project->status,
+            'role_in_project' => $project->pivot->role ?? 'Member',
+            'joined_at' => $project->pivot->joined_at,
+        ];
     });
+
+    return response()->json($userData);
+});
     Route::get('/profile/{user_id}', [UserController::class, 'showProfile']);
     
     // Branch & Project Applications (تقديم الطلبات)
