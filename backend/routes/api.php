@@ -85,6 +85,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/my-tasks', [UserController::class, 'myTasks']); // مهامي من كل المشاريع
 
     Route::post('/tasks/{taskId}/evaluate-member/{userId}', [TaskController::class, 'evaluateTaskMember']);
+    Route::patch('/tasks/assignments/{assignmentId}/progress', [TaskController::class, 'updateProgress']);
     Route::get('/users/{userId}/overview', [UserController::class, 'getUserOverview']);
 
 
@@ -177,7 +178,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Tasks Management (إدارة المهام)
         Route::apiResource('tasks', TaskController::class);
-        Route::patch('/tasks/assignments/{assignmentId}/progress', [TaskController::class, 'updateProgress']);
+        
 
         Route::get('/projects/{id}', [ProjectController::class, 'show']);
         // إحصائيات المشروع (لوحة تحكم القائد)
