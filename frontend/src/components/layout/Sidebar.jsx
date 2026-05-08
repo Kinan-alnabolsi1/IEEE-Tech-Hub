@@ -38,13 +38,14 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
       { name: 'Manage Projects', path: '/chapter-chair/projects', icon: '🚀' },
       { name: 'Chapter Members', path: '/chapter-chair/members', icon: '👥' },
     ],
-    // 🌟 ضفنا قائمة قائد المشروع هون 
     'project_leader': [
       { name: 'Command Center', path: '/project-leader', icon: '📊' },
       { name: 'Manage Team', path: '/project-leader/team', icon: '👥' },
       { name: 'Tasks Board', path: '/project-leader/tasks', icon: '📋' },
     ],
+    // 🌟 قائمة المتطوع المحدثة 
     'volunteer': [
+      { name: 'Overview', path: '/volunteer', icon: '📊' }, // 👈 تمت إضافة الصفحة الرئيسية هنا
       { name: 'My Tasks', path: '/volunteer/tasks', icon: '📋' }, 
       { name: 'Explore Projects', path: '/volunteer/explore', icon: '🚀' },
       { name: 'My Applications', path: '/volunteer/applications', icon: '📂' },
@@ -81,14 +82,14 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
           {currentMenu.map((item) => {
             
             // 🌟 المنطق الذكي للتحديد (Active State):
-            // 1. نحدد الـ Dashboard الأساسي لكل رتبة (ضفنا مسار قائد المشروع هون)
-            const isMainDashboard = ['/super-admin', '/admin', '/chapter-chair', '/project-leader'].includes(item.path);
+            // تم إضافة '/volunteer' كداشبورد رئيسي لضمان إضاءته بشكل صحيح
+            const isMainDashboard = ['/super-admin', '/admin', '/chapter-chair', '/project-leader', '/volunteer'].includes(item.path);
 
             let isActive = false;
 
             if (isMainDashboard) {
                 // للداشبورد الرئيسي: لازم يكون المسار مطابق تماماً
-                isActive = location.pathname === item.path;
+                isActive = location.pathname === item.path || location.pathname === `${item.path}/`;
             } else {
                 // لباقي الصفحات: نستخدم startsWith عشان لو فيه مسارات فرعية تضوي الصفحة الأم
                 isActive = location.pathname.startsWith(item.path);

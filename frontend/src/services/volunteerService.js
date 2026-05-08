@@ -35,4 +35,7 @@ export const volunteerService = {
 
   updateStatus: (userId, status) => 
     patchData(`/users/${userId}/status`, { status }),
+
+  getOverview: (userId) => getData(`/users/${userId}/overview`),
 };
+

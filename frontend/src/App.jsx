@@ -6,10 +6,12 @@ import { Toaster } from 'react-hot-toast';
 import DashboardLayout from './components/layout/DashboardLayout';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+// 🌟 استيراد صفحة الـ OTP (تأكدي من المسار تبعها عندك)
+import VerifyOTP from './pages/auth/VerifyOTP'; 
 import Onboarding from './pages/volunteer/Onboarding'; 
 
 // --- Shared Pages ---
-import Profile from './pages/shared/Profile'; // 🌟 استيراد صفحة البروفايل الموحدة
+import Profile from './pages/shared/Profile';
 
 // --- Super Admin Pages ---
 import SuperAdminDashboard from './pages/super-admin/SuperAdminDashboard'; 
@@ -35,6 +37,7 @@ import TeamManagement from './pages/project-leader/TeamManagement';
 import TasksBoard from './pages/project-leader/TasksBoard';
 
 // --- Volunteer Pages ---
+import VolunteerDashboard from './pages/volunteer/VolunteerDashboard';
 import MyTasks from './pages/volunteer/MyTasks';
 import BrowseProjects from './pages/volunteer/BrowseProjects';
 import MyApplications from './pages/volunteer/MyApplications';
@@ -73,6 +76,9 @@ function App() {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        
+        {/* 🌟 مسار الـ OTP تمت إضافته هنا خارج الـ Protected Routes لأنه بدون تسجيل دخول مسبق */}
+        <Route path="/verify-otp" element={<VerifyOTP />} />
 
         <Route path="/onboarding" element={
           <ProtectedRoute allowedRoles={['volunteer']}>
@@ -114,7 +120,7 @@ function App() {
           <Route path="projects" element={<ProjectsManagement />} />
           <Route path="tasks" element={<TasksOverview />} />
           <Route path="members" element={<ChapterMembers />} />
-          <Route path="profile" element={<Profile />} /> {/* 🌟 مسار البروفايل */}
+          <Route path="profile" element={<Profile />} />
         </Route>
 
         {/* 🎯 Project Leader */}
@@ -126,7 +132,7 @@ function App() {
           <Route index element={<LeaderDashboard />} />
           <Route path="team" element={<TeamManagement />} />
           <Route path="tasks" element={<TasksBoard />} />
-          <Route path="profile" element={<Profile />} /> {/* 🌟 مسار البروفايل */}
+          <Route path="profile" element={<Profile />} />
         </Route>
 
         {/* 🦾 Volunteer */}
@@ -135,13 +141,14 @@ function App() {
             <DashboardLayout role="volunteer" />
           </ProtectedRoute>
         }>
-          <Route index element={<Navigate to="/volunteer/tasks" replace />} /> 
+          <Route index element={<VolunteerDashboard />} /> 
           <Route path="tasks" element={<MyTasks />} />
           <Route path="explore" element={<BrowseProjects />} />
           <Route path="applications" element={<MyApplications />} />
-          <Route path="profile" element={<Profile />} /> {/* 🌟 مسار البروفايل */}
+          <Route path="profile" element={<Profile />} />
         </Route>
 
+        {/* Catch all route - redirects to Login */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

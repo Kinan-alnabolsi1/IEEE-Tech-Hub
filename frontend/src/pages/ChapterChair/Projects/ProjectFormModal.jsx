@@ -8,12 +8,38 @@ const CustomDropdown = ({ options, value, onChange, placeholder, className, disa
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
     useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setIsOpen(false);
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+        const fetchSkills = async () => {
+            try {
+                // 1. محاولة جلب الداتا الحقيقية
+                const res = await projectService.getSkills();
+                const skills = res.data?.data || res.data || [];
+                
+                // 2. إذا الداتا الحقيقية فاضية، بنستخدم الداتا الوهمية
+                if (skills.length === 0) {
+                    console.warn("Using Mock Skills Data...");
+                    setAvailableSkills([
+                        { id: 1, name: 'React.js Development' },
+                        { id: 2, name: 'UI/UX Design (Figma)' },
+                        { id: 3, name: 'Laravel Backend' },
+                        { id: 4, name: 'Project Management' },
+                        { id: 5, name: 'Public Speaking' },
+                        { id: 6, name: 'Technical Writing' }
+                    ]);
+                } else {
+                    setAvailableSkills(skills);
+                }
+            } catch (error) { 
+                console.error("Skills load error, using fallbacks:", error); 
+                // 3. في حال صار Error بالـ API كمان بنحط داتا وهمية عشان ما يوقف الفورم
+                setAvailableSkills([
+                    { id: 1, name: 'React.js (Fallback)' },
+                    { id: 2, name: 'UI/UX (Fallback)' },
+                    { id: 3, name: 'Backend (Fallback)' }
+                ]);
+            }
+        };
+        if (isOpen) fetchSkills();
+    }, [isOpen]);
     const selectedOption = options.find(opt => opt.value === value);
     return (
         <div className={`relative ${isOpen ? 'z-[60]' : 'z-10'} ${className}`} ref={dropdownRef}>

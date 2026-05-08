@@ -70,6 +70,8 @@ export const projectService = {
     const queryParams = new URLSearchParams({ project_id: projectId, ...params }).toString();
     return getData(`/tasks?${queryParams}`);
   },
+
+evaluateMember: (taskId, userId, data) => postData(`/tasks/${taskId}/evaluate-member/${userId}`, data),
   
   // 🌟 جلب مهام المتطوع الشخصية (المسندة إليه فقط)
   getMyTasks: () => 

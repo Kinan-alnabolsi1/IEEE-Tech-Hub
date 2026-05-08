@@ -47,20 +47,18 @@ const Login = () => {
       if (data.access_token || data.token) {
         localStorage.clear(); 
         const token = data.access_token || data.token;
-        const user = data.user; // حفظنا اليوزر بمتغير لتسهيل القراءة
+        const user = data.user; 
         
         localStorage.setItem('ieee_token', token);
         localStorage.setItem('ieee_user', JSON.stringify(user));
         localStorage.setItem('user_id', String(user?.user_id || user?.id)); 
         localStorage.setItem('user_name', user?.full_name || 'Member');
         
-        // حفظ الشابتر
         const chapterId = user?.managed_chapter_id || user?.joined_chapters?.[0]?.chapter_id;
         if (chapterId) {
             localStorage.setItem('chapter_id', String(chapterId));
         }
 
-        // 🌟 التعديل السحري هون: الدخول لمصفوفة projects وسحب الـ ID تبع المشروع القيادي
         if (user?.projects && user.projects.length > 0) {
             const leaderProject = user.projects.find(p => p.role_in_project === 'Project Leader');
             if (leaderProject) {
@@ -68,7 +66,6 @@ const Login = () => {
             }
         }
 
-        // تحديد الرتبة وتوجيه اليوزر
         let rawRole = String(user?.role || '').toLowerCase();
         let normalizedRole = 'volunteer';
         
@@ -84,7 +81,16 @@ const Login = () => {
         redirectUser(normalizedRole, user);
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Invalid Credentials');
+      // 🌟 التعديل هنا: لقط الإيرور تبع الـ OTP
+      const errorMsg = err.response?.data?.message || 'Invalid Credentials';
+      
+      if (err.response?.status === 403 || errorMsg.toLowerCase().includes('verify') || errorMsg.toLowerCase().includes('otp')) {
+        localStorage.setItem('temp_email', email);
+        toast.error('Your account is not verified. Redirecting to OTP...');
+        navigate('/verify-otp');
+      } else {
+        toast.error(errorMsg);
+      }
     } finally {
       setIsLoading(false);
     }

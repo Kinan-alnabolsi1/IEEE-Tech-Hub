@@ -55,11 +55,8 @@ const Register = () => {
     fetchBranches();
   }, []);
 
-  // 🌟 التعديل السحري صار هون
   useEffect(() => {
     if (role === 'Admin') {
-      // 🌟 الفلترة صارت تعتمد على admin_id بدل admin
-      // إذا الـ admin_id مو موجود أو null، معناها الفرع متاح
       const availableForAdmins = allBranches.filter(branch => !branch.admin_id);
       setDisplayBranches(availableForAdmins);
       
@@ -116,8 +113,11 @@ const Register = () => {
 
       await postData('/register', payload);
       
-      toast.success('Registration Successful! Your account is pending admin approval.', { duration: 5000 });
-      setTimeout(() => navigate('/'), 2000);
+      // 🌟 التعديل هنا: توجيه المستخدم لصفحة الـ OTP وحفظ الإيميل
+      localStorage.setItem('temp_email', formData.email);
+      toast.success('Registration Successful! Please verify your email.', { duration: 4000 });
+      setTimeout(() => navigate('/verify-otp'), 1500);
+
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error creating account');
     } finally {
