@@ -83,10 +83,18 @@ class User extends Authenticatable
                     ->withPivot(['level', 'experience_years']);
     }
 
-    public function tasks() {
+    public function tasks()
+    {
         return $this->belongsToMany(Task::class, 'task_assignments', 'user_id', 'task_id')
-                    // 👈 ضفنا حقول تقييم المهمة هون
-                    ->withPivot(['status', 'completion_pct', 'rating', 'leader_feedback', 'evaluated_at']); 
+                    ->withPivot([
+                        'assignment_id',
+                        'completion_pct', 
+                        'rating', 
+                        'leader_feedback', 
+                        'evaluated_at',
+                        'assigned_at',
+                        'completed_at'
+                    ]);
     }
 
     public function branch()

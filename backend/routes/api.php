@@ -187,6 +187,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Project Reports
         Route::get('/reports/{report_id}', [ReportController::class, 'show']);
+
+        //ai recommendations
+        Route::get('/projects/{project_id}/recommendations', [ProjectController::class, 'getAiRecommendations']);
     });
 
 });

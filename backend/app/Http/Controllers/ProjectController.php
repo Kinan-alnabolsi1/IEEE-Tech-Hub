@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Project;
 use App\Http\Requests\CreateProjectRequest;
+use App\Services\VolunteerMatchingService;
 
 class ProjectController extends Controller
 {
@@ -660,6 +661,46 @@ class ProjectController extends Controller
         return response()->json([
             'message' => 'Project has been rejected.',
             'data' => $project
+        ]);
+    }
+    
+    /**
+     * الحصول على توصيات الذكاء الاصطناعي للمتقدمين لدور معين
+     * GET /api/projects/{project_id}/recommendations?role=اسم_الدور
+     */
+    public function getAiRecommendations(Request $request, $projectId, VolunteerMatchingService $aiService)
+    {
+        // 1. جلب المشروع للتحقق من الصلاحيات
+        $project = \App\Models\Project::with('chapter')->findOrFail($projectId);
+        $currentUser = $request->user();
+
+        // 🛡️ 2. الحماية الأمنية: الإدارة وقائد المشروع فقط
+        $isSuperAdmin = $currentUser->role === 'Super Admin';
+        $isBranchAdmin = $currentUser->role === 'Branch Admin' && $currentUser->branch_id === $project->chapter->branch_id;
+        $isChapterChair = $currentUser->role === 'Chapter Chair' && $project->chapter->chair_id === $currentUser->user_id;
+        $isProjectLeader = $currentUser->role === 'Project Leader' && $project->leader_id === $currentUser->user_id;
+
+        if (!$isSuperAdmin && !$isBranchAdmin && !$isChapterChair && !$isProjectLeader) {
+            return response()->json([
+                'message' => 'Unauthorized. Only the Project Leader or Admins can view recommendations.'
+            ], 403);
+        }
+
+        // ✅ 3. التحقق من تمرير الدور المطلوب (Role) في الرابط (Query Parameter)
+        $request->validate([
+            'role' => 'required|string|max:100' // يجب تحديد الدور لفرز المتقدمين له حصراً
+        ]);
+
+        $roleName = $request->query('role');
+
+        // 🤖 4. استدعاء خدمة الذكاء الاصطناعي لحساب السكور وترتيب المتقدمين
+        $recommendations = $aiService->getRecommendationsForRole($project, $roleName);
+
+        // 5. إرجاع النتيجة
+        return response()->json([
+            'message' => 'AI Recommendations generated successfully',
+            'role_requested' => $roleName,
+            'data' => $recommendations
         ]);
     }
 }

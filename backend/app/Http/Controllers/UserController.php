@@ -290,27 +290,29 @@ class UserController extends Controller
         ]);
     }
 
-    /**
+/**
      * النظرة العامة وتقييمات المتطوع
      * GET /api/users/{userId}/overview
      */
     public function getUserOverview(Request $request, $userId)
     {
-        $user = User::findOrFail($userId);
+        $user = \App\Models\User::findOrFail($userId);
 
-        // 1. جلب المهام التابعة لهذا المستخدم والتي تم تقييمها فقط
-        // (بافتراض أن علاقة المهام في مودل User اسمها assignedTasks أو tasks)
-        $evaluatedTasks = $user->tasks() // 👈 غيرناها من assignedTasks لـ tasks لتطابق المودل تبعك
-                       ->with('project')
-                       ->wherePivotNotNull('rating')
-                       ->orderByPivot('evaluated_at', 'desc')
-                       ->get();
+        // 1. جلب المهام التابعة لهذا المستخدم والتي تم تقييمها فقط (للتعليقات والتقييم)
+        $evaluatedTasks = $user->tasks()
+                               ->with('project') // جلب المشروع المرتبط بالمهمة
+                               ->wherePivotNotNull('rating')
+                               ->orderByPivot('evaluated_at', 'desc')
+                               ->get();
 
-        // 2. حساب متوسط التقييم (مثلاً 4.5 من 5)
-        // نستخدم دالة avg الجاهزة من لارافل على حقل الـ rating جوا الـ pivot
+        // 2. 🛑 جلب عدد المهام المنجزة بالكامل (سواء تم تقييمها أم لا)
+        // نبحث في جدول المهام الأساسي عن الحالة Completed
+        $completedTasksCount = $user->tasks()->where('tasks.status', 'Completed')->count();
+
+        // 3. حساب متوسط التقييم (مثلاً 4.5 من 5)
         $averageRating = $evaluatedTasks->avg('pivot.rating');
 
-        // 3. ترتيب الداتا لتكون سهلة جداً للفرونت إند (Transformation)
+        // 4. ترتيب الداتا لتكون سهلة جداً للفرونت إند (Transformation)
         $feedbacks = $evaluatedTasks->map(function ($task) {
             return [
                 'task_id' => $task->task_id,
@@ -322,20 +324,22 @@ class UserController extends Controller
             ];
         });
 
-        // 4. إرجاع النتيجة
+        // 5. إرجاع النتيجة بالهيكلة المرتبة
         return response()->json([
             'message' => 'User overview retrieved successfully',
             'data' => [
                 'user_info' => [
                     'full_name' => $user->full_name,
                     'role' => $user->role,
+                    'bio' => $user->bio, 
                 ],
                 'performance' => [
-                    // نقرب الرقم لخانة عشرية واحدة، وإذا مافي تقييمات نرجعه 0
                     'average_rating' => $averageRating ? round($averageRating, 1) : 0, 
-                    'total_evaluated_tasks' => $evaluatedTasks->count(),
+                    'total_evaluated_tasks' => $evaluatedTasks->count(), // المهام اللي أخد عليها تقييم
+                    'completed_tasks_count' => $completedTasksCount,     // 👈 رجعناها وحسبناها صح!
                 ],
-                'task_feedbacks' => $feedbacks // مصفوفة التعليقات والنجوم
+                'skills' => $user->skills, 
+                'task_feedbacks' => $feedbacks 
             ]
         ]);
     }

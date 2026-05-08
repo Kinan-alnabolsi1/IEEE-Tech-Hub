@@ -44,7 +44,7 @@ class TaskController extends Controller
         }
 
         // 🔍 بناء الاستعلام مع الفلترة الديناميكية
-        $query = Task::where('project_id', $project->project_id)->with('assignedUsers');
+        $query = Task::where('project_id', $project->project_id)->with('assignees');
 
         // 1. فلترة حسب الحالة (To Do, In Progress, Completed)
         if ($request->has('status')) {
@@ -104,7 +104,7 @@ class TaskController extends Controller
 
         return response()->json([
             'message' => 'Task created successfully', 
-            'task' => $task->load('assignedUsers')
+            'task' => $task->load('assignees')
         ], 201);
     }
 
@@ -114,7 +114,7 @@ class TaskController extends Controller
      */
     public function show(string $id, Request $request)
     {
-        $task = Task::with(['assignedUsers', 'project.chapter'])->findOrFail($id);
+        $task = Task::with(['assignees', 'project.chapter'])->findOrFail($id);
         $currentUser = $request->user();
 
         $isMember = $task->project->members()->where('users.user_id', $currentUser->user_id)
@@ -151,7 +151,7 @@ class TaskController extends Controller
 
         return response()->json([
             'message' => 'Task updated successfully', 
-            'data' => $task->load('assignedUsers')
+            'data' => $task->load('assignees')
         ]);
     }
 
@@ -217,22 +217,25 @@ class TaskController extends Controller
             'leader_feedback' => 'nullable|string|max:1000'
         ]);
 
-        // 2. جلب المهمة مع المشروع التابعة له
-        $task = Task::with('project')->findOrFail($taskId);
+        // 2. جلب المهمة مع المشروع التابعة له للتحقق من الصلاحيات
+        $task = \App\Models\Task::with('project')->findOrFail($taskId);
         $currentUser = $request->user();
 
-        // 🛡️ 3. الحماية: التأكد أن المستخدم الحالي هو الـ Project Leader لهذا المشروع حصراً
-        if ($currentUser->role !== 'Project Leader' || $task->project->leader_id !== $currentUser->user_id) {
+        // 🛡️ 3. الحماية: التأكد أن المستخدم هو السوبر أدمن أو قائد هذا المشروع تحديداً
+        $isSuperAdmin = $currentUser->role === 'Super Admin';
+        $isProjectLeader = $currentUser->role === 'Project Leader' && $task->project->leader_id === $currentUser->user_id;
+
+        if (!$isSuperAdmin && !$isProjectLeader) {
             return response()->json([
-                'message' => 'Unauthorized. Only the Project Leader of this project can evaluate members.'
+                'message' => 'Unauthorized. Only the Project Leader of this project (or Admins) can evaluate members.'
             ], 403);
         }
 
         // 4. التأكد أن المتطوع المراد تقييمه هو فعلاً موجود ضمن هذه المهمة
-        // (بافتراض أن علاقة المتطوعين في مودل Task اسمها assignees)
-        $volunteer = $task->assignees()->where('users.user_id', $userId)->first();
+        // 💡 استخدمنا exists() بدل first() لأنها أسرع بكثير في قواعد البيانات (ما بتجيب الداتا، بس بتتأكد من وجودها)
+        $isAssigned = $task->assignees()->where('users.user_id', $userId)->exists();
 
-        if (!$volunteer) {
+        if (!$isAssigned) {
             return response()->json([
                 'message' => 'This volunteer is not assigned to this task.'
             ], 404);
@@ -247,14 +250,14 @@ class TaskController extends Controller
         $task->assignees()->updateExistingPivot($userId, [
             'rating' => $validated['rating'],
             'leader_feedback' => $validated['leader_feedback'] ?? null,
-            'evaluated_at' => now(),
+            'evaluated_at' => now(), // تسجيل وقت التقييم
         ]);
 
         return response()->json([
             'message' => 'Task evaluation submitted successfully.',
             'data' => [
-                'user_id' => $userId,
-                'task_id' => $taskId,
+                'user_id' => (int) $userId,
+                'task_id' => (int) $taskId,
                 'rating' => $validated['rating'],
                 'feedback' => $validated['leader_feedback'] ?? null,
             ]

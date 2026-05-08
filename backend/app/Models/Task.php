@@ -21,8 +21,19 @@ class Task extends Model
         return $this->hasMany(TaskAssignment::class, 'task_id', 'task_id');
     }
 
-    public function assignedUsers() {
+    public function assignees()
+    {
         return $this->belongsToMany(User::class, 'task_assignments', 'task_id', 'user_id')
-                    ->withPivot(['assigned_by', 'completion_pct', 'progress_note', 'completed_at']);
+                    ->withPivot([
+                        'assignment_id',   // الآي دي تبع التكليف
+                        'assigned_by',     // مين كلفه بالمهمة
+                        'completion_pct',  // نسبة الإنجاز
+                        'progress_note',   // ملاحظة التقدم
+                        'rating',          // التقييم من 1 لـ 5
+                        'leader_feedback', // تعليق القائد
+                        'assigned_at',     // تاريخ التكليف
+                        'evaluated_at',    // تاريخ التقييم
+                        'completed_at'     // تاريخ الإنجاز
+                    ]);
     }
 }
