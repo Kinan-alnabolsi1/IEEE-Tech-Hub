@@ -84,7 +84,7 @@ const Login = () => {
       // 🌟 التعديل هنا: لقط الإيرور تبع الـ OTP
       const errorMsg = err.response?.data?.message || 'Invalid Credentials';
       
-      if (err.response?.status === 403 || errorMsg.toLowerCase().includes('verify') || errorMsg.toLowerCase().includes('otp')) {
+      if (errorMsg.toLowerCase().includes('verify') || errorMsg.toLowerCase().includes('otp')) {
         localStorage.setItem('temp_email', email);
         toast.error('Your account is not verified. Redirecting to OTP...');
         navigate('/verify-otp');
