@@ -24,12 +24,11 @@ class VolunteerMatchingService
      */
     public function getRecommendationsForRole(Project $project, string $roleName)
     {
-        // 1. جلب المتطوعين اللي قدموا على هاد الدور وحالتهم Pending
-        // مع جلب مهاراتهم، ومهامهم السابقة لزوم الحسابات
+        // 1. جلب المتطوعين مع علاقة tasks الصحيحة
         $applicants = $project->members()
             ->wherePivot('role', $roleName)
             ->wherePivot('status', 'Pending')
-            ->with(['skills', 'taskAssignments']) 
+            ->with(['skills', 'tasks']) // 👈 التعديل الأول: استخدمنا tasks 
             ->get();
 
         if ($applicants->isEmpty()) {
@@ -39,8 +38,7 @@ class VolunteerMatchingService
         // 2. تجهيز البيانات لإرسالها لـ AI (البايثون) دفعة واحدة
         $candidateBios = [];
         foreach ($applicants as $applicant) {
-            // إذا لم يكن لديه نبذة، نضع نص فارغ حتى لا يتعطل الـ AI
-            $candidateBios[] = $applicant->bio ?? 'لا توجد نبذة تعريفية.';
+            $candidateBios[] = $applicant->bio ?? ''; // إرسال نص فارغ إن لم يوجد لتجنب الأخطاء
         }
 
         // 3. الاتصال بـ Python API لجلب سكور التشابه النصي
@@ -48,16 +46,13 @@ class VolunteerMatchingService
 
         // 4. حساب السكور الشامل لكل متطوع
         $rankedCandidates = [];
-        
-        // جلب المهارات المطلوبة للمشروع لمرة واحدة لتوفير الأداء
         $projectSkills = $project->requiredSkills;
 
         foreach ($applicants as $index => $applicant) {
             // أ. سكور المهارات (من 100)
             $skillScore = $this->calculateSkillScore($projectSkills, $applicant->skills);
 
-            // ب. سكور التشابه النصي (من 100) - نأخذه من مصفوفة الـ Python
-            // إذا تعطل البايثون، الـ fetchNlpScores سيرجع مصفوفة أصفار
+            // ب. سكور التشابه النصي (من 100)
             $nlpScore = ($nlpScores[$index] ?? 0) * 100; 
 
             // ج. سكور التقييم السابق (من 100)
@@ -94,12 +89,12 @@ class VolunteerMatchingService
             ];
         }
 
-        // 5. ترتيب المصفوفة من الأعلى إلى الأقل بناءً على final_score
+        // 5. ترتيب المصفوفة من الأعلى إلى الأقل
         usort($rankedCandidates, function ($a, $b) {
             return $b['final_score'] <=> $a['final_score'];
         });
 
-        // 6. إرجاع أفضل 3 متطوعين (Top 3)
+        // 6. إرجاع أفضل 3 متطوعين
         return array_slice($rankedCandidates, 0, 3);
     }
 
@@ -115,39 +110,33 @@ class VolunteerMatchingService
             ]);
 
             if ($response->successful()) {
-                return $response->json('similarities'); // ترجع مصفوفة الأرقام
+                return $response->json('similarities');
             }
         } catch (\Exception $e) {
-            // في حال كان سيرفر البايثون مطفأ، نسجل الخطأ ونعطي سكور 0 لكي لا يتعطل النظام
             Log::error('AI Python Service Error: ' . $e->getMessage());
         }
 
-        // إذا فشل الاتصال، نرجع مصفوفة أصفار بعدد المتطوعين
         return array_fill(0, count($bios), 0);
     }
 
     /**
-     * حساب تطابق المهارات (Exact Match & Category Match)
+     * حساب تطابق المهارات
      */
     private function calculateSkillScore($projectSkills, $userSkills): float
     {
-        if ($projectSkills->isEmpty()) return 100; // إذا المشروع لا يطلب مهارات، الكل يأخذ علامة كاملة
+        if ($projectSkills->isEmpty()) return 100;
 
         $totalRequired = $projectSkills->count();
         $earnedPoints = 0;
 
         foreach ($projectSkills as $pSkill) {
-            // البحث عن المهارة لدى المتطوع
             $exactMatch = $userSkills->firstWhere('skill_id', $pSkill->skill_id);
 
             if ($exactMatch) {
-                // تطابق تام
                 $earnedPoints += 1;
             } else {
-                // لم نجد نفس المهارة، نبحث عن مهارة من نفس الـ Category
                 $categoryMatch = $userSkills->firstWhere('category', $pSkill->category);
                 if ($categoryMatch) {
-                    // تطابق جزئي يعطي نصف نقطة (كما اتفقنا)
                     $earnedPoints += 0.5;
                 }
             }
@@ -157,55 +146,43 @@ class VolunteerMatchingService
     }
 
     /**
-     * حساب التقييم السابق (متوسط إنجاز المهام)
+     * حساب التقييم السابق بناءً على نسبة الإنجاز
      */
     private function calculatePerformanceScore(User $user): float
     {
-        $assignments = $user->taskAssignments;
+        // 👈 التعديل الثاني: الاعتماد على جدول المهام pivot لجلب نسبة الإنجاز
+        $tasksWithProgress = $user->tasks->whereNotNull('pivot.completion_pct');
         
-        if ($assignments->isEmpty()) {
-            // إذا لم يكن لديه تاريخ سابق، نعطيه رقم حيادي (مثلاً 70%) لكي لا نظلمه
-            return 70;
+        if ($tasksWithProgress->isEmpty()) {
+            return 70; // سكور حيادي إذا لم تكن هناك مهام سابقة
         }
 
-        // حساب متوسط نسبة الإنجاز (completion_pct)
-        return (float) $assignments->avg('completion_pct');
+        return (float) $tasksWithProgress->avg('pivot.completion_pct');
     }
 
     /**
-     * حساب سكور الخبرة (حد أقصى 5 سنوات)
+     * حساب سكور الخبرة
      */
     private function calculateExperienceScore($userSkills): float
     {
         if ($userSkills->isEmpty()) return 0;
 
-        // سنأخذ أقصى عدد سنوات خبرة يمتلكها المتطوع في أي مهارة لديه
-        // يمكنك تعديل هذا اللوجيك لاحقاً إذا أردت جمع السنوات
         $maxYears = $userSkills->max('pivot.experience_years') ?? 0;
-
-        // نفترض أن 5 سنوات خبرة = 100%
         $score = ($maxYears / 5) * 100;
 
-        return $score > 100 ? 100 : $score; // نقفلها عند 100
+        return $score > 100 ? 100 : $score;
     }
 
     /**
-     * حساب سكور التفرغ (التواجدية)
+     * حساب سكور التفرغ
      */
     private function calculateAvailabilityScore(User $user): float
     {
-        // نحسب كم مهمة "قيد التنفيذ" (In Progress) أو "مفتوحة" (Open) لديه حالياً
-        // كلما زادت المهام، قل السكور
-        $activeTasksCount = $user->taskAssignments()
-            ->whereHas('task', function($q) {
-                $q->whereIn('status', ['Open', 'In Progress']);
-            })->count();
+        // 👈 التعديل الثالث: استخدام علاقة tasks مع فلترة حالة المهمة مباشرة من الداتابيز
+        $activeTasksCount = $user->tasks()
+            ->whereIn('tasks.status', ['Open', 'In Progress'])
+            ->count();
 
-        // معادلة بسيطة:
-        // 0 مهام = 100%
-        // 1 مهمة = 80%
-        // 2 مهام = 60%
-        // 5 مهام وما فوق = 0% (مضغوط جداً)
         $score = 100 - ($activeTasksCount * 20);
 
         return $score < 0 ? 0 : $score;
