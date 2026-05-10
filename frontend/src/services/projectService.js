@@ -71,7 +71,7 @@ export const projectService = {
     return getData(`/tasks?${queryParams}`);
   },
 
-evaluateMember: (taskId, userId, data) => postData(`/tasks/${taskId}/evaluate-member/${userId}`, data),
+  evaluateMember: (taskId, userId, data) => postData(`/tasks/${taskId}/evaluate-member/${userId}`, data),
   
   // 🌟 جلب مهام المتطوع الشخصية (المسندة إليه فقط)
   getMyTasks: () => 
@@ -84,6 +84,14 @@ evaluateMember: (taskId, userId, data) => postData(`/tasks/${taskId}/evaluate-me
   updateTask: (taskId, data) => patchData(`/tasks/${taskId}`, data),
   
   // حذف المهمة
-  deleteTask: (taskId) => deleteData(`/tasks/${taskId}`)
+  deleteTask: (taskId) => deleteData(`/tasks/${taskId}`),
+
+  // --------------------------------------------------------
+  // 🧠 دوال الذكاء الاصطناعي (AI Recommendations)
+  // --------------------------------------------------------
+  
+  // جلب توصيات الذكاء الاصطناعي للمتطوعين بناءً على الدور
+  getAiRecommendations: (projectId, roleName) => 
+    getData(`/projects/${projectId}/recommendations?role=${encodeURIComponent(roleName)}`)
 
 };

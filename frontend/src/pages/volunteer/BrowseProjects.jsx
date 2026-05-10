@@ -45,6 +45,7 @@ const BrowseProjects = () => {
             await volunteerService.joinProject(selectedProject.id || selectedProject.project_id, roleName);
             toast.success(`Application sent for ${roleName}!`);
             setIsModalOpen(false);
+            fetchProjects(); // تحديث الداتا بعد التقديم
         } catch (error) {
             toast.error(error.response?.data?.message || "Error occurred");
         } finally {
@@ -65,7 +66,13 @@ const BrowseProjects = () => {
                 </div>
                 <div className="relative w-full md:w-80">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
-                    <input type="text" placeholder="Search projects..." className="w-full bg-white border border-slate-100 rounded-2xl py-4 pl-12 pr-6 text-xs font-bold shadow-sm outline-none transition-all focus:border-blue-200" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                    <input 
+                        type="text" 
+                        placeholder="Search projects..." 
+                        className="w-full bg-white border border-slate-100 rounded-2xl py-4 pl-12 pr-6 text-xs font-bold shadow-sm outline-none transition-all focus:border-blue-200" 
+                        value={searchQuery} 
+                        onChange={(e) => setSearchQuery(e.target.value)} 
+                    />
                 </div>
             </div>
 
@@ -99,38 +106,74 @@ const BrowseProjects = () => {
                                 {(() => {
                                     const allRoles = (selectedProject.required_roles || selectedProject.roles || []);
                                     
-                                    // 🌟 الفلترة: استثناء منصب القائد (Leader) + إخفاء الأدوار المكتملة
-                                    const filteredRoles = allRoles.filter(roleObj => {
+                                    const visibleRoles = allRoles.filter(roleObj => {
                                         const name = roleObj.role_name || roleObj.name || roleObj;
-                                        
-                                        // ❌ استثناء القائد من القائمة التي يراها المتطوع
-                                        if (name.toLowerCase().includes('leader')) return false;
-
-                                        const reqCount = parseInt(roleObj.required_count || 1);
-                                        const currentCount = selectedProject.members?.filter(m => 
-                                            m.role?.toLowerCase() === name.toLowerCase() && 
-                                            (m.status?.toLowerCase() === 'approved' || m.status?.toLowerCase() === 'active')
-                                        ).length || 0;
-
-                                        return currentCount < reqCount;
+                                        return !name.toLowerCase().includes('leader');
                                     });
 
-                                    return filteredRoles.length > 0 ? filteredRoles.map((roleObj, idx) => {
+                                    return visibleRoles.length > 0 ? visibleRoles.map((roleObj, idx) => {
                                         const name = roleObj.role_name || roleObj.name || roleObj;
+                                        const reqCount = parseInt(roleObj.required_count || 1);
+                                        
+                                        // 🌟 الفلتر الذكي لحساب العداد من جدول الـ Pivot
+                                        let currentCount = 0;
+
+                                        if (roleObj.approved_count !== undefined) {
+                                            currentCount = parseInt(roleObj.approved_count);
+                                        } else if (selectedProject.members && selectedProject.members.length > 0) {
+                                            currentCount = selectedProject.members.filter(m => {
+                                                // 1. إعطاء الأولوية القصوى للـ pivot (مثل ما شفنا بصورة الباك إند)
+                                                const mRole = (m.pivot?.role || m.pivot?.role_name || m.pivot?.role_in_project || m.role_in_project || m.role || '').toLowerCase();
+                                                const mStatus = (m.pivot?.status || m.pivot?.approval_status || m.approval_status || m.status || '').toLowerCase();
+                                                
+                                                // 2. تطابق ذكي: إذا كان "front" موجودة جوا "front-end developer" بيقبلها!
+                                                const targetName = name.toLowerCase();
+                                                const isRoleMatch = mRole === targetName || mRole.includes(targetName) || targetName.includes(mRole);
+                                                const isApproved = mStatus === 'approved' || mStatus === 'active';
+                                                
+                                                return isRoleMatch && isApproved;
+                                            }).length;
+                                        }
+
+                                        const isFull = currentCount >= reqCount;
+
                                         return (
-                                            <div key={idx} className="flex flex-col sm:flex-row items-center justify-between p-5 bg-slate-50/50 rounded-[1.8rem] border border-slate-100 group transition-all hover:border-blue-200">
-                                                <div className="flex items-center gap-4 mb-4 sm:mb-0">
-                                                    <div className="p-3 bg-white rounded-xl shadow-sm text-[#00629B] group-hover:bg-blue-50 transition-colors"><Users size={18} /></div>
-                                                    <span className="text-xs font-black text-slate-700 uppercase tracking-wide">{name}</span>
+                                            <div key={idx} className={`flex flex-col sm:flex-row items-center justify-between p-5 rounded-[1.8rem] border transition-all ${isFull ? 'bg-slate-50 border-slate-100 opacity-80' : 'bg-white border-slate-100 hover:border-blue-200 shadow-sm group'}`}>
+                                                
+                                                <div className="flex items-center gap-4 mb-4 sm:mb-0 w-full sm:w-auto">
+                                                    <div className={`p-3 rounded-xl shadow-sm transition-colors ${isFull ? 'bg-slate-200 text-slate-400' : 'bg-blue-50 text-[#00629B] group-hover:bg-[#00629B] group-hover:text-white'}`}>
+                                                        <Users size={18} />
+                                                    </div>
+                                                    <div>
+                                                        <span className={`text-xs font-black uppercase tracking-wide ${isFull ? 'text-slate-500 line-through decoration-slate-300' : 'text-slate-700'}`}>
+                                                            {name}
+                                                        </span>
+                                                        <div className="flex items-center gap-2 mt-1.5">
+                                                            <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md ${isFull ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-600'}`}>
+                                                                {currentCount} / {reqCount} Filled
+                                                            </span>
+                                                            {isFull && <span className="text-[9px] text-rose-400 italic font-black ml-1">CLOSED</span>}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <button disabled={submitting} onClick={() => handleJoinRequest(name)} className="w-full sm:w-auto px-8 py-3 bg-[#00629B] text-white rounded-xl text-[9px] font-black uppercase hover:bg-slate-900 shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95">
-                                                    {submitting ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />} Apply Now
+
+                                                <button 
+                                                    disabled={submitting || isFull} 
+                                                    onClick={() => handleJoinRequest(name)} 
+                                                    className={`w-full sm:w-auto px-8 py-3 rounded-xl text-[9px] font-black uppercase shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 ${
+                                                        isFull 
+                                                        ? 'bg-slate-200 text-slate-500 shadow-none cursor-not-allowed' 
+                                                        : 'bg-[#00629B] text-white hover:bg-slate-900'
+                                                    }`}
+                                                >
+                                                    {submitting && !isFull ? <Loader2 size={12} className="animate-spin" /> : (!isFull && <Send size={12} />)} 
+                                                    {isFull ? 'Mission Full' : 'Apply Now'}
                                                 </button>
                                             </div>
                                         );
                                     }) : (
-                                        <div className="text-center py-8 bg-rose-50 rounded-[2rem] border border-rose-100 animate-in zoom-in-95">
-                                            <p className="text-[10px] font-black text-rose-500 uppercase italic tracking-widest">🚨 Mission Accomplished! All roles are filled.</p>
+                                        <div className="text-center py-8 bg-slate-50 rounded-[2rem] border border-slate-100 animate-in zoom-in-95">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No available roles found.</p>
                                         </div>
                                     );
                                 })()}

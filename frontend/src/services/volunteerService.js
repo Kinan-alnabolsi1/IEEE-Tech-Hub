@@ -10,6 +10,8 @@ export const volunteerService = {
   // 🌟 التعديل هنا: استخدام putData والمسار الصحيح بناءً على كلام الباك إند
   updateProfile: (data) => putData('/profile/update', data),
 
+  getMyJourney: () => getData('/my-journey'),
+
   // --- 🔍 Projects Exploration (بدون تغيير) ---
   getChapterProjects: (chapterId) => getData(`/chapters/${chapterId}/projects`),
   getProjectDetails: (projectId) => getData(`/projects/${projectId}`),
@@ -37,5 +39,6 @@ export const volunteerService = {
     patchData(`/users/${userId}/status`, { status }),
 
   getOverview: (userId) => getData(`/users/${userId}/overview`),
+  
 };
 
