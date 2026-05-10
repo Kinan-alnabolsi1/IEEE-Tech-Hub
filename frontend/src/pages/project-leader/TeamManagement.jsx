@@ -3,7 +3,7 @@ import { projectService } from '../../services/projectService';
 import { volunteerService } from '../../services/volunteerService';
 import { 
     Users, Check, X, FileText, UserPlus, Clock, 
-    CheckCircle2, XCircle, LayoutDashboard, Sparkles, BrainCircuit, Target, Loader2 
+    CheckCircle2, XCircle, LayoutDashboard, Sparkles, BrainCircuit, Target, Loader2, Info
 } from 'lucide-react';
 import Loader from '../../components/ui/Loader';
 import toast from 'react-hot-toast';
@@ -43,15 +43,7 @@ const TeamManagement = () => {
                 const [pendingApps, approvedApps, rejectedApps] = await Promise.all([
                     fetchByStatus('pending'), fetchByStatus('approved'), fetchByStatus('rejected')
                 ]);
-
-                // 🌟 التعديل هنا: فلترة شاملة لاستبعاد أي Project Leader من الداتا الأساسية
-                const allApps = [...pendingApps, ...approvedApps, ...rejectedApps];
-                const filteredFromLeader = allApps.filter(app => {
-                    const role = (app.pivot?.role || app.pivot?.role_name || app.role_in_project || app.role || "").toLowerCase();
-                    return !role.includes('leader');
-                });
-
-                setApplications(filteredFromLeader);
+                setApplications([...pendingApps, ...approvedApps, ...rejectedApps]);
             } catch (error) {
                 toast.error("Failed to load team data.");
             } finally {
@@ -67,8 +59,29 @@ const TeamManagement = () => {
         setAiLoading(true);
         try {
             const res = await projectService.getAiRecommendations(projectId, activeRoleTab);
-            setAiResults(res.data || res);
-            toast.success("AI Scouting Complete!");
+            
+            // 🌟 الربط السحري: مطابقة نتائج الـ AI مع أسماء المتقدمين الحقيقيين
+            const rawAiData = res.data || res;
+            const aiRecommendations = Array.isArray(rawAiData) ? rawAiData : Object.values(rawAiData);
+            
+            const matchedResults = aiRecommendations.map(rec => {
+                // البحث عن الشخص في قائمة الطلبات الحالية بناءً على الـ ID أو الاسم
+                const realUser = applications.find(app => 
+                    (app.user?.id === rec.user_id) || 
+                    (app.user_id === rec.user_id) ||
+                    (app.user?.full_name?.toLowerCase() === rec.full_name?.toLowerCase())
+                );
+
+                return {
+                    ...rec,
+                    // إذا لقينا الشخص الحقيقي بناخد اسمه، وإلا بنخلي الاسم اللي بعته الـ AI
+                    display_name: realUser?.user?.full_name || realUser?.full_name || rec.full_name || "Unknown Volunteer",
+                    is_in_current_list: !!realUser
+                };
+            });
+
+            setAiResults(matchedResults);
+            toast.success("AI Analysis Complete!");
         } catch (error) {
             toast.error("AI service error.");
         } finally {
@@ -97,7 +110,6 @@ const TeamManagement = () => {
     const getRole = (app) => app.pivot?.role || app.pivot?.role_name || app.role_in_project || app.role || "Member";
     const getStatus = (app) => app.__kanban_status;
     
-    // 🌟 التابات ستعتمد الآن على الداتا المفلترة أصلاً من الليدر
     const roles = ['All', ...new Set(applications.filter(app => getStatus(app) === activeStatusTab).map(getRole))];
     
     const displayedApps = applications.filter(app => {
@@ -115,7 +127,7 @@ const TeamManagement = () => {
     if (loading) return <Loader message="Accessing Team Board..." />;
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-700 h-full flex flex-col">
+        <div className="space-y-8 animate-in fade-in duration-700 h-full flex flex-col pb-10">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-black text-[#00629B] uppercase italic flex items-center gap-3 tracking-tight">
                     <LayoutDashboard size={28} /> Team Overview
@@ -133,51 +145,27 @@ const TeamManagement = () => {
                 )}
             </div>
 
-            {/* AI Results */}
-            {aiResults && activeStatusTab === 'pending' && (
-                <div className="bg-purple-50 border border-purple-100 rounded-[2.5rem] p-8 animate-in slide-in-from-top-4 relative overflow-hidden mb-4">
-                    <div className="flex items-center justify-between mb-6 relative">
-                        <div className="flex items-center gap-3">
-                            <div className="p-3 bg-purple-600 text-white rounded-2xl"><Target size={20} /></div>
-                            <h2 className="text-lg font-black text-purple-900 uppercase italic">AI Talent Scout</h2>
-                        </div>
-                        <button onClick={() => setAiResults(null)} className="p-2 hover:bg-purple-100 rounded-full text-purple-400"><X size={20} /></button>
-                    </div>
-                    <div className="grid gap-3">
-                        {Array.isArray(aiResults) && aiResults.map((rec, i) => (
-                            <div key={i} className="bg-white p-4 rounded-2xl border border-purple-100 flex items-center justify-between shadow-sm">
-                                <div>
-                                    <p className="text-xs font-black text-purple-900 uppercase">{rec.full_name || 'Volunteer'}</p>
-                                    <p className="text-[10px] text-purple-500 italic mt-0.5">{rec.reason}</p>
-                                </div>
-                                <span className="text-sm font-black text-purple-600">{rec.match_score || '90%'}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
             {/* Tabs */}
             <div className="bg-white p-2 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-4">
                 <div className="grid grid-cols-3 gap-2">
-                    <button onClick={() => {setActiveStatusTab('pending'); setActiveRoleTab('All'); setAiResults(null);}} className={`flex items-center justify-center gap-3 py-4 rounded-[1.5rem] transition-all ${activeStatusTab === 'pending' ? 'bg-amber-50 border border-amber-200' : 'hover:bg-slate-50 text-slate-500 border border-transparent'}`}>
+                    <button onClick={() => {setActiveStatusTab('pending'); setActiveRoleTab('All'); setAiResults(null);}} className={`flex items-center justify-center gap-3 py-4 rounded-[1.5rem] transition-all ${activeStatusTab === 'pending' ? 'bg-amber-50 border border-amber-200 shadow-sm' : 'hover:bg-slate-50 text-slate-500 border border-transparent'}`}>
                         <Clock size={18} className={activeStatusTab === 'pending' ? 'text-amber-500' : 'text-slate-400'} />
                         <span className={`text-[10px] font-black uppercase tracking-widest ${activeStatusTab === 'pending' ? 'text-amber-600' : 'text-slate-500'}`}>Pending</span>
                         <span className={`px-2 py-0.5 rounded text-[10px] font-black ${activeStatusTab === 'pending' ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'}`}>{counts.pending}</span>
                     </button>
-                    <button onClick={() => {setActiveStatusTab('approved'); setActiveRoleTab('All'); setAiResults(null);}} className={`flex items-center justify-center gap-3 py-4 rounded-[1.5rem] transition-all ${activeStatusTab === 'approved' ? 'bg-emerald-50 border border-emerald-200' : 'hover:bg-slate-50 text-slate-500 border border-transparent'}`}>
+                    <button onClick={() => {setActiveStatusTab('approved'); setActiveRoleTab('All'); setAiResults(null);}} className={`flex items-center justify-center gap-3 py-4 rounded-[1.5rem] transition-all ${activeStatusTab === 'approved' ? 'bg-emerald-50 border border-emerald-200 shadow-sm' : 'hover:bg-slate-50 text-slate-500 border border-transparent'}`}>
                         <CheckCircle2 size={18} className={activeStatusTab === 'approved' ? 'text-emerald-500' : 'text-slate-400'} />
                         <span className={`text-[10px] font-black uppercase tracking-widest ${activeStatusTab === 'approved' ? 'text-emerald-600' : 'text-slate-500'}`}>Approved</span>
                         <span className={`px-2 py-0.5 rounded text-[10px] font-black ${activeStatusTab === 'approved' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>{counts.approved}</span>
                     </button>
-                    <button onClick={() => {setActiveStatusTab('rejected'); setActiveRoleTab('All'); setAiResults(null);}} className={`flex items-center justify-center gap-3 py-4 rounded-[1.5rem] transition-all ${activeStatusTab === 'rejected' ? 'bg-rose-50 border border-rose-200' : 'hover:bg-slate-50 text-slate-500 border border-transparent'}`}>
+                    <button onClick={() => {setActiveStatusTab('rejected'); setActiveRoleTab('All'); setAiResults(null);}} className={`flex items-center justify-center gap-3 py-4 rounded-[1.5rem] transition-all ${activeStatusTab === 'rejected' ? 'bg-rose-50 border border-rose-200 shadow-sm' : 'hover:bg-slate-50 text-slate-500 border border-transparent'}`}>
                         <XCircle size={18} className={activeStatusTab === 'rejected' ? 'text-rose-500' : 'text-slate-400'} />
                         <span className={`text-[10px] font-black uppercase tracking-widest ${activeStatusTab === 'rejected' ? 'text-rose-600' : 'text-slate-500'}`}>Rejected</span>
                         <span className={`px-2 py-0.5 rounded text-[10px] font-black ${activeStatusTab === 'rejected' ? 'bg-rose-100 text-rose-600' : 'bg-slate-100 text-slate-500'}`}>{counts.rejected}</span>
                     </button>
                 </div>
 
-                <div className="flex gap-2 overflow-x-auto px-2 pb-2 custom-scrollbar">
+                <div className="flex gap-2 overflow-x-auto px-2 pb-2">
                     {roles.map(role => (
                         <button key={role} onClick={() => { setActiveRoleTab(role); setAiResults(null); }} className={`px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeRoleTab === role ? 'bg-[#00629B] text-white shadow-md' : 'bg-slate-50 text-slate-500 border border-slate-100'}`}>
                             {role}
@@ -186,35 +174,62 @@ const TeamManagement = () => {
                 </div>
             </div>
 
+            {/* AI Results UI - الربط مع الأسماء الحقيقية */}
+            {aiResults && activeStatusTab === 'pending' && (
+                <div className="bg-purple-50 border border-purple-100 rounded-[2.5rem] p-8 animate-in slide-in-from-top-4 relative overflow-hidden mb-4 shadow-sm">
+                    <div className="flex items-center justify-between mb-6 relative">
+                        <div className="flex items-center gap-3">
+                            <div className="p-3 bg-purple-600 text-white rounded-2xl"><Target size={20} /></div>
+                            <h2 className="text-lg font-black text-purple-900 uppercase italic">AI Analysis for {activeRoleTab}</h2>
+                        </div>
+                        <button onClick={() => setAiResults(null)} className="p-2 hover:bg-purple-100 rounded-full text-purple-400"><X size={20} /></button>
+                    </div>
+
+                    <div className="grid gap-3 relative">
+                        {aiResults.map((rec, i) => (
+                            <div key={i} className={`bg-white/80 p-4 rounded-2xl border flex items-center justify-between shadow-sm transition-all ${rec.is_in_current_list ? 'border-purple-200 bg-white' : 'border-slate-100 opacity-60'}`}>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-8 h-8 bg-purple-600 text-white rounded-lg flex items-center justify-center text-xs font-black">#{i+1}</div>
+                                    <div>
+                                        {/* 🌟 هلق بيطلع اسم شهد الحقيقي بدل كلمة Volunteer */}
+                                        <p className="text-xs font-black text-purple-900 uppercase">{rec.display_name}</p>
+                                        <p className="text-[10px] text-purple-500 italic mt-0.5">{rec.reason}</p>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-sm font-black text-purple-600">{rec.match_score}</span>
+                                    <p className="text-[8px] font-bold text-purple-300 uppercase">Match</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-10">
-                {displayedApps.length > 0 ? displayedApps.map((app, i) => (
+                {displayedApps.map((app, i) => (
                     <div key={i} className={`p-6 rounded-[2.5rem] shadow-sm border bg-white ${activeStatusTab === 'pending' ? 'border-amber-100' : activeStatusTab === 'approved' ? 'border-emerald-100' : 'border-rose-100'}`}>
                         <div className="flex items-center gap-4 mb-4">
                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl border shadow-sm ${activeStatusTab === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' : activeStatusTab === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
-                                {(app.full_name || app.username || "V").charAt(0).toUpperCase()}
+                                {(app.user?.full_name || app.full_name || "V").charAt(0).toUpperCase()}
                             </div>
                             <div>
-                                <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">{app.full_name || app.username}</h3>
+                                <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">{app.user?.full_name || app.full_name}</h3>
                                 <p className="text-[10px] font-bold text-[#00629B] uppercase tracking-widest">{getRole(app)}</p>
                             </div>
                         </div>
                         <div className="bg-slate-50/50 p-4 rounded-2xl mb-6 border border-slate-100">
-                            <p className="text-xs font-bold text-slate-500 line-clamp-3 italic">"{app.bio || "No bio available."}"</p>
+                            <p className="text-xs font-bold text-slate-500 line-clamp-3 italic leading-relaxed">"{app.user?.bio || app.bio || "No biography provided."}"</p>
                         </div>
                         {activeStatusTab === 'pending' && (
                             <div className="flex items-center gap-3 mt-auto">
-                                <button onClick={() => handleAction(app.user_id, 'reject')} disabled={actionLoading === app.user_id} className="flex-1 py-3 bg-white text-rose-500 border border-rose-100 hover:bg-rose-50 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">Reject</button>
-                                <button onClick={() => handleAction(app.user_id, 'approve')} disabled={actionLoading === app.user_id} className="flex-1 py-3 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md hover:bg-emerald-600 transition-all">Accept</button>
+                                <button onClick={() => handleAction(app.user_id || app.user?.id, 'reject')} className="flex-1 py-3 bg-white text-rose-500 border border-rose-100 hover:bg-rose-50 rounded-xl text-[10px] font-black uppercase">Reject</button>
+                                <button onClick={() => handleAction(app.user_id || app.user?.id, 'approve')} className="flex-1 py-3 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase shadow-md">Accept</button>
                             </div>
                         )}
                     </div>
-                )) : (
-                    <div className="col-span-full py-20 text-center bg-slate-50/50 rounded-[3rem] border border-dashed border-slate-200">
-                         <Users size={40} className="text-slate-200 mx-auto mb-4" />
-                         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No members found</p>
-                    </div>
-                )}
+                ))}
             </div>
         </div>
     );
