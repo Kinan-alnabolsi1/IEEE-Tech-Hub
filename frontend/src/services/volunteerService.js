@@ -26,6 +26,10 @@ export const volunteerService = {
   updateTaskProgress: (assignmentId, data) => 
     patchData(`/tasks/assignments/${assignmentId}/progress`, data),
 
+  // الدالة الجديدة لجلب تقييم المتطوع في مشروع معين
+    getUserOverview: (userId, projectId) => 
+        getData(`/users/${userId}/overview?project_id=${projectId}`),
+
   // --- 🏢 Admin Utils (بدون تغيير) ---
   getBranches: () => getData('/branches'),
   getChapters: (branchId) => getData(`/chapters?branch_id=${branchId}`),

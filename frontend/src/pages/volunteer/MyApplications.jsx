@@ -34,11 +34,12 @@ const MyApplications = () => {
                     ? rawData 
                     : Object.values(rawData);
 
-                // 🌟 التعديل الجوهري: تسطيح المصفوفة (Flattening)
-                // لأن الباك إند باعت مصفوفات جوا مصفوفة [[{}], [{}]]
+                // تسطيح المصفوفة (Flattening)
                 const finalFlatArray = tempArray.flat();
 
                 console.log("✅ Flattened Data for UI:", finalFlatArray);
+                
+                // 🌟 تمرير الداتا الحقيقية فقط
                 setJourneyData(finalFlatArray);
 
             } catch (error) {
@@ -74,11 +75,11 @@ const MyApplications = () => {
         
         return (
             <div 
-                onClick={() => isCompleted && navigate(`/project/${project.project_id}/overview`)}
-                className={`group relative bg-white rounded-[2.5rem] p-6 border border-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl hover:-translate-y-1 ${isCompleted ? 'cursor-pointer' : ''}`}
+                onClick={() => isCompleted && navigate(`/volunteer/applications/project/${project.project_id}/overview`)}
+                className={`group relative bg-white rounded-[2.5rem] p-6 border border-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl hover:-translate-y-1 ${isCompleted ? 'cursor-pointer hover:border-emerald-200' : ''}`}
             >
                 <div className="flex justify-between items-start mb-6">
-                    <div className="w-12 h-12 bg-blue-50 text-[#00629B] rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500 ${isCompleted ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-[#00629B]'}`}>
                         {isCompleted ? <Trophy size={24} /> : <Rocket size={24} />}
                     </div>
                     <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${
@@ -90,7 +91,7 @@ const MyApplications = () => {
 
                 <div className="space-y-4">
                     <div>
-                        <h3 className="text-xl font-black text-slate-800 uppercase italic leading-tight group-hover:text-[#00629B] transition-colors">
+                        <h3 className={`text-xl font-black uppercase italic leading-tight transition-colors ${isCompleted ? 'text-emerald-900 group-hover:text-emerald-600' : 'text-slate-800 group-hover:text-[#00629B]'}`}>
                             {project.project_title || project.title || 'Mission'}
                         </h3>
                         <div className="flex items-center gap-2 mt-2">
@@ -110,7 +111,11 @@ const MyApplications = () => {
                                 {project.joined_at || 'Recently'}
                             </span>
                         </div>
-                        {isCompleted && <ArrowUpRight size={16} className="text-[#00629B]" />}
+                        {isCompleted && (
+                            <div className="bg-emerald-50 p-1.5 rounded-full">
+                                <ArrowUpRight size={16} className="text-emerald-600" />
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -128,7 +133,6 @@ const MyApplications = () => {
                 </p>
             </div>
 
-            {/* Tabs */}
             <div className="flex flex-wrap gap-3 bg-slate-100/50 p-2 rounded-[2rem] border border-slate-200/50 w-fit">
                 {['pending', 'active', 'completed'].map((tab) => (
                     <button 

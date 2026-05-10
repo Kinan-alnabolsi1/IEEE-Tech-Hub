@@ -6,7 +6,6 @@ import { Toaster } from 'react-hot-toast';
 import DashboardLayout from './components/layout/DashboardLayout';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
-// 🌟 استيراد صفحة الـ OTP (تأكدي من المسار تبعها عندك)
 import VerifyOTP from './pages/auth/VerifyOTP'; 
 import Onboarding from './pages/volunteer/Onboarding'; 
 
@@ -41,6 +40,7 @@ import VolunteerDashboard from './pages/volunteer/VolunteerDashboard';
 import MyTasks from './pages/volunteer/MyTasks';
 import BrowseProjects from './pages/volunteer/BrowseProjects';
 import MyApplications from './pages/volunteer/MyApplications';
+import ProjectOverview from './pages/volunteer/ProjectOverview';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const token = localStorage.getItem('ieee_token');
@@ -77,7 +77,6 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
         
-        {/* 🌟 مسار الـ OTP تمت إضافته هنا خارج الـ Protected Routes لأنه بدون تسجيل دخول مسبق */}
         <Route path="/verify-otp" element={<VerifyOTP />} />
 
         <Route path="/onboarding" element={
@@ -146,7 +145,7 @@ function App() {
           <Route path="explore" element={<BrowseProjects />} />
           <Route path="applications" element={<MyApplications />} />
           <Route path="profile" element={<Profile />} />
-        </Route>
+          <Route path="applications/project/:projectId/overview" element={<ProjectOverview />} />        </Route>
 
         {/* Catch all route - redirects to Login */}
         <Route path="*" element={<Navigate to="/" replace />} />
