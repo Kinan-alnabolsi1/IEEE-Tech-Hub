@@ -84,10 +84,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/profile/onboarding', [UserController::class, 'createProfile']); // استكمال إنشاء البروفايل
     Route::get('/my-projects', [UserController::class, 'myProjects']); // مشاريعي وطلباتي
     Route::get('/my-tasks', [UserController::class, 'myTasks']); // مهامي من كل المشاريع
+    Route::get('/my-journey', [UserController::class, 'getMyJourney']);
 
     Route::post('/tasks/{taskId}/evaluate-member/{userId}', [TaskController::class, 'evaluateTaskMember']);
     Route::patch('/tasks/assignments/{assignmentId}/progress', [TaskController::class, 'updateProgress']);
     Route::get('/users/{userId}/overview', [UserController::class, 'getUserOverview']);
+
+
 
 
     // --------------------------------------------------------------

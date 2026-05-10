@@ -131,7 +131,8 @@ class ProjectController extends Controller
             'required_roles.*.role_name' => 'required_with:required_roles|string',
             'required_roles.*.required_count' => 'required_with:required_roles|integer',
         ]);
-// 🔄 تحديث الأدوار (حذف وإعادة إنشاء)
+
+        // 🔄 3. تحديث الأدوار (حذف وإعادة إنشاء)
         if (array_key_exists('required_roles', $validated)) {
             $project->requiredRoles()->delete();
             if (!empty($validated['required_roles'])) {
@@ -140,7 +141,41 @@ class ProjectController extends Controller
             unset($validated['required_roles']);
         }
 
+        // 🔄 4. تحديث المهارات باستخدام Sync (مهم جداً للذكاء الاصطناعي)
+        if (array_key_exists('required_skills', $validated)) {
+            $syncData = [];
+            if (!empty($validated['required_skills'])) {
+                foreach ($validated['required_skills'] as $skill) {
+                    $syncData[$skill['skill_id']] = [
+                        'min_level' => $skill['min_level'],
+                        'weight' => $skill['weight']
+                    ];
+                }
+            }
+            $project->requiredSkills()->sync($syncData);
+            unset($validated['required_skills']);
+        }
+
+        // 5. تحديث باقي البيانات الأساسية للمشروع (بما فيها الحالة إذا تم إرسالها)
         $project->update($validated);
+
+        // 🤖 6. الأتمتة: إدارة دورة حياة القائد (Lifecycle Automation)
+        // التحقق مما إذا كان الـ Request يحتوي على تغيير في الـ status وأنه أصبح Completed أو Cancelled
+        if (isset($validated['status']) && in_array($validated['status'], ['Completed', 'Cancelled']) && $project->leader_id) {
+            
+            // التحقق من وجود مشاريع أخرى فعالة للقائد
+            $hasOtherActiveProjects = \App\Models\Project::where('leader_id', $project->leader_id)
+                                             ->where('project_id', '!=', $project->project_id)
+                                             ->whereIn('status', ['Open', 'Ongoing'])
+                                             ->exists();
+            
+            if (!$hasOtherActiveProjects) {
+                $leader = \App\Models\User::find($project->leader_id);
+                if ($leader && $leader->role === 'Project Leader') {
+                    $leader->update(['role' => 'Volunteer']);
+                }
+            }
+        }
 
         return response()->json([
             'message' => 'Project updated successfully', 
@@ -306,30 +341,20 @@ class ProjectController extends Controller
     }
 
     /**
-     * تحديث حالة المشروع فقط
-     * PATCH /api/projects/{project}/status
+     * تحديث حالة المشروع وإدارة دورة حياة القائد
+     * PATCH /api/projects/{id}/status
      */
     public function updateStatus(Request $request, $id)
     {
-        // 💡 جلبنا المشروع مع الـ chapter الخاص به لنعرف كل التفاصيل (الفرع، رئيس الفصل، والقائد)
         $project = Project::with('chapter')->findOrFail($id);
         $currentUser = $request->user();
 
-        // 🛡️ 1. منطق الصلاحيات (Authorization Logic)
+        // 🛡️ 1. منطق الصلاحيات
         $isSuperAdmin = $currentUser->role === 'Super Admin';
-        
-        $isBranchAdmin = $currentUser->role === 'Branch Admin' 
-                        && $currentUser->branch_id === $project->chapter->branch_id;
-        
-        // شرط رئيس الفصل: يجب أن يكون هو رئيس الفصل (Chair) الذي يتبع له هذا المشروع
-        $isChapterChair = $currentUser->role === 'Chapter Chair' 
-                        && $project->chapter->chair_id === $currentUser->user_id;
-        
-        // شرط قائد المشروع: يجب أن يكون هو القائد (Leader) المعين لهذا المشروع تحديداً
-        $isProjectLeader = $currentUser->role === 'Project Leader' 
-                        && $project->leader_id === $currentUser->user_id;
+        $isBranchAdmin = $currentUser->role === 'Branch Admin' && $currentUser->branch_id === $project->chapter->branch_id;
+        $isChapterChair = $currentUser->role === 'Chapter Chair' && $project->chapter->chair_id === $currentUser->user_id;
+        $isProjectLeader = $currentUser->role === 'Project Leader' && $project->leader_id === $currentUser->user_id;
 
-        // التحقق الشامل
         if (!$isSuperAdmin && !$isBranchAdmin && !$isChapterChair && !$isProjectLeader) {
             return response()->json([
                 'message' => 'Unauthorized. You do not have permission to update this project\'s status.'
@@ -341,11 +366,31 @@ class ProjectController extends Controller
             'status' => 'required|in:Open,Ongoing,Completed,Cancelled'
         ]);
         
-        // 🔄 3. تحديث الحالة
+        // 🔄 3. تحديث حالة المشروع
         $project->update($validated);
+
+        // 🤖 4. الأتمتة: إدارة دورة حياة القائد (Lifecycle Automation)
+        // إذا تم إغلاق المشروع (منتهي أو ملغى)
+        if (in_array($validated['status'], ['Completed', 'Cancelled']) && $project->leader_id) {
+            
+            // نتحقق إذا كان القائد يدير مشاريع أخرى لا تزال فعالة
+            $hasOtherActiveProjects = Project::where('leader_id', $project->leader_id)
+                                             ->where('project_id', '!=', $project->project_id)
+                                             ->whereIn('status', ['Open', 'Ongoing'])
+                                             ->exists();
+            
+            // إذا لم يكن لديه أي مشروع فعال آخر، نرجعه إلى متطوع عادي
+            if (!$hasOtherActiveProjects) {
+                $leader = \App\Models\User::find($project->leader_id);
+                // نتأكد أنه لم يتم ترقيته إلى دور إداري أعلى في هذه الأثناء
+                if ($leader && $leader->role === 'Project Leader') {
+                    $leader->update(['role' => 'Volunteer']);
+                }
+            }
+        }
         
         return response()->json([
-            'message' => 'Project status updated successfully', 
+            'message' => 'Project status updated successfully. Lifecycle checked.', 
             'data' => $project
         ]);
     }

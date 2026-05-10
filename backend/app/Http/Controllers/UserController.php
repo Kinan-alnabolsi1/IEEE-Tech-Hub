@@ -291,32 +291,43 @@ class UserController extends Controller
     }
 
 /**
-     * النظرة العامة وتقييمات المتطوع
-     * GET /api/users/{userId}/overview
+     * النظرة العامة وتقييمات المتطوع (عامة أو لمشروع محدد)
+     * GET /api/users/{userId}/overview?project_id=1
+     * and GET /api/users/{userId}/overview
      */
     public function getUserOverview(Request $request, $userId)
     {
         $user = \App\Models\User::findOrFail($userId);
+        $projectId = $request->query('project_id'); // استقبال رقم المشروع إذا وجد
 
-        // 1. جلب المهام التابعة لهذا المستخدم والتي تم تقييمها فقط (للتعليقات والتقييم)
-        $evaluatedTasks = $user->tasks()
-                               ->with('project') // جلب المشروع المرتبط بالمهمة
-                               ->wherePivotNotNull('rating')
-                               ->orderByPivot('evaluated_at', 'desc')
-                               ->get();
+        // 1. بناء استعلام المهام المقيمة
+        $query = $user->tasks()
+                      ->with('project')
+                      ->wherePivotNotNull('rating');
 
-        // 2. 🛑 جلب عدد المهام المنجزة بالكامل (سواء تم تقييمها أم لا)
-        // نبحث في جدول المهام الأساسي عن الحالة Completed
-        $completedTasksCount = $user->tasks()->where('tasks.status', 'Completed')->count();
+        // 🔍 فلترة اختيارية: إذا طلب الفرونت إند مشروعاً محدداً
+        if ($projectId) {
+            $query->where('tasks.project_id', $projectId);
+        }
 
-        // 3. حساب متوسط التقييم (مثلاً 4.5 من 5)
+        $evaluatedTasks = $query->orderByPivot('evaluated_at', 'desc')->get();
+
+        // 2. حساب عدد المهام المنجزة (فلترة اختيارية أيضاً)
+        $completedTasksQuery = $user->tasks()->where('tasks.status', 'Completed');
+        if ($projectId) {
+            $completedTasksQuery->where('tasks.project_id', $projectId);
+        }
+        $completedTasksCount = $completedTasksQuery->count();
+
+        // 3. حساب متوسط التقييم
         $averageRating = $evaluatedTasks->avg('pivot.rating');
 
-        // 4. ترتيب الداتا لتكون سهلة جداً للفرونت إند (Transformation)
+        // 4. ترتيب البيانات (Feedbacks)
         $feedbacks = $evaluatedTasks->map(function ($task) {
             return [
                 'task_id' => $task->task_id,
-                'task_name' => $task->title, // أو name حسب داتابيزك
+                'task_name' => $task->title,
+                'project_id' => $task->project_id,
                 'project_name' => $task->project->title ?? 'Unknown Project',
                 'rating' => $task->pivot->rating,
                 'feedback' => $task->pivot->leader_feedback,
@@ -324,9 +335,8 @@ class UserController extends Controller
             ];
         });
 
-        // 5. إرجاع النتيجة بالهيكلة المرتبة
         return response()->json([
-            'message' => 'User overview retrieved successfully',
+            'message' => $projectId ? 'User performance for specific project' : 'User general overview',
             'data' => [
                 'user_info' => [
                     'full_name' => $user->full_name,
@@ -335,11 +345,62 @@ class UserController extends Controller
                 ],
                 'performance' => [
                     'average_rating' => $averageRating ? round($averageRating, 1) : 0, 
-                    'total_evaluated_tasks' => $evaluatedTasks->count(), // المهام اللي أخد عليها تقييم
-                    'completed_tasks_count' => $completedTasksCount,     // 👈 رجعناها وحسبناها صح!
+                    'total_evaluated_tasks' => $evaluatedTasks->count(),
+                    'completed_tasks_count' => $completedTasksCount,
                 ],
                 'skills' => $user->skills, 
                 'task_feedbacks' => $feedbacks 
+            ]
+        ]);
+    }
+
+    /**
+     * جلب رحلة المتطوع/القائد (طلبات، مشاريع حالية، وأرشيف)
+     * GET /api/my-journey
+     */
+    public function getMyJourney(Request $request)
+    {
+        $user = $request->user();
+
+        // 1. جلب كل المشاريع التي ارتبط بها المستخدم (سواء كمتطوع أو كقائد)
+        // مع جلب تفاصيل المشروع الأساسية فقط لتخفيف الضغط
+        $userProjects = $user->projects()->with('chapter:chapter_id,name')->get();
+
+        // 2. إعادة تشكيل البيانات لتكون مريحة جداً للفرونت إند
+        $formattedProjects = $userProjects->map(function ($project) {
+            return [
+                'project_id' => $project->project_id,
+                'project_title' => $project->title,
+                'chapter_name' => $project->chapter->name ?? 'N/A',
+                'project_status' => $project->status, // (Open, Ongoing, Completed, Cancelled)
+                'my_role' => $project->pivot->role, // الدور الذي استلمه (مثلاً Frontend أو Project Leader)
+                'application_status' => $project->pivot->status, // (Pending, Approved, Rejected)
+                'applied_at' => $project->pivot->applied_at,
+                'joined_at' => $project->pivot->joined_at,
+            ];
+        });
+
+        // 3. تقسيم البيانات الذكي لتسهيل بناء واجهة الفرونت إند
+        return response()->json([
+            'message' => 'User journey retrieved successfully',
+            'data' => [
+                // أ. الطلبات قيد الانتظار
+                'pending_applications' => $formattedProjects->where('application_status', 'Pending')->values(),
+                
+                // ب. المشاريع الحالية (مقبول والمشروع لا يزال يعمل)
+                'active_projects' => $formattedProjects->where('application_status', 'Approved')
+                                                       ->whereIn('project_status', ['Open', 'Ongoing'])
+                                                       ->values(),
+                
+                // ج. الأرشيف وسجل الإنجازات (المشاريع المنتهية بنجاح)
+                'completed_projects' => $formattedProjects->where('application_status', 'Approved')
+                                                          ->where('project_status', 'Completed')
+                                                          ->values(),
+                
+                // 🛑 د. الإصلاح هنا: الطلبات المرفوضة أو المشاريع الملغاة (باستخدام filter)
+                'rejected_or_cancelled' => $formattedProjects->filter(function ($project) {
+                    return $project['application_status'] === 'Rejected' || $project['project_status'] === 'Cancelled';
+                })->values(),
             ]
         ]);
     }

@@ -75,7 +75,8 @@ class User extends Authenticatable
     {
         // لاحظ استخدمنا اسم الجدول الوسيط الصحيح تبعك project_members
         return $this->belongsToMany(Project::class, 'project_members', 'user_id', 'project_id')
-                    ->withPivot(['role', 'status', 'applied_at', 'joined_at', 'final_rating', 'final_review', 'evaluated_at']);
+                    ->withPivot(['role', 'status', 'applied_at', 'joined_at', 'final_rating', 'final_review', 'evaluated_at'])
+                    ->orderByPivot('applied_at', 'desc');
     }
 
     public function skills() {
