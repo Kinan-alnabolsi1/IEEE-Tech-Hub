@@ -194,35 +194,46 @@ class TaskController extends Controller
 
     /**
      * تحديث نسبة إنجاز المهمة (من قبل المتطوع المُسندة إليه)
-     * PATCH /api/tasks/assignments/{assignmentId}/progress
+     * PATCH /api/tasks/{taskId}/progress
      */
-    public function updateProgress(Request $request, $assignmentId)
+    public function updateProgress(Request $request, $taskId)
     {
         $request->validate([
             'completion_pct' => 'required|integer|min:0|max:100',
-            'progress_note' => 'nullable|string'
+            'progress_note'  => 'nullable|string'
         ]);
 
-        $assignment = TaskAssignment::findOrFail($assignmentId);
+        $currentUser = $request->user();
 
-        // Ensure only the assigned user can update their progress
-        if ($assignment->user_id !== $request->user()->user_id) {
-            return response()->json(['message' => 'Unauthorized to update this assignment progress.'], 403);
+        // 1. البحث عن التكليف باستخدام رقم المهمة (taskId) ورقم المتطوع الحالي (user_id)
+        $assignment = TaskAssignment::where('task_id', $taskId)
+                                    ->where('user_id', $currentUser->user_id)
+                                    ->first();
+
+        // 2. إذا لم يجد السطر، فهذا يعني أن المتطوع غير مسند لهذه المهمة أو المهمة غير موجودة
+        if (!$assignment) {
+            return response()->json([
+                'message' => 'Assignment not found. You are not assigned to this task.'
+            ], 404);
         }
 
+        // 3. تحديث نسبة الإنجاز
         $assignment->update([
             'completion_pct' => $request->completion_pct,
-            'progress_note' => $request->progress_note,
-            'completed_at' => $request->completion_pct == 100 ? now() : null
+            'progress_note'  => $request->progress_note,
+            'completed_at'   => $request->completion_pct == 100 ? now() : null
         ]);
 
-        // تحديث حالة المهمة الرئيسية إذا لزم الأمر
-        $task = Task::find($assignment->task_id);
-        if ($request->completion_pct > 0 && $request->completion_pct < 100 && $task->status === 'To Do') {
+        // 4. تحديث حالة المهمة الرئيسية (Task) إذا لزم الأمر
+        $task = Task::find($taskId);
+        if ($task && $request->completion_pct > 0 && $request->completion_pct < 100 && $task->status === 'To Do') {
             $task->update(['status' => 'In Progress']);
         }
 
-        return response()->json(['message' => 'Progress updated', 'data' => $assignment]);
+        return response()->json([
+            'message' => 'Progress updated successfully', 
+            'data' => $assignment
+        ]);
     }
 
     /**
