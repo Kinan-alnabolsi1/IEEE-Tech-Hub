@@ -447,10 +447,6 @@ class ProjectController extends Controller
     }
 
     /**
-     * جلب طلبات الانضمام لمشروع محدد (Project Applications)
-     * GET /api/projects/{project_id}/applications
-     */
-    /**
      * جلب طلبات الانضمام لمشروع محدد (مع دعم الفلترة حسب الحالة والدور)
      * GET /api/projects/{project_id}/applications
      */

@@ -23,30 +23,24 @@ class AuthController extends Controller
 
         $validated['password'] = Hash::make($validated['password']);
         
-        // إجبار حالة الحساب لتكون Pending عند التسجيل الجديد
         $validated['status'] = 'Pending'; 
 
-        // 🟢 --- بداية التعديل: إضافة الـ OTP --- 🟢
-        $otpCode = (string) random_int(100000, 999999); // توليد كود من 6 أرقام
+        $otpCode = (string) random_int(100000, 999999);
         $validated['otp_code'] = $otpCode;
-        $validated['otp_expires_at'] = now()->addMinutes(10); // صلاحية الكود 10 دقائق
-        // 🟢 --- نهاية التعديل --- 🟢
+        $validated['otp_expires_at'] = now()->addMinutes(10);
 
         $user = User::create($validated);
 
-        // 🟢 --- إرسال كود الـ OTP عبر الإيميل --- 🟢
+        
         try {
             Mail::to($user->email)->send(new SendOtpMail($otpCode));
         } catch (\Throwable $e) {
-            // نستخدم Throwable لتمسك أي نوع من الأخطاء سواء Exception أو Error
             \Illuminate\Support\Facades\Log::error('Mail Error: ' . $e->getMessage());
         }
 
-        // إنشاء التوكن
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            // عدلت الرسالة شوي ليفهم المتطوع إنو في إيميل وصله
             'message' => 'Registered successfully. Please check your email for the OTP and wait for admin approval.',
             'data' => $user, 
             'access_token' => $token
@@ -54,7 +48,6 @@ class AuthController extends Controller
     }
 
     /**
-     * التحقق من الـ OTP وتأكيد الحساب
      * POST /api/verify-otp
      */
     public function verifyOtp(Request $request)
@@ -143,39 +136,27 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        // 1. التحقق هل قام بتأكيد الإيميل عبر الـ OTP؟
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json(['message' => 'Invalid credentials'], 401);
+        }
+
         if (is_null($user->email_verified_at)) {
             return response()->json([
                 'message' => 'Please verify your email via OTP first.',
-                // ممكن ترجع الإيميل للفرونت عشان يقدر يطلب إعادة إرسال الكود إذا حابب
                 'email' => $user->email 
             ], 403);
         }
 
-        // 2. التحقق هل وافق عليه الأدمن؟
         if ($user->status === 'Pending') {
             return response()->json([
                 'message' => 'Email verified, but your account is still pending admin approval.'
             ], 403);
         }
 
-        if ($user->status === 'Rejected' || $user->status === 'Inactive') {
+        if (in_array($user->status, ['Rejected', 'Inactive', 'Suspended'])) {
             return response()->json([
-                'message' => 'Your account is disabled or rejected.'
+                'message' => 'Your account is disabled, suspended, or rejected.'
             ], 403);
-        }
-
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json(['message' => 'Invalid credentials'], 401);
-        }
-
-        // 3. إضافة فحص حالة الـ Pending لمنعه من الدخول قبل الموافقة
-        if ($user->status === 'Pending') {
-            return response()->json(['message' => 'Account is still pending approval'], 403);
-        }
-
-        if ($user->status === 'Suspended') {
-            return response()->json(['message' => 'Account suspended'], 403);
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;

@@ -128,7 +128,7 @@ class TaskController extends Controller
     }
 
     /**
-     * تحديث بيانات المهمة الأساسية
+     * تحديث بيانات المهمة (بما في ذلك المتطوعين المسندين إليها)
      * PUT/PATCH /api/tasks/{task}
      */
     public function update(Request $request, string $id)
@@ -139,19 +139,39 @@ class TaskController extends Controller
             return response()->json(['message' => 'Unauthorized to update this task.'], 403);
         }
 
+        // 1. أضفنا الـ assigned_users للـ Validation
         $validated = $request->validate([
-            'title' => 'sometimes|string|max:200',
-            'description' => 'nullable|string',
-            'priority' => 'sometimes|in:Low,Medium,High',
-            'status' => 'sometimes|in:To Do,In Progress,Completed',
-            'due_date' => 'nullable|date'
+            'title'          => 'sometimes|string|max:200',
+            'description'    => 'nullable|string',
+            'priority'       => 'sometimes|in:Low,Medium,High',
+            'status'         => 'sometimes|in:To Do,In Progress,Completed',
+            'due_date'       => 'nullable|date',
+            'assigned_users' => 'nullable|array', // مصفوفة المتطوعين (اختيارية)
+            'assigned_users.*' => 'exists:users,user_id' // التأكد أن كل ID موجود في جدول المستخدمين
         ]);
 
-        $task->update($validated);
+        // 2. تحديث البيانات الأساسية للمهمة فقط (نستثني مصفوفة اليوزرز لأنها ليست عمود في جدول Tasks)
+        $task->update(collect($validated)->except('assigned_users')->toArray());
+
+        // 3. تحديث المتطوعين المسندين للمهمة باستخدام دالة sync الرائعة
+        if ($request->has('assigned_users')) {
+            $syncData = [];
+            
+            // تجهيز البيانات الإضافية للجدول الوسيط (Pivot Table)
+            foreach ($validated['assigned_users'] as $userId) {
+                $syncData[$userId] = [
+                    'assigned_by' => $request->user()->user_id,
+                    'assigned_at' => now(), // أضفنا وقت التعيين
+                ];
+            }
+
+            // دالة sync ستقوم بمسح من تم إزالتهم، وتضيف الجدد، مع تمرير الداتا الإضافية للجدول الوسيط
+            $task->assignees()->sync($syncData);
+        }
 
         return response()->json([
             'message' => 'Task updated successfully', 
-            'data' => $task->load('assignees')
+            'data' => $task->load('assignees') // إعادة تحميل المهمة مع المتطوعين المحدثين
         ]);
     }
 

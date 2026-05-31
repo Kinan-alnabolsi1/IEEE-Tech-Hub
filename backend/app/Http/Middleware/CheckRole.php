@@ -15,7 +15,6 @@ class CheckRole
      */
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
-        // إذا لم يكن المستخدم مسجل دخول، أو كان الـ role تبعه غير موجود في مصفوفة الأدوار المسموحة
         if (! $request->user() || ! in_array($request->user()->role, $roles)) {
             return response()->json([
                 'success' => false,
