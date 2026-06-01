@@ -325,7 +325,7 @@ const Onboarding = () => {
                         {/* Navigation Buttons */}
                         <div className="flex gap-4 pt-6">
                             {step > 1 && (
-                                <button type="button" onClick={handleBack} className="flex-1 py-4 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-colors hover:bg-slate-200">
+                                <button type="button" onClick={handleBack} className="flex py-4 px-10 items-center justify-center bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-colors hover:bg-slate-200 gap-3">
                                     <ChevronLeft size={16} /> Back
                                 </button>
                             )}
