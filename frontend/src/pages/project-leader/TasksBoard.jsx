@@ -1,22 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import { projectService } from '../../services/projectService';
 import { volunteerService } from '../../services/volunteerService';
-import { Plus, Clock, CheckCircle2, AlertCircle, Trash2, Edit2, Calendar, User, Loader2, Star, MessageSquare, Award } from 'lucide-react';
+import { Plus, Clock, CheckCircle2, AlertCircle, Trash2, Edit2, Calendar, User, Loader2, Star, MessageSquare, Award, ChevronDown } from 'lucide-react';
 import BaseModal from '../../components/ui/BaseModal';
 import Loader from '../../components/ui/Loader';
 import toast from 'react-hot-toast';
+
+// 🌟 المكون للدروب داون
+const CustomDropdown = ({ value, onChange, options, label }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const selectedLabel = options.find(opt => opt.value === value)?.label || value;
+
+    return (
+        <div className="space-y-1 relative">
+            <label className="text-[9px] font-black uppercase text-[#005587] ml-2 block tracking-widest">{label}</label>
+            <div
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold outline-none cursor-pointer flex justify-between items-center"
+            >
+                <span className="text-slate-800">{selectedLabel}</span>
+                <ChevronDown size={14} className={`text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </div>
+            {isOpen && (
+                <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
+                    {options.map(opt => (
+                        <div
+                            key={opt.value}
+                            onClick={() => { onChange(opt.value); setIsOpen(false); }}
+                            className="px-4 py-3 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-[#00629B] cursor-pointer transition-colors"
+                        >
+                            {opt.label}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
 
 const TasksBoard = () => {
     const [tasks, setTasks] = useState([]);
     const [teamMembers, setTeamMembers] = useState([]);
     const [loading, setLoading] = useState(true);
     
-    // حالات إدارة المهام
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [taskToEdit, setTaskToEdit] = useState(null);
     const [submitting, setSubmitting] = useState(false);
 
-    // 🌟 حالات نظام التقييم المطور
     const [isEvalModalOpen, setIsEvalModalOpen] = useState(false);
     const [evalTask, setEvalTask] = useState(null);
     const [evaluations, setEvaluations] = useState({});
@@ -51,11 +81,21 @@ const TasksBoard = () => {
             setTasks(tasksRes.data?.data || tasksRes.data || []);
 
             const members = projectRes.data?.data?.members || projectRes.data?.members || [];
+            
+            // 🌟 الخوارزمية الصارمة الجديدة: الأولوية القصوى لجدول الـ Pivot
             const approvedVolunteers = members.filter(m => {
-                const stat = m.status || m.pivot?.status || 'approved';
-                const role = m.role || m.pivot?.role || m.pivot?.role_name || '';
-                return (stat.toLowerCase() === 'approved' || stat.toLowerCase() === 'active') && !role.toLowerCase().includes('leader');
+                // سحب حالة الانضمام للمشروع حصراً وتجنب حالة الحساب العام
+                const pivotStat = m.pivot?.status || m.pivot?.join_status || m.pivot?.request_status;
+                const stat = pivotStat || m.status || ''; 
+                
+                const pivotRole = m.pivot?.role || m.pivot?.role_name;
+                const role = pivotRole || m.role || '';
+
+                const isApproved = stat.toLowerCase() === 'approved' || stat.toLowerCase() === 'active' || stat.toLowerCase() === 'accepted';
+                
+                return isApproved && !role.toLowerCase().includes('leader');
             });
+            
             setTeamMembers(approvedVolunteers);
 
         } catch (error) {
@@ -71,7 +111,6 @@ const TasksBoard = () => {
     const openModal = (task = null) => {
         if (task) {
             setTaskToEdit(task);
-            // لقط الـ ID بشكل مرن لضمان ثبات الأسماء المختارة
             const assignedIds = task.assigned_users?.map(u => u.user_id || u.id || u.pivot?.user_id) || [];
             setFormData({
                 title: task.title, 
@@ -90,8 +129,7 @@ const TasksBoard = () => {
     const handleAssignUser = (userId) => {
         setFormData(prev => ({
             ...prev,
-            assigned_users: prev.assigned_users.includes(userId) ? prev.assigned_users.filter(id => id !== userId) : [...prev.assigned_users, userId]
-        }));
+assigned_users: prev.assigned_users.includes(userId) ? [] : [userId]        }));
     };
 
     const handleSubmit = async (e) => {
@@ -114,7 +152,16 @@ const TasksBoard = () => {
             setIsModalOpen(false);
             fetchData();
         } catch (error) {
-            toast.error("Failed to save task.", { id: tid });
+            console.error("Task Submit Error:", error.response?.data);
+            let errorMessage = "Failed to save task.";
+            if (error.response?.status === 422 && error.response?.data?.errors) {
+                const errors = error.response.data.errors;
+                const firstErrorKey = Object.keys(errors)[0];
+                errorMessage = errors[firstErrorKey][0]; 
+            } else if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            }
+            toast.error(errorMessage, { id: tid });
         } finally {
             setSubmitting(false);
         }
@@ -129,7 +176,6 @@ const TasksBoard = () => {
         } catch (error) { toast.error("Delete failed."); }
     };
 
-    // 🌟 تطوير دوال التقييم لتشمل اختيار الأعضاء
     const openEvalModal = (task) => {
         setEvalTask(task);
         const assignedIds = task.assigned_users?.map(u => u.user_id || u.id || u.pivot?.user_id) || [];
@@ -137,21 +183,14 @@ const TasksBoard = () => {
         const initialEvals = {};
         teamMembers.forEach(m => {
             const uid = m.user_id || m.id;
-            initialEvals[uid] = { 
-                rating: 5, 
-                feedback: '', 
-                isSelected: assignedIds.includes(uid) 
-            };
+            initialEvals[uid] = { rating: 5, feedback: '', isSelected: assignedIds.includes(uid) };
         });
         setEvaluations(initialEvals);
         setIsEvalModalOpen(true);
     };
 
     const toggleMemberInEval = (userId) => {
-        setEvaluations(prev => ({
-            ...prev,
-            [userId]: { ...prev[userId], isSelected: !prev[userId].isSelected }
-        }));
+        setEvaluations(prev => ({ ...prev, [userId]: { ...prev[userId], isSelected: !prev[userId].isSelected } }));
     };
 
     const handleRatingChange = (userId, rating) => {
@@ -164,27 +203,19 @@ const TasksBoard = () => {
 
     const submitEvaluations = async () => {
         const selectedMembers = Object.keys(evaluations).filter(uid => evaluations[uid].isSelected);
-        
-        if (selectedMembers.length === 0) {
-            return toast.error("Please select at least one member to evaluate.");
-        }
-
+        if (selectedMembers.length === 0) return toast.error("Please select at least one member to evaluate.");
         setEvalSubmitting(true);
         const taskId = evalTask.task_id || evalTask.id;
         let successCount = 0;
-
         try {
             for (const userId of selectedMembers) {
-                const data = {
-                    rating: evaluations[userId].rating,
-                    leader_feedback: evaluations[userId].feedback
-                };
+                const data = { rating: evaluations[userId].rating, leader_feedback: evaluations[userId].feedback };
                 await projectService.evaluateMember(taskId, userId, data);
                 successCount++;
             }
             toast.success(`Successfully evaluated ${successCount} members!`);
             setIsEvalModalOpen(false);
-            fetchData(); // تحديث الداتا لضمان تزامن التكليفات
+            fetchData(); 
         } catch (error) {
             console.error("Evaluation error:", error);
             toast.error("Evaluation failed (Server Error 500).");
@@ -225,10 +256,7 @@ const TasksBoard = () => {
                     return (
                         <div key={col.id} className="flex-1 min-w-[320px] max-w-[400px] flex flex-col bg-slate-50/50 rounded-[2.5rem] border border-slate-100 p-2">
                             <div className="p-5 bg-white rounded-[2rem] shadow-sm flex justify-between items-center mb-4">
-                                <div className="flex items-center gap-2.5">
-                                    {col.icon}
-                                    <h3 className="text-sm font-black text-slate-700 uppercase">{col.title}</h3>
-                                </div>
+                                <div className="flex items-center gap-2.5">{col.icon} <h3 className="text-sm font-black text-slate-700 uppercase">{col.title}</h3></div>
                                 <span className="bg-slate-100 text-slate-500 px-3 py-1 rounded-full text-[10px] font-black">{colTasks.length}</span>
                             </div>
 
@@ -239,9 +267,7 @@ const TasksBoard = () => {
                                             <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase ${task.priority === 'High' ? 'bg-rose-50 text-rose-600' : 'bg-blue-50 text-blue-600'}`}>{task.priority}</span>
                                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 {col.id === 'Completed' && (
-                                                    <button onClick={() => openEvalModal(task)} className="p-1.5 bg-amber-50 text-amber-500 hover:bg-amber-100 rounded-lg mr-1 transition-colors" title="Evaluate Members">
-                                                        <Star size={12} fill="currentColor"/>
-                                                    </button>
+                                                    <button onClick={() => openEvalModal(task)} className="p-1.5 bg-amber-50 text-amber-500 hover:bg-amber-100 rounded-lg mr-1 transition-colors"><Star size={12} fill="currentColor"/></button>
                                                 )}
                                                 <button onClick={() => openModal(task)} className="p-1.5 text-slate-400 hover:text-blue-600"><Edit2 size={12}/></button>
                                                 <button onClick={() => handleDelete(task.task_id || task.id)} className="p-1.5 text-slate-400 hover:text-rose-600"><Trash2 size={12}/></button>
@@ -259,11 +285,7 @@ const TasksBoard = () => {
                                             </div>
                                         </div>
                                     </div>
-                                )) : (
-                                    <div className="h-20 flex items-center justify-center border-2 border-dashed border-slate-100 rounded-[1.5rem] opacity-40">
-                                         <p className="text-[9px] font-bold uppercase tracking-widest">Empty Slot</p>
-                                    </div>
-                                )}
+                                )) : <div className="h-20 flex items-center justify-center border-2 border-dashed border-slate-100 rounded-[1.5rem] opacity-40"><p className="text-[9px] font-bold uppercase tracking-widest">Empty Slot</p></div>}
                             </div>
                         </div>
                     );
@@ -279,26 +301,30 @@ const TasksBoard = () => {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
                             <label className="text-[9px] font-black uppercase text-[#005587] ml-2 block tracking-widest">Deadline</label>
-                            <input required type="date" value={formData.due_date} onChange={e => setFormData({...formData, due_date: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold outline-none" />
+                            <input required type="date" min={new Date().toISOString().split('T')[0]} value={formData.due_date} onChange={e => setFormData({...formData, due_date: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold outline-none cursor-pointer" />
                         </div>
-                        <div className="space-y-1">
-                            <label className="text-[9px] font-black uppercase text-[#005587] ml-2 block tracking-widest">Priority</label>
-                            <select value={formData.priority} onChange={e => setFormData({...formData, priority: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold outline-none cursor-pointer">
-                                <option value="Low">Low</option>
-                                <option value="Medium">Medium</option>
-                                <option value="High">High 🔥</option>
-                            </select>
-                        </div>
+                        <CustomDropdown 
+                            label="Priority"
+                            value={formData.priority}
+                            onChange={val => setFormData({...formData, priority: val})}
+                            options={[
+                                { value: 'Low', label: 'Low' },
+                                { value: 'Medium', label: 'Medium' },
+                                { value: 'High', label: 'High 🔥' }
+                            ]}
+                        />
                     </div>
                     {taskToEdit && (
-                        <div className="space-y-1">
-                            <label className="text-[9px] font-black uppercase text-[#005587] ml-2 block tracking-widest">Status Update</label>
-                            <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold outline-none cursor-pointer">
-                                <option value="Pending">To Do</option>
-                                <option value="In Progress">In Progress</option>
-                                <option value="Completed">Completed</option>
-                            </select>
-                        </div>
+                        <CustomDropdown 
+                            label="Status Update"
+                            value={formData.status}
+                            onChange={val => setFormData({...formData, status: val})}
+                            options={[
+                                { value: 'Pending', label: 'To Do' },
+                                { value: 'In Progress', label: 'In Progress' },
+                                { value: 'Completed', label: 'Completed' }
+                            ]}
+                        />
                     )}
                     <div className="space-y-3">
                         <label className="text-[9px] font-black uppercase text-[#005587] ml-2 block tracking-widest">Select Team Members</label>
@@ -322,7 +348,6 @@ const TasksBoard = () => {
                 </form>
             </BaseModal>
 
-            {/* 🌟 نافذة التقييم المطورة */}
             <BaseModal isOpen={isEvalModalOpen} onClose={() => !evalSubmitting && setIsEvalModalOpen(false)} title="Evaluate Team Performance">
                 <div className="space-y-6">
                     <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 mb-2">

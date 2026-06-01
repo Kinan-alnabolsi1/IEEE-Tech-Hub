@@ -1,26 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { volunteerService } from '../../services/volunteerService';
-import { CheckCircle2, Clock, LayoutList, MessageSquare, Loader2, Search, Target, Calendar } from 'lucide-react';
+import { CheckCircle2, Clock, LayoutList, MessageSquare, Loader2, Search, Target, Calendar, Percent } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Loader from '../../components/ui/Loader'; 
+import BaseModal from '../../components/ui/BaseModal'; // تأكدي إنو هاد الـ Import موجود
 
 const MyTasks = () => {
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [updatingId, setUpdatingId] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
+
+    // 🌟 حالات النافذة الجديدة لتحديث النسبة
+    const [progressModal, setProgressModal] = useState({ isOpen: false, taskId: null, pct: 0 });
+    const [progressSubmitting, setProgressSubmitting] = useState(false);
 
     const fetchTasks = async () => {
         try {
             setLoading(true);
             const response = await volunteerService.getMyTasks();
-            // 🌟 التأكد من استخراج البيانات حسب هيكلية Laravel
             const realData = response.data?.data || response.data || [];
             setTasks(realData);
-            console.log("🔥 Volunteer Tasks:", realData);
         } catch (error) {
             console.error("Error fetching tasks:", error);
-            // إذا السيرفر عطى 500 غالباً في مشكلة بالـ Auth أو الـ Relation بالباك إند
             if (error.response?.status === 500) {
                 toast.error("Server Error: Unable to sync tasks from database.");
             } else {
@@ -36,38 +37,36 @@ const MyTasks = () => {
         fetchTasks(); 
     }, []);
 
-    const handleUpdateProgress = async (assignmentId, currentPct) => {
-        const newPct = prompt("Enter new completion percentage (0-100):", currentPct);
-        if (newPct === null || newPct === "") return;
-        
-        const pctValue = parseInt(newPct);
-        if (isNaN(pctValue) || pctValue < 0 || pctValue > 100) {
-            toast.error("Invalid percentage value");
-            return;
-        }
+    // 🌟 دالة لفتح النافذة بدل الـ prompt المزعج
+    const openProgressModal = (taskId, currentPct) => {
+        setProgressModal({ isOpen: true, taskId, pct: currentPct });
+    };
 
+    // 🌟 دالة حفظ النسبة الجديدة بعد التأكيد من النافذة
+    const submitProgressUpdate = async () => {
+        const { taskId, pct } = progressModal;
+        
+        setProgressSubmitting(true);
         try {
-            setUpdatingId(assignmentId);
-            // 🌟 تحديث النسبة عبر السيرفر
-            await volunteerService.updateTaskProgress(assignmentId, { completion_pct: pctValue });
+            await volunteerService.updateTaskProgress(taskId, { completion_pct: pct });
             
-            // تحديث الـ State محلياً ليعكس التغيير فوراً
+            // تحديث الواجهة فوراً
             setTasks(prevTasks => prevTasks.map(t => 
-                (t.id === assignmentId || t.task_id === assignmentId) 
-                ? { ...t, completion_pct: pctValue } 
+                (t.id === taskId || t.task_id === taskId) 
+                ? { ...t, completion_pct: pct } 
                 : t
             ));
             
             toast.success("Progress updated! Keep up the good work! 🚀");
+            setProgressModal({ isOpen: false, taskId: null, pct: 0 }); // إغلاق النافذة
         } catch (error) {
             console.error("Update Progress Error:", error);
             toast.error(error.response?.data?.message || "Failed to update progress");
         } finally {
-            setUpdatingId(null);
+            setProgressSubmitting(false);
         }
     };
 
-    // فلترة المهام حسب البحث
     const filteredTasks = tasks.filter(t => {
         const title = t.task?.title || t.title || "";
         const projectName = t.project?.name || t.project?.title || "";
@@ -78,15 +77,15 @@ const MyTasks = () => {
     if (loading) return <Loader message="Syncing missions from command center..." />;
 
     return (
-        <div className="p-4 md:p-10 animate-in fade-in duration-700 max-w-7xl mx-auto">
+        <div className="p-4 md:p-10 animate-in fade-in duration-700 max-w-7xl mx-auto h-full flex flex-col">
             
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
                 <div>
                     <h1 className="text-3xl md:text-5xl font-[900] text-[#00629B] italic tracking-tight uppercase leading-none">
                         My Operations
                     </h1>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em] mt-4 flex items-center justify-center md:justify-start gap-2">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em] mt-4 flex items-center gap-2">
                         <LayoutList size={14} /> Mission Control Center
                     </p>
                 </div>
@@ -150,15 +149,11 @@ const MyTasks = () => {
                                             <div className="text-2xl font-black text-[#00629B]">{pct}%</div>
                                         </div>
                                         <button 
-                                            disabled={updatingId === taskId || isDone}
-                                            onClick={() => handleUpdateProgress(taskId, pct)}
+                                            disabled={isDone}
+                                            onClick={() => openProgressModal(taskId, pct)}
                                             className="bg-slate-900 text-white px-6 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-[#00629B] transition-all disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed shadow-lg active:scale-95"
                                         >
-                                            {updatingId === taskId ? (
-                                                <><Loader2 size={12} className="animate-spin" /> Syncing...</>
-                                            ) : (
-                                                <><Clock size={12} /> Update Progress</>
-                                            )}
+                                            <Clock size={12} /> Update Progress
                                         </button>
                                     </div>
                                     
@@ -190,6 +185,70 @@ const MyTasks = () => {
                     })}
                 </div>
             )}
+
+            {/* 🌟 النافذة الفخمة لتحديث النسبة */}
+            <BaseModal 
+                isOpen={progressModal.isOpen} 
+                onClose={() => !progressSubmitting && setProgressModal({ ...progressModal, isOpen: false })} 
+                title="UPDATE TASK PROGRESS"
+            >
+                <div className="space-y-8 py-2">
+                    
+                    {/* عرض النسبة الكبيرة بالنص */}
+                    <div className="text-center space-y-2 bg-blue-50/50 py-6 rounded-[2rem] border border-blue-50">
+                        <div className="flex justify-center items-center text-[#00629B]">
+                            <span className="text-6xl font-[900] tracking-tighter">{progressModal.pct}</span>
+                            <Percent size={32} className="opacity-50 ml-1" />
+                        </div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">Current Completion Rate</p>
+                    </div>
+
+                    {/* شريط السحب (Slider) */}
+                    <div className="space-y-4 px-2">
+                        <input 
+                            type="range" 
+                            min="0" 
+                            max="100" 
+                            step="5"
+                            value={progressModal.pct}
+                            onChange={(e) => setProgressModal({ ...progressModal, pct: parseInt(e.target.value) })}
+                            className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#00629B]"
+                        />
+                        <div className="flex justify-between text-[10px] font-black text-slate-300">
+                            <span>0%</span>
+                            <span>50%</span>
+                            <span>100%</span>
+                        </div>
+                    </div>
+
+                    {/* أزرار النسب السريعة */}
+                    <div className="grid grid-cols-5 gap-2">
+                        {[0, 25, 50, 75, 100].map(val => (
+                            <button
+                                key={val}
+                                type="button"
+                                onClick={() => setProgressModal({ ...progressModal, pct: val })}
+                                className={`py-3 rounded-xl text-[11px] font-black transition-all ${progressModal.pct === val ? 'bg-[#00629B] text-white shadow-md' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-100'}`}
+                            >
+                                {val}%
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* زر الحفظ */}
+                    <button 
+                        onClick={submitProgressUpdate}
+                        disabled={progressSubmitting}
+                        className="w-full bg-[#00629B] text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center gap-2"
+                    >
+                        {progressSubmitting ? (
+                            <><Loader2 size={16} className="animate-spin"/> SYNCING DATA...</>
+                        ) : (
+                            <><CheckCircle2 size={16}/> CONFIRM PROGRESS</>
+                        )}
+                    </button>
+                </div>
+            </BaseModal>
         </div>
     );
 };

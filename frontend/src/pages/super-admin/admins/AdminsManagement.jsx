@@ -22,7 +22,7 @@ const AdminsManagement = () => {
       const fetchedData = response.data?.data || response.data || [];
       setAdmins(fetchedData);
     } catch (error) {
-      toast.error(`Failed to fetch ${activeTab} admins`);
+      toast.error(`Failed to fetch ${activeTab} admins` ,error);
       setAdmins([]);
     } finally {
       setIsLoading(false);
@@ -43,7 +43,7 @@ const AdminsManagement = () => {
       // 2. تحديث الواجهة فوراً بجلب البيانات من جديد لإخفاء المستخدم من التاب الحالي
       fetchAdmins();
     } catch (error) {
-      toast.error("Failed to update status. Please try again.");
+      toast.error("Failed to update status. Please try again." ,error);
     }
   };
 

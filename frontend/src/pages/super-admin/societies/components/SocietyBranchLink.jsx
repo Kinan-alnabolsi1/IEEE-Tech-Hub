@@ -22,7 +22,7 @@ const SocietyBranchLink = ({ societies }) => {
       const serverData = res.data?.data || res.data || [];
       setBranches(Array.isArray(serverData) ? serverData : []);
     } catch (err) {
-      toast.error("Failed to load branches");
+      toast.error("Failed to load branches",err);
     } finally {
       setLoadingBranches(false);
     }
@@ -44,7 +44,7 @@ const SocietyBranchLink = ({ societies }) => {
       const linkedIds = attachedData.map(soc => soc.id || soc.society_id);
       setSelectedSocieties(linkedIds);
     } catch (err) {
-      toast.error("Error syncing branch data");
+      toast.error("Error syncing branch data",err);
       setSelectedSocieties([]);
     } finally {
       setIsSubmitting(false);
@@ -175,34 +175,41 @@ const SocietyBranchLink = ({ societies }) => {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8 flex-1 overflow-y-auto content-start pr-2 no-scrollbar">
-              {filteredSocieties.map((soc, index) => {
-                const socId = soc.id || soc.society_id;
-                const isChecked = selectedSocieties.includes(socId);
+<div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8 flex-1 overflow-y-auto content-start pr-2 no-scrollbar">
+  {isSubmitting ? (
+    <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400">
+      <Loader2 className="w-8 h-8 text-[#00629B] animate-spin mb-3" />
+      <span className="text-[10px] font-bold uppercase tracking-widest">Syncing Associations...</span>
+    </div>
+  ) : (
+    filteredSocieties.map((soc, index) => {
+      const socId = soc.id || soc.society_id;
+      const isChecked = selectedSocieties.includes(socId);
 
-                return (
-                  <div 
-                    key={socId || index}
-                    onClick={() => toggleSociety(socId)}
-                    className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${
-                      isChecked
-                      ? 'border-[#00629B] bg-[#00629B] text-white shadow-lg shadow-blue-900/20'
-                      : 'border-slate-100 bg-white hover:border-blue-200'
-                    }`}
-                  >
-                    <div className={`p-1.5 rounded-lg transition-colors ${isChecked ? 'bg-white/20 text-white' : 'bg-blue-50 text-[#00629B]'}`}>
-                      <Check className={`w-3.5 h-3.5 transition-opacity ${isChecked ? 'opacity-100' : 'opacity-0'}`} />
-                    </div>
-                    <div className="flex flex-col overflow-hidden">
-                      <span className="text-[11px] font-black uppercase tracking-tight truncate">{soc.name}</span>
-                      <span className={`text-[9px] font-bold uppercase ${isChecked ? 'opacity-80' : 'text-slate-400'}`}>
-                        {soc.abbreviation || soc.abbr}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+      return (
+        <div 
+          key={socId || index}
+          onClick={() => toggleSociety(socId)}
+          className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${
+            isChecked
+            ? 'border-[#00629B] bg-[#00629B] text-white shadow-lg shadow-blue-900/20'
+            : 'border-slate-100 bg-white hover:border-blue-200'
+          }`}
+        >
+          <div className={`p-1.5 rounded-lg transition-colors ${isChecked ? 'bg-white/20 text-white' : 'bg-blue-50 text-[#00629B]'}`}>
+            <Check className={`w-3.5 h-3.5 transition-opacity ${isChecked ? 'opacity-100' : 'opacity-0'}`} />
+          </div>
+          <div className="flex flex-col overflow-hidden">
+            <span className="text-[11px] font-black uppercase tracking-tight truncate">{soc.name}</span>
+            <span className={`text-[9px] font-bold uppercase ${isChecked ? 'opacity-80' : 'text-slate-400'}`}>
+              {soc.abbreviation || soc.abbr}
+            </span>
+          </div>
+        </div>
+      );
+    })
+  )}
+</div>
 
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                <p className="text-[9px] font-bold text-slate-400 uppercase text-center italic">

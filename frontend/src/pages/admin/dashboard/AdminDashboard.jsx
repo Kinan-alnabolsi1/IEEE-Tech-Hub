@@ -39,7 +39,6 @@ const AdminDashboard = () => {
     loadData();
   }, []);
 
-  // 🌟 2. استخدام اللودر الموحد بدل اللودر القديم
   if (loading) {
     return <Loader message="Syncing Branch Stats..." />;
   }

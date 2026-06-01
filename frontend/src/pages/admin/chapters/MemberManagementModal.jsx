@@ -88,7 +88,7 @@ const MemberManagementModal = ({ isOpen, onClose, chapter, onSuccess }) => {
             toast.success("Chapter Chair updated successfully");
             if (onSuccess) onSuccess(); 
         } catch (err) {
-            toast.error("Failed to assign chair");
+            toast.error("Failed to assign chair",err);
         } finally {
             setActionLoading(false);
         }
@@ -103,7 +103,7 @@ const MemberManagementModal = ({ isOpen, onClose, chapter, onSuccess }) => {
             toast.success("Chair position is now vacant");
             if (onSuccess) onSuccess(); 
         } catch (err) {
-            toast.error("Failed to remove chair");
+            toast.error("Failed to remove chair",err);
         } finally {
             setActionLoading(false);
         }
@@ -119,7 +119,7 @@ const MemberManagementModal = ({ isOpen, onClose, chapter, onSuccess }) => {
             fetchMemberData();
             if (onSuccess) onSuccess();
         } catch (err) {
-            toast.error("Failed to remove member");
+            toast.error("Failed to remove member",err);
         } finally {
             setActionLoading(false);
         }

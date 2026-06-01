@@ -44,7 +44,6 @@ const AnalyticsChart = ({ chartData }) => {
     ],
   };
 
-  // 🌟 حسبنا أعلى قيمة بالأعمدة عشان نضبط ارتفاع الشارت
   const maxCount = Math.max(...safeData.map(item => getCount(item)));
 
   const options = {
@@ -82,7 +81,6 @@ const AnalyticsChart = ({ chartData }) => {
         display: false,
         grid: { display: false },
         beginAtZero: true, 
-        // 🌟 ضبطنا الارتفاع بشكل ديناميكي
         suggestedMax: maxCount > 0 ? maxCount * 1.2 : 10,
       },
     },

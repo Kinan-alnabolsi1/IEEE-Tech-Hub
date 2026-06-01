@@ -25,7 +25,7 @@ const SocietiesIndex = () => {
       const serverData = res.data?.data || res.data || [];
       setSocieties(Array.isArray(serverData) ? serverData : []);
     } catch (err) {
-      toast.error("Failed to sync with server database");
+      toast.error("Failed to sync with server database" , err);
     } finally {
       setLoading(false);
     }
@@ -58,7 +58,7 @@ const SocietiesIndex = () => {
       setIsEditModalOpen(false);
       fetchSocieties(); 
     } catch (err) {
-      toast.error("Failed to update society");
+      toast.error("Failed to update society" ,err);
     }
   };
 
@@ -69,7 +69,7 @@ const SocietiesIndex = () => {
         toast.success("Society Erased");
         fetchSocieties();
       } catch (err) {
-        toast.error("Server Rejected Deletion");
+        toast.error("Server Rejected Deletion",err);
       }
     }
   };
