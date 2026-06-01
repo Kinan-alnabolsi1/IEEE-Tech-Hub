@@ -51,10 +51,34 @@ const TasksBoard = () => {
     const [evalTask, setEvalTask] = useState(null);
     const [evaluations, setEvaluations] = useState({});
     const [evalSubmitting, setEvalSubmitting] = useState(false);
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, task: null });
+    const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
     const [formData, setFormData] = useState({
-        title: '', priority: 'Medium', status: 'Pending', due_date: '', assigned_users: []
+        title: '', description: '', priority: 'Medium', status: 'To Do', due_date: '', assigned_users: []
     });
+
+    const getProjectRole = (member) => (
+        member?.pivot?.role || member?.pivot?.role_name || member?.role_in_project || 'Project Member'
+    );
+
+    const getTaskAssignees = (task) => task?.assignees || task?.assigned_users || task?.assignedUsers || [];
+    const getMemberId = (member) => member?.user_id || member?.id || member?.pivot?.user_id;
+    const getMemberName = (member) => member?.full_name || member?.username || member?.name || 'Volunteer';
+
+    const normalizeTaskStatus = (status) => {
+        const value = String(status || '').toLowerCase().replace(/\s+/g, ' ').trim();
+        if (value === 'pending' || value === 'todo' || value === 'to do') return 'To Do';
+        if (value === 'inprogress' || value === 'in progress') return 'In Progress';
+        if (value === 'completed' || value === 'complete' || value === 'done') return 'Completed';
+        return 'To Do';
+    };
+
+    const getAssignedProjectRole = (assignedUser) => {
+        const assignedId = getMemberId(assignedUser);
+        const member = teamMembers.find(m => String(getMemberId(m)) === String(assignedId));
+        return member ? getProjectRole(member) : 'Project Member';
+    };
 
     const fetchData = async () => {
         try {
@@ -77,7 +101,6 @@ const TasksBoard = () => {
                 projectService.getProjectTasks(pId),
                 projectService.getProjectDetails(pId)
             ]);
-
             setTasks(tasksRes.data?.data || tasksRes.data || []);
 
             const members = projectRes.data?.data?.members || projectRes.data?.members || [];
@@ -88,12 +111,12 @@ const TasksBoard = () => {
                 const pivotStat = m.pivot?.status || m.pivot?.join_status || m.pivot?.request_status;
                 const stat = pivotStat || m.status || ''; 
                 
-                const pivotRole = m.pivot?.role || m.pivot?.role_name;
-                const role = pivotRole || m.role || '';
+                const role = m.role || '';
 
                 const isApproved = stat.toLowerCase() === 'approved' || stat.toLowerCase() === 'active' || stat.toLowerCase() === 'accepted';
+                const isVolunteer = role.trim().toLowerCase() === "volunteer";
                 
-                return isApproved && !role.toLowerCase().includes('leader');
+                return isApproved && isVolunteer;
             });
             
             setTeamMembers(approvedVolunteers);
@@ -111,17 +134,18 @@ const TasksBoard = () => {
     const openModal = (task = null) => {
         if (task) {
             setTaskToEdit(task);
-            const assignedIds = task.assigned_users?.map(u => u.user_id || u.id || u.pivot?.user_id) || [];
+            const assignedIds = getTaskAssignees(task).map(getMemberId).filter(Boolean);
             setFormData({
                 title: task.title, 
+                description: task.description || '',
                 priority: task.priority || 'Medium', 
-                status: task.status || 'Pending',
+                status: normalizeTaskStatus(task.status),
                 due_date: task.due_date ? task.due_date.substring(0, 10) : '', 
                 assigned_users: assignedIds
             });
         } else {
             setTaskToEdit(null);
-            setFormData({ title: '', priority: 'Medium', status: 'Pending', due_date: '', assigned_users: [] });
+            setFormData({ title: '', description: '', priority: 'Medium', status: 'To Do', due_date: '', assigned_users: [] });
         }
         setIsModalOpen(true);
     };
@@ -129,19 +153,25 @@ const TasksBoard = () => {
     const handleAssignUser = (userId) => {
         setFormData(prev => ({
             ...prev,
-assigned_users: prev.assigned_users.includes(userId) ? [] : [userId]        }));
+            assigned_users: prev.assigned_users.some(id => String(id) === String(userId)) ? [] : [userId]
+        }));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         const pId = localStorage.getItem('managed_project_id');
         if (!pId) return toast.error("Project context lost.");
-        if (formData.assigned_users.length === 0) return toast.error("Please assign at least one member.");
+        if (!taskToEdit && formData.assigned_users.length === 0) return toast.error("Please assign at least one member.");
 
         setSubmitting(true);
         const tid = toast.loading("Processing Task...");
         try {
-            const payload = { ...formData, project_id: parseInt(pId) };
+            const payload = { 
+                ...formData, 
+                description: formData.description?.trim() || null,
+                status: normalizeTaskStatus(formData.status),
+                project_id: parseInt(pId, 10)
+            };
             if (taskToEdit) {
                 await projectService.updateTask(taskToEdit.task_id || taskToEdit.id, payload);
                 toast.success("Task updated!", { id: tid });
@@ -167,23 +197,39 @@ assigned_users: prev.assigned_users.includes(userId) ? [] : [userId]        }));
         }
     };
 
-    const handleDelete = async (taskId) => {
-        if (!window.confirm("Delete this task?")) return;
+    const openDeleteModal = (task) => {
+        setDeleteModal({ isOpen: true, task });
+    };
+
+    const closeDeleteModal = () => {
+        if (!deleteSubmitting) setDeleteModal({ isOpen: false, task: null });
+    };
+
+    const handleDelete = async () => {
+        const taskId = deleteModal.task?.task_id || deleteModal.task?.id;
+        if (!taskId) return;
+
+        setDeleteSubmitting(true);
         try {
             await projectService.deleteTask(taskId);
             toast.success("Task deleted.");
             setTasks(prev => prev.filter(t => (t.task_id || t.id) !== taskId));
-        } catch (error) { toast.error("Delete failed."); }
+            setDeleteModal({ isOpen: false, task: null });
+        } catch (error) { 
+            toast.error("Delete failed."); 
+        } finally {
+            setDeleteSubmitting(false);
+        }
     };
 
     const openEvalModal = (task) => {
         setEvalTask(task);
-        const assignedIds = task.assigned_users?.map(u => u.user_id || u.id || u.pivot?.user_id) || [];
+        const assignedIds = getTaskAssignees(task).map(getMemberId).filter(Boolean);
         
         const initialEvals = {};
         teamMembers.forEach(m => {
             const uid = m.user_id || m.id;
-            initialEvals[uid] = { rating: 5, feedback: '', isSelected: assignedIds.includes(uid) };
+            initialEvals[uid] = { rating: 5, feedback: '', isSelected: assignedIds.some(id => String(id) === String(uid)) };
         });
         setEvaluations(initialEvals);
         setIsEvalModalOpen(true);
@@ -225,7 +271,7 @@ assigned_users: prev.assigned_users.includes(userId) ? [] : [userId]        }));
     };
 
     const columns = [
-        { id: 'Pending', title: 'To Do', icon: <Clock size={16} className="text-amber-500"/> },
+        { id: 'To Do', title: 'To Do', icon: <Clock size={16} className="text-amber-500"/> },
         { id: 'In Progress', title: 'In Progress', icon: <Loader2 size={16} className="text-blue-500 animate-spin-slow"/> },
         { id: 'Completed', title: 'Completed', icon: <CheckCircle2 size={16} className="text-emerald-500"/> }
     ];
@@ -247,10 +293,7 @@ assigned_users: prev.assigned_users.includes(userId) ? [] : [userId]        }));
             <div className="flex-1 flex gap-6 overflow-x-auto pb-8 custom-scrollbar min-h-[500px]">
                 {columns.map(col => {
                     const colTasks = tasks.filter(t => {
-                        const taskStatus = (t.status || '').toLowerCase().trim();
-                        const columnId = col.id.toLowerCase().trim();
-                        if (columnId === 'pending') return taskStatus === 'pending' || taskStatus === 'to do' || taskStatus === 'todo';
-                        return taskStatus === columnId || taskStatus === columnId.replace(' ', '');
+                        return normalizeTaskStatus(t.status) === col.id;
                     });
 
                     return (
@@ -260,8 +303,11 @@ assigned_users: prev.assigned_users.includes(userId) ? [] : [userId]        }));
                                 <span className="bg-slate-100 text-slate-500 px-3 py-1 rounded-full text-[10px] font-black">{colTasks.length}</span>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto space-y-4 px-2 custom-scrollbar">
-                                {colTasks.length > 0 ? colTasks.map(task => (
+                            <div className="max-h-[620px] overflow-y-auto space-y-4 px-2 pr-3 custom-scrollbar">
+                                {colTasks.length > 0 ? colTasks.map(task => {
+                                    const assignees = getTaskAssignees(task);
+
+                                    return (
                                     <div key={task.task_id || task.id} className="bg-white p-5 rounded-[1.8rem] shadow-sm border border-slate-100 group hover:shadow-md transition-all animate-in fade-in slide-in-from-bottom-2 relative overflow-hidden">
                                         <div className="flex justify-between items-start mb-3">
                                             <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase ${task.priority === 'High' ? 'bg-rose-50 text-rose-600' : 'bg-blue-50 text-blue-600'}`}>{task.priority}</span>
@@ -270,22 +316,48 @@ assigned_users: prev.assigned_users.includes(userId) ? [] : [userId]        }));
                                                     <button onClick={() => openEvalModal(task)} className="p-1.5 bg-amber-50 text-amber-500 hover:bg-amber-100 rounded-lg mr-1 transition-colors"><Star size={12} fill="currentColor"/></button>
                                                 )}
                                                 <button onClick={() => openModal(task)} className="p-1.5 text-slate-400 hover:text-blue-600"><Edit2 size={12}/></button>
-                                                <button onClick={() => handleDelete(task.task_id || task.id)} className="p-1.5 text-slate-400 hover:text-rose-600"><Trash2 size={12}/></button>
+                                                <button onClick={() => openDeleteModal(task)} className="p-1.5 text-slate-400 hover:text-rose-600"><Trash2 size={12}/></button>
                                             </div>
                                         </div>
-                                        <h4 className="text-sm font-bold text-slate-800 mb-4 leading-snug">{task.title}</h4>
-                                        <div className="flex justify-between items-center border-t border-slate-50 pt-4">
-                                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400"><Calendar size={12}/> {task.due_date?.substring(0, 10)}</div>
-                                            <div className="flex -space-x-2">
-                                                {task.assigned_users?.map((u, i) => (
-                                                    <div key={i} className="w-6 h-6 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-[8px] font-black text-[#00629B]" title={u.full_name || u.username}>
-                                                        {(u.full_name || u.username || 'U').charAt(0).toUpperCase()}
-                                                    </div>
-                                                ))}
+                                        <h4 className="text-sm font-bold text-slate-800 mb-2 leading-snug">{task.title}</h4>
+                                        {task.description && (
+                                            <p className="text-xs font-medium text-slate-500 leading-relaxed line-clamp-2 mb-4">
+                                                {task.description}
+                                            </p>
+                                        )}
+                                        <div className="border-t border-slate-50 pt-4 space-y-3">
+                                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                                                <Calendar size={12}/> {task.due_date?.substring(0, 10) || 'No deadline'}
+                                            </div>
+                                            <div className="space-y-2">
+                                                <p className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                                    <User size={11} /> Assigned To
+                                                </p>
+                                                {assignees.length > 0 ? assignees.map((user) => {
+                                                    const userId = getMemberId(user);
+                                                    const userName = getMemberName(user);
+
+                                                    return (
+                                                        <div key={userId} className="flex items-center gap-2 bg-slate-50 rounded-xl px-2.5 py-2 border border-slate-100 min-w-0">
+                                                            <div className="w-7 h-7 rounded-full bg-blue-100 text-[#00629B] flex items-center justify-center text-[9px] font-black shrink-0">
+                                                                {userName.charAt(0).toUpperCase()}
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <p className="text-[11px] font-black text-slate-700 truncate">{userName}</p>
+                                                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest truncate">{getAssignedProjectRole(user)}</p>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                }) : (
+                                                    <p className="text-[10px] font-bold text-slate-400 italic bg-slate-50 rounded-xl p-2 border border-dashed border-slate-100">
+                                                        No volunteer assigned
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
-                                )) : <div className="h-20 flex items-center justify-center border-2 border-dashed border-slate-100 rounded-[1.5rem] opacity-40"><p className="text-[9px] font-bold uppercase tracking-widest">Empty Slot</p></div>}
+                                    );
+                                }) : <div className="h-20 flex items-center justify-center border-2 border-dashed border-slate-100 rounded-[1.5rem] opacity-40"><p className="text-[9px] font-bold uppercase tracking-widest">Empty Slot</p></div>}
                             </div>
                         </div>
                     );
@@ -297,6 +369,10 @@ assigned_users: prev.assigned_users.includes(userId) ? [] : [userId]        }));
                     <div className="space-y-1">
                         <label className="text-[9px] font-black uppercase text-[#005587] ml-2 block tracking-widest">Task Objective</label>
                         <input required type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:border-blue-300 transition-all" />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase text-[#005587] ml-2 block tracking-widest">Description</label>
+                        <textarea rows="3" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:border-blue-300 transition-all resize-none" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
@@ -314,27 +390,34 @@ assigned_users: prev.assigned_users.includes(userId) ? [] : [userId]        }));
                             ]}
                         />
                     </div>
-                    {taskToEdit && (
-                        <CustomDropdown 
-                            label="Status Update"
-                            value={formData.status}
-                            onChange={val => setFormData({...formData, status: val})}
-                            options={[
-                                { value: 'Pending', label: 'To Do' },
-                                { value: 'In Progress', label: 'In Progress' },
-                                { value: 'Completed', label: 'Completed' }
-                            ]}
-                        />
-                    )}
+                    <CustomDropdown 
+                        label={taskToEdit ? 'Status Update' : 'Initial Status'}
+                        value={formData.status}
+                        onChange={val => setFormData({...formData, status: val})}
+                        options={[
+                            { value: 'To Do', label: 'To Do' },
+                            { value: 'In Progress', label: 'In Progress' },
+                            { value: 'Completed', label: 'Completed' }
+                        ]}
+                    />
                     <div className="space-y-3">
                         <label className="text-[9px] font-black uppercase text-[#005587] ml-2 block tracking-widest">Select Team Members</label>
-                        <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-2 custom-scrollbar">
                             {teamMembers.length > 0 ? teamMembers.map(m => {
-                                const isSelected = formData.assigned_users.includes(m.user_id || m.id);
+                                const memberId = getMemberId(m);
+                                const memberName = getMemberName(m);
+                                const projectRole = getProjectRole(m);
+                                const isSelected = formData.assigned_users.some(id => String(id) === String(memberId));
+
                                 return (
-                                    <div key={m.user_id || m.id} onClick={() => handleAssignUser(m.user_id || m.id)} className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${isSelected ? 'bg-blue-50 border-[#00629B] text-[#00629B]' : 'bg-white border-slate-100 text-slate-600 hover:border-blue-200'}`}>
-                                        <p className="text-[11px] font-black truncate">{m.full_name || m.username}</p>
-                                        {isSelected && <CheckCircle2 size={14} />}
+                                    <div key={memberId} onClick={() => handleAssignUser(memberId)} className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between gap-3 min-w-0 ${isSelected ? 'bg-blue-50 border-[#00629B] text-[#00629B]' : 'bg-white border-slate-100 text-slate-600 hover:border-blue-200'}`}>
+                                        <div className="min-w-0">
+                                            <p className="text-[11px] font-black truncate">{memberName}</p>
+                                            <p className={`text-[8px] font-black uppercase tracking-widest truncate mt-1 ${isSelected ? 'text-[#00629B]' : 'text-slate-400'}`}>
+                                                {projectRole}
+                                            </p>
+                                        </div>
+                                        {isSelected && <CheckCircle2 size={14} className="shrink-0" />}
                                     </div>
                                 );
                             }) : (
@@ -342,10 +425,52 @@ assigned_users: prev.assigned_users.includes(userId) ? [] : [userId]        }));
                             )}
                         </div>
                     </div>
-                    <button type="submit" disabled={submitting || formData.assigned_users.length === 0} className="w-full bg-[#00629B] text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl disabled:opacity-50 transition-all active:scale-95">
+                    <button type="submit" disabled={submitting || (!taskToEdit && formData.assigned_users.length === 0)} className="w-full bg-[#00629B] text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl disabled:opacity-50 transition-all active:scale-95">
                         {submitting ? 'Processing...' : (taskToEdit ? 'Save Changes' : 'Deploy Task')}
                     </button>
                 </form>
+            </BaseModal>
+
+            <BaseModal 
+                isOpen={deleteModal.isOpen} 
+                onClose={closeDeleteModal} 
+                title="Delete Task"
+                showCloseButton={!deleteSubmitting}
+            >
+                <div className="space-y-6">
+                    <div className="flex items-start gap-4 rounded-2xl border border-rose-100 bg-rose-50/60 p-4">
+                        <div className="w-11 h-11 rounded-2xl bg-white text-rose-500 flex items-center justify-center shrink-0 shadow-sm">
+                            <Trash2 size={18} />
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-sm font-black text-slate-800 uppercase tracking-tight">
+                                {deleteModal.task?.title || 'Selected Task'}
+                            </p>
+                            <p className="text-xs font-bold text-slate-500 leading-relaxed mt-1">
+                                This will permanently delete the task and remove its volunteer assignments.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <button
+                            type="button"
+                            onClick={closeDeleteModal}
+                            disabled={deleteSubmitting}
+                            className="py-3.5 rounded-2xl border border-slate-100 bg-white text-slate-500 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all disabled:opacity-50"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleDelete}
+                            disabled={deleteSubmitting}
+                            className="py-3.5 rounded-2xl bg-rose-500 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-rose-100 hover:bg-rose-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                            {deleteSubmitting ? <><Loader2 size={14} className="animate-spin" /> Deleting</> : <><Trash2 size={14} /> Delete</>}
+                        </button>
+                    </div>
+                </div>
             </BaseModal>
 
             <BaseModal isOpen={isEvalModalOpen} onClose={() => !evalSubmitting && setIsEvalModalOpen(false)} title="Evaluate Team Performance">
@@ -369,7 +494,7 @@ assigned_users: prev.assigned_users.includes(userId) ? [] : [userId]        }));
                                             </div>
                                             <div>
                                                 <p className="text-[11px] font-black text-slate-800 uppercase">{user.full_name || user.username}</p>
-                                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Volunteer</p>
+                                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">{getProjectRole(user)}</p>
                                             </div>
                                         </div>
                                         

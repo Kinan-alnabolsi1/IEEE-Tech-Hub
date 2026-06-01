@@ -59,19 +59,19 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
     <>
       <aside 
       className={`
-        fixed inset-0 z-[100] bg-[#00629B] text-white transition-transform duration-500 ease-in-out transform flex flex-col
+        fixed inset-y-0 left-0 z-[100] w-[18rem] max-w-[85vw] bg-[#00629B] text-white transition-transform duration-500 ease-in-out transform flex flex-col shadow-2xl
         ${isOpen ? 'translate-x-0' : '-translate-x-full'} 
         lg:translate-x-0 lg:w-64 lg:inset-y-0 lg:left-0 lg:z-50
       `}
       >
         
-        <div className="h-20 flex items-center justify-between px-8 border-b border-white/10 shrink-0">
-          <div className="flex items-center space-x-3">
+        <div className="h-20 flex items-center justify-between gap-3 px-5 sm:px-6 lg:px-8 border-b border-white/10 shrink-0">
+          <div className="flex items-center space-x-3 min-w-0">
             <img className='w-10' src={logo} alt="IEEE Logo"/>
-            <span className="font-black tracking-widest uppercase text-sm italic">IEEE Tech-Hub</span>
+            <span className="font-black tracking-widest uppercase text-sm italic truncate">IEEE Tech-Hub</span>
           </div>
-          <button onClick={toggleSidebar} className="lg:hidden p-2 hover:bg-white/10 rounded-full transition-colors">
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button onClick={toggleSidebar} className="lg:hidden p-2 hover:bg-white/10 rounded-full transition-colors shrink-0">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>

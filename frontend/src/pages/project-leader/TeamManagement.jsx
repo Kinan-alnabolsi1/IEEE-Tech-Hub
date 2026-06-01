@@ -169,36 +169,36 @@ const TeamManagement = () => {
         const status = getStatus(app);
 
         return (
-            <div className={`p-6 rounded-[2.5rem] shadow-sm border transition-all bg-white relative overflow-hidden flex flex-col h-full ${isAi ? 'border-purple-200 bg-purple-50/10' : status === 'pending' ? 'border-amber-100 shadow-amber-50/50' : status === 'approved' ? 'border-emerald-100 shadow-emerald-50/50' : 'border-rose-100 shadow-rose-50/50'}`}>
+            <div className={`p-4 sm:p-6 rounded-[1.75rem] sm:rounded-[2.5rem] shadow-sm border transition-all bg-white relative overflow-hidden flex flex-col h-full min-w-0 ${isAi ? 'border-purple-200 bg-purple-50/10' : status === 'pending' ? 'border-amber-100 shadow-amber-50/50' : status === 'approved' ? 'border-emerald-100 shadow-emerald-50/50' : 'border-rose-100 shadow-rose-50/50'}`}>
                 {isAi && (
-                    <>
-                        <div className="absolute top-0 left-0 bg-purple-600 text-white px-4 py-2 rounded-br-[1.5rem] text-xs font-black shadow-md z-10 tracking-widest">#{index + 1} RANK</div>
-                        <div className="absolute top-4 right-4 bg-purple-600 text-white px-3 py-1 rounded-full text-[10px] font-black flex items-center gap-1 shadow-sm">
+                    <div className="mb-4 flex flex-col min-[420px]:flex-row min-[420px]:items-center justify-between gap-2">
+                        <div className="self-start bg-purple-600 text-white px-3 py-1.5 rounded-xl text-[10px] sm:text-xs font-black shadow-md tracking-widest">#{index + 1} RANK</div>
+                        <div className="self-start bg-purple-600 text-white px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-black flex items-center gap-1 shadow-sm whitespace-nowrap">
                             <Sparkles size={10} /> {app.ai_avg_score}% AVG SCORE
                         </div>
-                    </>
+                    </div>
                 )}
                 
-                <div className={`flex items-center gap-4 mb-4 ${isAi ? 'mt-4' : ''}`}>
+                <div className="flex items-center gap-3 sm:gap-4 mb-4 min-w-0">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl border shadow-sm shrink-0 ${isAi ? 'bg-purple-600 text-white border-purple-400' : status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' : status === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
                         {(user.full_name || "V").charAt(0).toUpperCase()}
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                         <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight line-clamp-1">{user.full_name}</h3>
-                        <p className={`text-[10px] font-bold uppercase tracking-widest ${isAi ? 'text-purple-600' : 'text-[#00629B]'}`}>{getRole(app)}</p>
+                        <p className={`text-[10px] font-bold uppercase tracking-widest truncate ${isAi ? 'text-purple-600' : 'text-[#00629B]'}`}>{getRole(app)}</p>
                     </div>
                 </div>
 
                 {/* 🌟 الديزاين الجديد الاحترافي لعرض تفاصيل التقييم (Breakdown) */}
                 {isAi ? (
-                    <div className="bg-white p-5 rounded-2xl mb-6 border border-purple-100 shadow-inner flex-1">
+                    <div className="bg-white p-4 sm:p-5 rounded-2xl mb-5 sm:mb-6 border border-purple-100 shadow-inner flex-1 min-w-0">
                         <p className="text-[9px] font-black text-purple-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
                             <BarChart2 size={12} /> AI Analysis Breakdown
                         </p>
                         <div className="flex flex-wrap gap-2.5">
                             {app.ai_tags && app.ai_tags.length > 0 ? app.ai_tags.map((tag, idx) => (
-                                <div key={idx} className="bg-purple-50 px-2.5 py-1.5 rounded-lg border border-purple-100 flex items-center gap-2">
-                                    <span className="text-[9px] font-bold text-purple-700 capitalize tracking-tight">{tag.name}</span>
+                                <div key={idx} className="bg-purple-50 px-2.5 py-1.5 rounded-lg border border-purple-100 flex items-center gap-2 min-w-0">
+                                    <span className="text-[9px] font-bold text-purple-700 capitalize tracking-tight truncate">{tag.name}</span>
                                     <span className="text-[10px] font-black text-purple-900 bg-purple-200/50 px-1.5 rounded">{tag.score}%</span>
                                 </div>
                             )) : (
@@ -207,7 +207,7 @@ const TeamManagement = () => {
                         </div>
                     </div>
                 ) : (
-                    <div className="bg-slate-50/50 p-4 rounded-2xl mb-6 border border-slate-100 flex-1">
+                    <div className="bg-slate-50/50 p-4 rounded-2xl mb-5 sm:mb-6 border border-slate-100 flex-1 min-w-0">
                         <p className="text-xs font-bold text-slate-500 line-clamp-3 italic leading-relaxed">
                             "{user.bio || "No biography provided."}"
                         </p>
@@ -215,7 +215,7 @@ const TeamManagement = () => {
                 )}
 
                 {status === 'pending' && (
-                    <div className="flex items-center gap-3 mt-auto">
+                    <div className="grid grid-cols-2 gap-3 mt-auto">
                         <button onClick={() => handleAction(userId, 'reject')} disabled={actionLoading === userId} className="flex-1 py-3.5 bg-white text-rose-500 border border-rose-100 hover:bg-rose-50 rounded-xl text-[10px] font-black uppercase transition-all active:scale-95 disabled:opacity-50">Reject</button>
                         <button onClick={() => handleAction(userId, 'approve')} disabled={actionLoading === userId} className="flex-1 py-3.5 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase shadow-md hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50">Accept</button>
                     </div>
@@ -227,11 +227,11 @@ const TeamManagement = () => {
     if (loading) return <Loader message="Setting up Team Management Board..." />;
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-700 h-full flex flex-col pb-10 max-w-[1700px] mx-auto">
-            <div className="flex justify-between items-center gap-4">
-                <h1 className="text-3xl font-black text-[#00629B] uppercase italic flex items-center gap-3 tracking-tight"><LayoutDashboard size={28} /> Team Overview</h1>
+        <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-700 h-full flex flex-col pb-10 w-full max-w-[1700px] mx-auto min-w-0">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 min-w-0">
+                <h1 className="text-2xl sm:text-3xl font-black text-[#00629B] uppercase italic flex items-center gap-3 tracking-tight min-w-0"><LayoutDashboard size={26} className="shrink-0" /> <span className="truncate">Team Overview</span></h1>
                 {activeStatusTab === 'pending' && activeRoleTab !== 'All' && (
-                    <button onClick={handleRunAiAnalysis} disabled={aiLoading} className="bg-purple-600 text-white px-7 py-4 rounded-[1.8rem] shadow-xl shadow-purple-200 flex items-center gap-3 hover:bg-purple-700 transition-all active:scale-95 group disabled:opacity-50 shrink-0">
+                    <button onClick={handleRunAiAnalysis} disabled={aiLoading} className="w-full sm:w-auto justify-center bg-purple-600 text-white px-5 sm:px-7 py-3.5 sm:py-4 rounded-2xl sm:rounded-[1.8rem] shadow-xl shadow-purple-200 flex items-center gap-3 hover:bg-purple-700 transition-all active:scale-95 group disabled:opacity-50 shrink-0">
                         {aiLoading ? <Loader2 size={18} className="animate-spin" /> : <BrainCircuit size={18} />}
                         <span className="text-[11px] font-black uppercase tracking-widest">Run AI Scout Analysis</span>
                     </button>
@@ -239,52 +239,52 @@ const TeamManagement = () => {
             </div>
 
             {/* الأزرار الملونة للتابات الرئيسية */}
-            <div className="bg-white p-2 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-4">
-                <div className="grid grid-cols-3 gap-2.5">
+            <div className="bg-white p-2 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-4 min-w-0">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     {/* Pending Tab */}
-                    <button onClick={() => {setActiveStatusTab('pending'); setActiveRoleTab('All'); setAiResults(null);}} className={`flex items-center justify-center gap-3 py-4 rounded-[1.5rem] transition-all ${activeStatusTab === 'pending' ? 'bg-amber-50 border border-amber-200 shadow-sm' : 'hover:bg-slate-50 text-slate-500 border border-transparent'}`}>
+                    <button onClick={() => {setActiveStatusTab('pending'); setActiveRoleTab('All'); setAiResults(null);}} className={`flex items-center justify-between sm:justify-center gap-3 px-4 py-3.5 sm:py-4 rounded-[1.5rem] transition-all min-w-0 ${activeStatusTab === 'pending' ? 'bg-amber-50 border border-amber-200 shadow-sm' : 'hover:bg-slate-50 text-slate-500 border border-transparent'}`}>
                         <Clock size={18} className={activeStatusTab === 'pending' ? 'text-amber-500' : 'text-slate-400'} />
-                        <span className={`text-[11px] font-black uppercase tracking-widest ${activeStatusTab === 'pending' ? 'text-amber-600' : 'text-slate-500'}`}>Pending Applications</span>
+                        <span className={`text-[11px] font-black uppercase tracking-widest truncate flex-1 sm:flex-none ${activeStatusTab === 'pending' ? 'text-amber-600' : 'text-slate-500'}`}>Pending Applications</span>
                         <span className={`px-2.5 py-0.5 rounded text-[11px] font-black ${activeStatusTab === 'pending' ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'}`}>{counts.pending}</span>
                     </button>
                     {/* Approved Tab */}
-                    <button onClick={() => {setActiveStatusTab('approved'); setActiveRoleTab('All'); setAiResults(null);}} className={`flex items-center justify-center gap-3 py-4 rounded-[1.5rem] transition-all ${activeStatusTab === 'approved' ? 'bg-emerald-50 border border-emerald-200 shadow-sm' : 'hover:bg-slate-50 text-slate-500 border border-transparent'}`}>
+                    <button onClick={() => {setActiveStatusTab('approved'); setActiveRoleTab('All'); setAiResults(null);}} className={`flex items-center justify-between sm:justify-center gap-3 px-4 py-3.5 sm:py-4 rounded-[1.5rem] transition-all min-w-0 ${activeStatusTab === 'approved' ? 'bg-emerald-50 border border-emerald-200 shadow-sm' : 'hover:bg-slate-50 text-slate-500 border border-transparent'}`}>
                         <CheckCircle2 size={18} className={activeStatusTab === 'approved' ? 'text-emerald-500' : 'text-slate-400'} />
-                        <span className={`text-[11px] font-black uppercase tracking-widest ${activeStatusTab === 'approved' ? 'text-emerald-600' : 'text-slate-500'}`}>Approved Team</span>
+                        <span className={`text-[11px] font-black uppercase tracking-widest truncate flex-1 sm:flex-none ${activeStatusTab === 'approved' ? 'text-emerald-600' : 'text-slate-500'}`}>Approved Team</span>
                         <span className={`px-2.5 py-0.5 rounded text-[11px] font-black ${activeStatusTab === 'approved' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>{counts.approved}</span>
                     </button>
                     {/* Rejected Tab */}
-                    <button onClick={() => {setActiveStatusTab('rejected'); setActiveRoleTab('All'); setAiResults(null);}} className={`flex items-center justify-center gap-3 py-4 rounded-[1.5rem] transition-all ${activeStatusTab === 'rejected' ? 'bg-rose-50 border border-rose-200 shadow-sm' : 'hover:bg-slate-50 text-slate-500 border border-transparent'}`}>
+                    <button onClick={() => {setActiveStatusTab('rejected'); setActiveRoleTab('All'); setAiResults(null);}} className={`flex items-center justify-between sm:justify-center gap-3 px-4 py-3.5 sm:py-4 rounded-[1.5rem] transition-all min-w-0 ${activeStatusTab === 'rejected' ? 'bg-rose-50 border border-rose-200 shadow-sm' : 'hover:bg-slate-50 text-slate-500 border border-transparent'}`}>
                         <XCircle size={18} className={activeStatusTab === 'rejected' ? 'text-rose-500' : 'text-slate-400'} />
-                        <span className={`text-[11px] font-black uppercase tracking-widest ${activeStatusTab === 'rejected' ? 'text-rose-600' : 'text-slate-500'}`}>Rejected History</span>
+                        <span className={`text-[11px] font-black uppercase tracking-widest truncate flex-1 sm:flex-none ${activeStatusTab === 'rejected' ? 'text-rose-600' : 'text-slate-500'}`}>Rejected History</span>
                         <span className={`px-2.5 py-0.5 rounded text-[11px] font-black ${activeStatusTab === 'rejected' ? 'bg-rose-100 text-rose-600' : 'bg-slate-100 text-slate-500'}`}>{counts.rejected}</span>
                     </button>
                 </div>
                 {/* تابات الأدوار */}
-                <div className="flex gap-2.5 overflow-x-auto px-2 pb-2 custom-scrollbar">
+                <div className="flex gap-2.5 overflow-x-auto px-1 sm:px-2 pb-2 custom-scrollbar">
                     {roles.map(role => (
-                        <button key={role} onClick={() => { setActiveRoleTab(role); setAiResults(null); }} className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeRoleTab === role ? 'bg-[#00629B] text-white shadow-md' : 'bg-slate-50 text-slate-500 border border-slate-100 hover:bg-slate-100'}`}>{role}</button>
+                        <button key={role} onClick={() => { setActiveRoleTab(role); setAiResults(null); }} className={`px-4 sm:px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeRoleTab === role ? 'bg-[#00629B] text-white shadow-md' : 'bg-slate-50 text-slate-500 border border-slate-100 hover:bg-slate-100'}`}>{role}</button>
                     ))}
                 </div>
             </div>
 
             {/* AI Recommendations Section */}
             {aiResults && activeStatusTab === 'pending' && (
-                <div className="bg-purple-50/30 border border-purple-100 rounded-[3rem] p-8 animate-in slide-in-from-top-4 relative mb-4">
-                    <div className="flex items-center justify-between mb-8">
-                        <div className="flex items-center gap-3"><div className="p-3 bg-purple-600 text-white rounded-2xl shadow-lg shadow-purple-200"><Sparkles size={20} /></div><div><h2 className="text-xl font-black text-purple-900 uppercase italic">AI Talent Selection</h2><p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest mt-0.5">Top Matches for {activeRoleTab} Role</p></div></div>
-                        <button onClick={() => setAiResults(null)} className="p-2 hover:bg-purple-100 rounded-full text-purple-400 transition-colors"><X size={20} /></button>
+                <div className="bg-purple-50/30 border border-purple-100 rounded-[2rem] sm:rounded-[3rem] p-4 sm:p-6 lg:p-8 animate-in slide-in-from-top-4 relative mb-4 min-w-0">
+                    <div className="flex items-start justify-between gap-4 mb-6 sm:mb-8 min-w-0">
+                        <div className="flex items-center gap-3 min-w-0"><div className="p-3 bg-purple-600 text-white rounded-2xl shadow-lg shadow-purple-200 shrink-0"><Sparkles size={20} /></div><div className="min-w-0"><h2 className="text-lg sm:text-xl font-black text-purple-900 uppercase italic truncate">AI Talent Selection</h2><p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest mt-0.5 truncate">Top Matches for {activeRoleTab} Role</p></div></div>
+                        <button onClick={() => setAiResults(null)} className="p-2 hover:bg-purple-100 rounded-full text-purple-400 transition-colors shrink-0"><X size={20} /></button>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4 sm:gap-6">
                         {aiResults.map((app, i) => <UserCard key={i} app={app} isAi={true} index={i} />)}
                     </div>
                 </div>
             )}
 
             {/* Main Application Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6 pb-10">
+            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4 sm:gap-6 pb-10 min-w-0">
                 {displayedApps.length > 0 ? displayedApps.map((app, i) => <UserCard key={i} app={app} />) : (
-                    <div className="col-span-full py-20 text-center bg-white rounded-[3rem] border border-dashed border-slate-200 animate-in fade-in"><Users size={40} className="text-slate-200 mx-auto mb-4" /><p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No members found in this selection</p></div>
+                    <div className="col-span-full py-14 sm:py-20 px-4 text-center bg-white rounded-[2rem] sm:rounded-[3rem] border border-dashed border-slate-200 animate-in fade-in"><Users size={40} className="text-slate-200 mx-auto mb-4" /><p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No members found in this selection</p></div>
                 )}
             </div>
         </div>

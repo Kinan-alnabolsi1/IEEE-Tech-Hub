@@ -49,6 +49,13 @@ const TasksOverview = () => {
     }
   };
 
+  const getTaskAssignees = (task) => task.assignees || task.assignedUsers || task.assigned_users || [];
+
+  const getCompletionPct = (user) => {
+    const pct = Number(user.pivot?.completion_pct ?? user.completion_pct ?? 0);
+    return Number.isFinite(pct) ? Math.min(100, Math.max(0, pct)) : 0;
+  };
+
   // حالة: إذا اليوزر دخل الصفحة بدون ما يختار مشروع من صفحة المشاريع
   if (!projectId && !loading) {
     return (
@@ -107,8 +114,11 @@ const TasksOverview = () => {
                 </p>
               </div>
             ) : (
-              tasks.map((task) => (
-                <div key={task.task_id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col gap-5">
+              tasks.map((task) => {
+                const assignees = getTaskAssignees(task);
+
+                return (
+                <div key={task.task_id || task.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col gap-5">
                   <div className="flex justify-between items-start gap-4">
                     <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight leading-relaxed">
                       {task.title}
@@ -131,21 +141,26 @@ const TasksOverview = () => {
 
                   <div className="space-y-4 flex-1">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Assignees & Progress</p>
-                    {task.assignedUsers && task.assignedUsers.length > 0 ? (
+                    {assignees.length > 0 ? (
                       <div className="space-y-3">
-                        {task.assignedUsers.map((user) => (
-                          <div key={user.user_id} className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-full bg-[#00629B] text-white flex items-center justify-center text-[10px] font-bold shadow-sm">
-                                  {user.full_name?.charAt(0).toUpperCase()}
+                        {assignees.map((user) => {
+                          const completionPct = getCompletionPct(user);
+                          const userName = user.full_name || user.username || user.name || 'Assigned Member';
+                          const userId = user.user_id || user.id || user.pivot?.user_id;
+
+                          return (
+                          <div key={userId} className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                            <div className="flex items-center justify-between gap-3 mb-3">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="w-7 h-7 rounded-full bg-[#00629B] text-white flex items-center justify-center text-[10px] font-bold shadow-sm shrink-0">
+                                  {userName.charAt(0).toUpperCase()}
                                 </div>
-                                <span className="text-xs font-bold text-slate-700">{user.full_name}</span>
+                                <span className="text-xs font-bold text-slate-700 truncate">{userName}</span>
                               </div>
-                              <span className="text-[10px] font-black text-[#00629B] bg-blue-50 px-2 py-1 rounded-lg">{user.pivot?.completion_pct || 0}%</span>
+                              <span className="text-[10px] font-black text-[#00629B] bg-blue-50 px-2 py-1 rounded-lg shrink-0">{completionPct}%</span>
                             </div>
                             <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden mb-2">
-                              <div className="bg-[#00629B] h-2 rounded-full transition-all duration-1000" style={{ width: `${user.pivot?.completion_pct || 0}%` }}></div>
+                              <div className="bg-[#00629B] h-2 rounded-full transition-all duration-1000" style={{ width: `${completionPct}%` }}></div>
                             </div>
                             {user.pivot?.progress_note && (
                               <p className="text-[10px] font-bold text-slate-500 mt-2 bg-white p-2.5 rounded-xl border border-slate-100 italic">
@@ -153,7 +168,8 @@ const TasksOverview = () => {
                               </p>
                             )}
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     ) : (
                       <div className="bg-slate-50 border border-slate-100 border-dashed rounded-2xl p-4 text-center">
@@ -162,7 +178,8 @@ const TasksOverview = () => {
                     )}
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         )}
