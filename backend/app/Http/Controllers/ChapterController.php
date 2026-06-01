@@ -8,13 +8,11 @@ use Illuminate\Http\Request;
 
 class ChapterController extends Controller
 {
-    // 1. جلب فصول فرع معين
     public function index($branchId) {
         $chapters = Chapter::where('branch_id', $branchId)->with(['chair', 'society'])->get();
         return response()->json(['data' => $chapters]);
     }
 
-    // 2. إنشاء فصل جديد (بصلاحية السوبر أدمن أو مدير الفرع)
     public function store(Request $request) {
         $validated = $request->validate([
             'name' => 'required|string|max:150',
@@ -27,14 +25,12 @@ class ChapterController extends Controller
         return response()->json(['message' => 'Chapter created successfully', 'data' => $chapter], 201);
     }
 
-    // 3. عرض تفاصيل فصل مع أعضائه
     public function show($chapterId) {
         $chapter = Chapter::with(['branch', 'society', 'chair', 'members'])->findOrFail($chapterId);
         return response()->json(['data' => $chapter]);
     }
 
     /**
-     * تعيين رئيس للفصل وتحديث دوره
      * PATCH /api/chapters/{chapter_id}/assign-chair
      */
     public function assignChair(Request $request, $chapterId)
@@ -46,8 +42,7 @@ class ChapterController extends Controller
         $chapter = Chapter::findOrFail($chapterId);
         $newUser = \App\Models\User::findOrFail($request->user_id);
 
-        // 1. التعامل مع الرئيس القديم (إذا وجد)
-        // إذا كان هناك رئيس سابق، نعيد دوره إلى متطوع عادي
+
         if ($chapter->chair_id) {
             $oldChair = \App\Models\User::find($chapter->chair_id);
             if ($oldChair) {
@@ -55,10 +50,8 @@ class ChapterController extends Controller
             }
         }
 
-        // 2. تحديث جدول الفصول لتعيين الرئيس الجديد
         $chapter->update(['chair_id' => $newUser->user_id]);
 
-        // 3. تحديث دور المستخدم الجديد ليصبح Chapter Chair
         $newUser->update(['role' => 'Chapter Chair']);
 
         return response()->json([
@@ -67,7 +60,6 @@ class ChapterController extends Controller
         ]);
     }
 
-    // 5. إضافة متطوع للفصل (Join Chapter)
     public function addMember(Request $request, $chapterId) {
         $request->validate([
             'user_id' => 'required|exists:users,user_id',
@@ -76,7 +68,6 @@ class ChapterController extends Controller
 
         $chapter = Chapter::findOrFail($chapterId);
         
-        // استخدام syncWithoutDetaching لمنع التكرار
         $chapter->members()->syncWithoutDetaching([
             $request->user_id => ['role_in_chapter' => $request->role_in_chapter ?? 'Member']
         ]);
@@ -84,9 +75,7 @@ class ChapterController extends Controller
         return response()->json(['message' => 'Member added to chapter successfully']);
     }
 
-    // 6. إزالة متطوع من الفصل
     /**
-     * إزالة عضو من الفصل (مع التحقق من منصبه كرئيس)
      * DELETE /api/chapters/{chapter_id}/members/{user_id}
      */
     public function removeMember($chapterId, $userId)
@@ -94,10 +83,8 @@ class ChapterController extends Controller
         $chapter = Chapter::findOrFail($chapterId);
         $user = \App\Models\User::findOrFail($userId);
 
-        // 1. إزالة العضو من جدول الأعضاء
         $chapter->members()->detach($userId);
 
-        // 2. إذا كان هو رئيس الفصل، نصفر الرئاسة ونرجع دوره لمتطوع
         if ($chapter->chair_id == $userId) {
             $chapter->update(['chair_id' => null]);
             $user->update(['role' => 'Volunteer']);

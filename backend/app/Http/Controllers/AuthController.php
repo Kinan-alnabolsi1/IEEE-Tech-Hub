@@ -59,24 +59,20 @@ class AuthController extends Controller
 
         $user = \App\Models\User::where('email', $request->email)->first();
 
-        // 1. التحقق من تطابق الكود
         if ($user->otp_code !== $request->otp) {
             return response()->json(['message' => 'Invalid OTP.'], 400);
         }
 
-        // 2. التحقق من صلاحية الكود (هل انتهى وقته؟)
         if (now()->greaterThan($user->otp_expires_at)) {
             return response()->json(['message' => 'OTP has expired. Please request a new one.'], 400);
         }
 
-        // 3. نجاح التحقق! (نفرغ الـ OTP ونوثق الإيميل)
         $user->update([
             'otp_code' => null,
             'otp_expires_at' => null,
             'email_verified_at' => now(),
         ]);
 
-        // 4. إصدار التوكن للدخول
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -87,39 +83,32 @@ class AuthController extends Controller
     }
 
     /**
-     * إعادة إرسال كود الـ OTP
      * POST /api/resend-otp
      */
     public function resendOtp(Request $request)
     {
-        // 1. التحقق من صحة الإيميل
         $request->validate([
             'email' => 'required|email|exists:users,email'
         ]);
 
         $user = \App\Models\User::where('email', $request->email)->first();
 
-        // 2. حماية: التأكد أن الحساب لم يتم توثيقه مسبقاً
         if (!is_null($user->email_verified_at)) {
             return response()->json([
                 'message' => 'This email is already verified. You can log in directly.'
             ], 400); 
         }
 
-        // 3. توليد كود جديد وتحديث وقت الانتهاء (10 دقائق من الآن)
         $newOtp = (string) random_int(100000, 999999);
         
         $user->otp_code = $newOtp;
         $user->otp_expires_at = now()->addMinutes(10);
-        $user->save(); // نستخدم save لتجنب أي مشاكل بالـ fillable
+        $user->save();
 
-        // 4. إرسال الكود الجديد عبر الإيميل (مع الـ try-catch المعتادة للحماية)
         try {
             Mail::to($user->email)->send(new SendOtpMail($newOtp));
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('Resend OTP Mail Error: ' . $e->getMessage());
-            // ملاحظة: يمكنك إرجاع رسالة خطأ هنا إذا أردت إخبار المستخدم بفشل الإرسال، 
-            // لكننا سنكمل بسلاسة كما فعلنا في التسجيل.
         }
 
         return response()->json([
@@ -171,7 +160,6 @@ class AuthController extends Controller
     }
 
     /**
-     * طلب استعادة كلمة المرور (إرسال OTP)
      * POST /api/forgot-password
      */
     public function forgotPassword(Request $request)
@@ -182,13 +170,11 @@ class AuthController extends Controller
 
         $user = \App\Models\User::where('email', $request->email)->first();
 
-        // 1. توليد كود OTP جديد وصلاحية لـ 10 دقائق
         $otpCode = (string) random_int(100000, 999999);
         $user->otp_code = $otpCode;
         $user->otp_expires_at = now()->addMinutes(10);
         $user->save();
 
-        // 2. إرسال الكود عبر الإيميل (نفس كلاس الإيميل اللي عملناه بيشتغل هون تماماً)
         try {
             Mail::to($user->email)->send(new SendOtpMail($otpCode));
         } catch (\Throwable $e) {
@@ -201,12 +187,10 @@ class AuthController extends Controller
     }
 
     /**
-     * تعيين كلمة المرور الجديدة باستخدام الـ OTP
      * POST /api/reset-password
      */
     public function resetPassword(Request $request)
     {
-        // 1. التحقق من المدخلات (الإيميل، الـ OTP، وكلمة المرور الجديدة مع تأكيدها)
         $request->validate([
             'email' => 'required|email|exists:users,email',
             'otp' => 'required|string|size:6',
@@ -215,17 +199,14 @@ class AuthController extends Controller
 
         $user = \App\Models\User::where('email', $request->email)->first();
 
-        // 2. التحقق من تطابق كود الـ OTP
         if ($user->otp_code !== $request->otp) {
             return response()->json(['message' => 'Invalid OTP.'], 400);
         }
 
-        // 3. التحقق من صلاحية الكود (هل انتهى وقته؟)
         if (now()->greaterThan($user->otp_expires_at)) {
             return response()->json(['message' => 'OTP has expired. Please request a new one.'], 400);
         }
 
-        // 4. كل شيء سليم! نقوم بتحديث كلمة المرور وتصفير كود الـ OTP
         $user->password = Hash::make($request->password);
         $user->otp_code = null;
         $user->otp_expires_at = null;

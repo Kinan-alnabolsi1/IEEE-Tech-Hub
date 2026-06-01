@@ -87,7 +87,7 @@ class TaskController extends Controller
             'description' => $validated['description'] ?? null,
             'priority' => $validated['priority'],
             'due_date' => $validated['due_date'] ?? null,
-            'status' => 'To Do'
+            'status' => $validated['status'] ?? 'To Do'
         ]);
 
         // If users were provided, assign them

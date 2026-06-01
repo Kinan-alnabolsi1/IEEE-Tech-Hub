@@ -13,7 +13,6 @@ class BranchController extends Controller
 {
     $query = Branch::with('admin');
 
-    // الفلترة حسب وجود مدير أو عدمه
     if ($request->has('has_admin')) {
         if ($request->has_admin === 'true') {
             $query->whereNotNull('admin_id');
@@ -25,10 +24,9 @@ class BranchController extends Controller
     return response()->json($query->get());
 }
 
-    // 1. السوبر أدمن ينشئ الفرع بدون مدير مبدئياً
     public function store(CreateBranchRequest $request) {
         $validated = $request->validated();
-        $validated['status'] = 'Active'; // حالة افتراضية
+        $validated['status'] = 'Active';
         $validated['admin_id'] = null;
 
         $branch = Branch::create($validated);
@@ -40,7 +38,6 @@ class BranchController extends Controller
     }
 
     public function show($branchId) {
-        // نستخدم Eager Loading لجلب الفرع مع مديره، جمعياته، وفصوله بضربة واحدة
         $branch = Branch::with(['admin', 'societies', 'chapters'])->findOrFail($branchId);
         
         return response()->json([
@@ -49,19 +46,14 @@ class BranchController extends Controller
         ]);
     }
 
-    // (حذفنا دالة applyToBranch لأن المتطوع يقدم طلبه من خلال الـ AuthController Register)
-
-    // 2. جلب المتطوعين المعلقين في فرع محدد
     public function getPendingMemberships(Request $request, $branchId)
     {
         $branch = Branch::findOrFail($branchId);
 
-        // حماية: السوبر أدمن أو مدير هذا الفرع فقط
         if ($request->user()->role !== 'Super Admin' && $request->user()->branch_id !== $branch->branch_id) {
             return response()->json(['message' => 'Unauthorized. You are not the admin of this branch.'], 403);
         }
 
-        // نجلب المستخدمين (المتطوعين) التابعين لهذا الفرع وحالتهم Pending
         $pendingUsers = User::where('branch_id', $branchId)
                             ->where('role', 'Volunteer')
                             ->where('status', 'Pending')
@@ -73,23 +65,20 @@ class BranchController extends Controller
         ]);
     }
 
-    // 3. مدير الفرع يوافق على المتطوع
     public function approveMembership(Request $request, $userId) {
         $user = User::findOrFail($userId);
         
-        // حماية أمنية: تأكد أن المتطوع بنفس فرع المدير
         if ($request->user()->role === 'Branch Admin' && $request->user()->branch_id !== $user->branch_id) {
              return response()->json(['message' => 'You can only approve volunteers in your own branch.'], 403);
         }
 
         $user->update([
-            'status' => 'Active', // تفعيل الحساب
+            'status' => 'Active',
         ]);
 
         return response()->json(['message' => 'Volunteer approved successfully and can now log in.']);
     }
 
-    // 4. مدير الفرع يرفض المتطوع
     public function rejectMembership(Request $request, $userId)
     {
         $user = User::findOrFail($userId);
@@ -101,14 +90,12 @@ class BranchController extends Controller
         return response()->json(['message' => 'Volunteer application rejected.']);
     }
 
-    // 5. فصل متطوع من الفرع
     public function removeMember(Request $request, $branchId, $userId)
     {
         $user = User::where('branch_id', $branchId)
                     ->where('user_id', $userId)
                     ->firstOrFail();
 
-        // تغيير الحالة إلى Suspended للحفاظ على بياناته وعدم حذفها
         $user->update([
             'status' => 'Suspended',
         ]);
@@ -121,7 +108,6 @@ class BranchController extends Controller
         $branch = Branch::findOrFail($id);
         
         $validated = $request->validate([
-            // لا نعدل admin_id من هنا لأننا ربطناه بالـ user_id
             'name' => 'sometimes|string|max:150',
             'region' => 'sometimes|string|max:100',
             'description' => 'nullable|string',
@@ -139,13 +125,11 @@ class BranchController extends Controller
 {
     $branch = Branch::findOrFail($id);
 
-    // 1. تحديث كافة المستخدمين المنتمين لهذا الفرع (أدمن، متطوعين، رؤساء فصول)
     \App\Models\User::where('branch_id', $id)->update([
         'branch_id' => null,
-        'status' => 'Suspended' // أو Inactive حسب رغبتك
+        'status' => 'Suspended'
     ]);
 
-    // 2. حذف الفرع (بسبب Cascade سيتم حذف الفصول والارتباط بالجمعيات تلقائياً)
     $branch->delete();
 
     return response()->json([
@@ -189,10 +173,8 @@ class BranchController extends Controller
     {
         $branch = Branch::findOrFail($branchId);
 
-        // السحر هنا: نخزن نتيجة الـ detach (عدد الأسطر المحذوفة)
         $detachedCount = $branch->societies()->detach($societyId);
 
-        // إذا لم يتم حذف أي سطر، يعني الجمعية غير موجودة في هذا الفرع
         if ($detachedCount === 0) {
             return response()->json([
                 'message' => 'Society is not attached to this branch or does not exist.'
@@ -206,19 +188,16 @@ class BranchController extends Controller
     }
 
     /**
-     * جلب إحصائيات لوحة التحكم لفرع محدد (Branch Dashboard Stats)
      * GET /api/branches/{branch_id}/stats
      */
     public function getStats(Request $request, $branchId)
     {
         $branch = Branch::findOrFail($branchId);
 
-        // حماية أمنية
         if ($request->user()->role !== 'Super Admin' && $request->user()->branch_id !== $branch->branch_id) {
             return response()->json(['message' => 'Unauthorized to view these statistics.'], 403);
         }
 
-        // 1. البطاقات الإحصائية
         $totalVolunteers = \App\Models\User::where('branch_id', $branchId)
             ->where('role', 'Volunteer')
             ->where('status', 'Active')
@@ -233,19 +212,14 @@ class BranchController extends Controller
             ->where('status', 'Active')
             ->count();
 
-        // 👇=== السحر تبعنا (المشاريع التابعة للفصول) يوضع هنا ===👇
         
-        // أ. نجلب كل أرقام الـ IDs الخاصة بفصول هذا الفرع
         $chapterIds = \App\Models\Chapter::where('branch_id', $branchId)->pluck('chapter_id');
 
-        // ب. نعد المشاريع التي تنتمي لأي فصل من هذه الفصول وحالتها Ongoing
         $ongoingProjects = \App\Models\Project::whereIn('chapter_id', $chapterIds)
             ->where('status', 'Ongoing') 
             ->count();
             
-        // 👆===================================================👆
 
-        // 2. بيانات الرسوم البيانية
         $volunteersPerChapter = \App\Models\Chapter::where('branch_id', $branchId)
             ->withCount('members') 
             ->get(['chapter_id', 'name']); 
@@ -257,7 +231,7 @@ class BranchController extends Controller
                     'total_volunteers' => $totalVolunteers,
                     'pending_requests' => $pendingRequests,
                     'active_chapters' => $activeChapters,
-                    'ongoing_projects' => $ongoingProjects, // سيتم تمرير العدد الصحيح هنا
+                    'ongoing_projects' => $ongoingProjects,
                 ],
                 'charts' => [
                     'volunteers_per_chapter' => $volunteersPerChapter,
@@ -267,24 +241,20 @@ class BranchController extends Controller
     }
 
     /**
-     * جلب جميع المتطوعين التابعين لفرع محدد (مع إمكانية الفلترة حسب الحالة)
      * GET /api/branches/{branch_id}/volunteers?status=Active
      */
     public function getVolunteers(Request $request, $branchId)
     {
         $branch = Branch::findOrFail($branchId);
 
-        // 🛡️ الحماية الأمنية: السوبر أدمن أو مدير هذا الفرع فقط
         if ($request->user()->role !== 'Super Admin' && $request->user()->branch_id !== $branch->branch_id) {
             return response()->json(['message' => 'Unauthorized to view these volunteers.'], 403);
         }
 
-        // 1. بناء الاستعلام لجلب المتطوعين في هذا الفرع فقط
         $query = \App\Models\User::where('branch_id', $branchId)
                                     ->where('role', 'Volunteer')
-                                    ->whereNotNull('email_verified_at'); // 👈 السطر السحري انضاف هون
+                                    ->whereNotNull('email_verified_at');
 
-        // 2. فلتر اختياري: إذا أرسل الفرونت إند حالة معينة في الرابط
         if ($request->has('status')) {
             $validStatuses = ['Pending', 'Active', 'Suspended', 'Rejected'];
             if (in_array($request->status, $validStatuses)) {
@@ -292,7 +262,6 @@ class BranchController extends Controller
             }
         }
 
-        // 3. تنفيذ الاستعلام وجلب البيانات (مرتبة من الأحدث للأقدم)
         $volunteers = $query->latest()->get();
 
         return response()->json([
