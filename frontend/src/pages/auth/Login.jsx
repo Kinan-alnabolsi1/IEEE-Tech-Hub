@@ -81,7 +81,6 @@ const Login = () => {
         redirectUser(normalizedRole, user);
       }
     } catch (err) {
-      // 🌟 التعديل هنا: لقط الإيرور تبع الـ OTP
       const errorMsg = err.response?.data?.message || 'Invalid Credentials';
       
       if (errorMsg.toLowerCase().includes('verify') || errorMsg.toLowerCase().includes('otp')) {

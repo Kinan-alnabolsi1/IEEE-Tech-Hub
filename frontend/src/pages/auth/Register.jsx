@@ -67,7 +67,6 @@ const Register = () => {
     } else {
       setDisplayBranches(allBranches);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role, allBranches]);
 
   const handleInputChange = (e) => {
@@ -113,7 +112,6 @@ const Register = () => {
 
       await postData('/register', payload);
       
-      // 🌟 التعديل هنا: توجيه المستخدم لصفحة الـ OTP وحفظ الإيميل
       localStorage.setItem('temp_email', formData.email);
       toast.success('Registration Successful! Please verify your email.', { duration: 4000 });
       setTimeout(() => navigate('/verify-otp'), 1500);
@@ -182,7 +180,6 @@ const Register = () => {
                 </div>
               </div>
 
-              {/* Custom Dropdown */}
               <div className="space-y-1.5 relative z-20">
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Target Branch</label>
                 <div className="relative">

@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 
 const Navbar = ({ toggleSidebar, role, user }) => {
   const displayName = user?.name || "Shahed Almahmod";
-  // 🌟 القديم كان بيعالج المسافات بس، هلق صار يعالج المسافات والشحطة السفلية ويحولهم لشحطة عادية:
 const currentRolePath = role?.toLowerCase().replace(/[\s_]+/g, '-') || 'volunteer';
 
   return (
@@ -26,7 +25,6 @@ const currentRolePath = role?.toLowerCase().replace(/[\s_]+/g, '-') || 'voluntee
         </div>
       </div>
 
-      {/* 🌟 تم تحويل هذا القسم إلى Link يوجه للبروفايل */}
       <Link 
         to={`/${currentRolePath}/profile`} 
         className="flex items-center gap-4 group cursor-pointer hover:bg-slate-50 p-2 rounded-2xl transition-all"

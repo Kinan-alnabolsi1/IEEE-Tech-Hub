@@ -30,7 +30,7 @@ const ProjectsManagement = () => {
       const response = await projectService.getChapterProjects(chapterId, activeTab);
       setProjects(response.data?.data || response.data || []);
     } catch (_error) {
-      toast.error(`Failed to fetch ${activeTab} projects`);
+      toast.error(`Failed to fetch ${activeTab} projects`,_error);
     } finally {
       setLoading(false);
     }
@@ -49,7 +49,7 @@ const ProjectsManagement = () => {
       toast.success("Project deleted successfully", { id: loadingToast });
       fetchProjects(); 
     } catch (_error) {
-      toast.error("Failed to delete project", { id: loadingToast });
+      toast.error("Failed to delete project",_error, { id: loadingToast });
     }
   };
 

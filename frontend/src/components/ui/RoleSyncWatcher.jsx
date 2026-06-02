@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import BaseModal from './BaseModal'; // تأكدي من مسار المودال الأساسي عندك
+import BaseModal from './BaseModal'; 
 import { volunteerService } from '../../services/volunteerService';
 import { Award, LogOut } from 'lucide-react';
 import api from '../../api/apiMethods';
@@ -13,16 +13,13 @@ const RoleSyncWatcher = ({ role }) => {
         const checkRoleStatus = async () => {
             const currentRole = role?.toLowerCase();
             
-            // لا يعمل هذا المراقب إلا إذا كان المستخدم حالياً "متطوع"
             if (currentRole !== 'volunteer') return;
 
             try {
-                // نسأل السيرفر عن البيانات الحقيقية الحالية
                 const res = await volunteerService.getProfile();
                 const userData = res.data?.data || res.data;
                 const actualRole = userData?.role?.toLowerCase();
 
-                // إذا السيرفر قال إن الرتبة تغيرت (مثلاً أصبحت project_leader)
                 if (actualRole && actualRole !== 'volunteer') {
                     setShowModal(true);
                 }
@@ -31,10 +28,8 @@ const RoleSyncWatcher = ({ role }) => {
             }
         };
 
-        // فحص فوري عند تحميل الصفحة
         checkRoleStatus();
 
-        // فحص دوري كل دقيقتين للتأكد إذا تمت الترقية أثناء تصفح المستخدم
         const interval = setInterval(checkRoleStatus, 2 * 60 * 1000); 
         return () => clearInterval(interval);
     }, [role]);
@@ -56,7 +51,7 @@ const RoleSyncWatcher = ({ role }) => {
         <BaseModal 
     isOpen={showModal} 
     onClose={() => {}} 
-    showCloseButton={false} // 🌟 أضيفي هذه الخاصية لإخفاء زر الإكس
+    showCloseButton={false} 
     title="🎉 Promotion Alert!"
 >
             <div className="text-center py-6 space-y-6 animate-in zoom-in duration-500">

@@ -26,20 +26,16 @@ const MyApplications = () => {
                 setLoading(true);
                 const res = await volunteerService.getMyJourney(); 
                 
-                // استخراج الداتا الخام
                 const rawData = res.data?.data || res.data || {};
                 
-                // تحويل الأوبجكت لمصفوفة
                 let tempArray = Array.isArray(rawData) 
                     ? rawData 
                     : Object.values(rawData);
 
-                // تسطيح المصفوفة (Flattening)
                 const finalFlatArray = tempArray.flat();
 
                 console.log("✅ Flattened Data for UI:", finalFlatArray);
                 
-                // 🌟 تمرير الداتا الحقيقية فقط
                 setJourneyData(finalFlatArray);
 
             } catch (error) {

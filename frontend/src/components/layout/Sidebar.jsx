@@ -43,9 +43,8 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
       { name: 'Manage Team', path: '/project-leader/team', icon: '👥' },
       { name: 'Tasks Board', path: '/project-leader/tasks', icon: '📋' },
     ],
-    // 🌟 قائمة المتطوع المحدثة 
     'volunteer': [
-      { name: 'Overview', path: '/volunteer', icon: '📊' }, // 👈 تمت إضافة الصفحة الرئيسية هنا
+      { name: 'Overview', path: '/volunteer', icon: '📊' }, 
       { name: 'My Tasks', path: '/volunteer/tasks', icon: '📋' }, 
       { name: 'Explore Projects', path: '/volunteer/explore', icon: '🚀' },
       { name: 'My Applications', path: '/volunteer/applications', icon: '📂' },
@@ -80,18 +79,14 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
         <nav className="flex-1 px-4 py-4 space-y-1.5 overflow-y-auto mt-2 no-scrollbar">
           <p className="text-[9px] font-black text-blue-200/30 uppercase tracking-[0.4em] mb-4 px-3">Main Menu</p>
           {currentMenu.map((item) => {
-            
-            // 🌟 المنطق الذكي للتحديد (Active State):
-            // تم إضافة '/volunteer' كداشبورد رئيسي لضمان إضاءته بشكل صحيح
+
             const isMainDashboard = ['/super-admin', '/admin', '/chapter-chair', '/project-leader', '/volunteer'].includes(item.path);
 
             let isActive = false;
 
             if (isMainDashboard) {
-                // للداشبورد الرئيسي: لازم يكون المسار مطابق تماماً
                 isActive = location.pathname === item.path || location.pathname === `${item.path}/`;
             } else {
-                // لباقي الصفحات: نستخدم startsWith عشان لو فيه مسارات فرعية تضوي الصفحة الأم
                 isActive = location.pathname.startsWith(item.path);
             }
 
@@ -113,7 +108,6 @@ const Sidebar = ({ role, isOpen, toggleSidebar, user }) => {
           })}
         </nav>
 
-        {/* User Info & Logout Section */}
         <div className="p-4 border-t border-white/10 bg-black/5 shrink-0">
           <div className="bg-blue-900/30 px-4 py-3 rounded-2xl border border-white/5 mb-3 flex items-center justify-between shadow-inner">
             <div className="flex flex-col ">

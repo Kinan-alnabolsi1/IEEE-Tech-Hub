@@ -3,31 +3,30 @@ import {
   Check, X, Ban, Mail, Building2, Calendar, RefreshCcw, UserCheck, ShieldAlert, Clock
 } from 'lucide-react';
 import { getData } from '@/api/apiMethods'; 
-// 🌟 استدعاء مكون الـ EmptyState
 import EmptyState from '../../../../components/ui/EmptyState';
 
 const FetchBranchName = ({ id }) => {
   const [name, setName] = useState('Fetching...');
 
   useEffect(() => {
-    if (id) {
-      getData(`/branches/${id}`)
-        .then(res => {
-          const branchName = res.data?.name || res.data?.data?.name || res.name;
-          if (branchName) {
-             setName(branchName);
-          } else {
-             setName(`NO NAME FOUND (ID: ${id})`); 
-          }
-        })
-        .catch(err => {
-          console.error(`[Branch Component] API Error for ID ${id}:`, err);
-          setName(`API ERROR (ID: ${id})`);
-        });
-    } else {
-      setName('NO ID PASSED'); 
-    }
-  }, [id]);
+    const getBranch = async () => {
+      if (!id) {
+        setName('NO ID PASSED');
+        return;
+      }
+
+      try {
+        const res = await getData(`/branches/${id}`);
+        const branchName = res.data?.name || res.data?.data?.name || res.name;
+        setName(branchName || `NO NAME FOUND (ID: ${id})`);
+      } catch (err) {
+        console.error(`[Branch Component] API Error for ID ${id}:`, err);
+        setName(`API ERROR (ID: ${id})`);
+      }
+    };
+
+    getBranch();
+  }, [id]); 
 
   return <span className="text-xs font-black text-slate-600 uppercase">{name}</span>;
 };
@@ -118,7 +117,7 @@ const AdminTable = ({ data, type, onAction, isLoading }) => {
                     </div>
                     <span className="text-xs font-black text-slate-600 uppercase">
                       <FetchBranchName id={admin.branch_id} />
-                    </span>
+                    </span> 
                   </div>
                 </td>
 

@@ -2,40 +2,33 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
-// Layout & Auth
 import DashboardLayout from './components/layout/DashboardLayout';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import VerifyOTP from './pages/auth/VerifyOTP'; 
 import Onboarding from './pages/volunteer/Onboarding'; 
 
-// --- Shared Pages ---
 import Profile from './pages/shared/Profile';
 
-// --- Super Admin Pages ---
 import SuperAdminDashboard from './pages/super-admin/SuperAdminDashboard'; 
 import BranchesIndex from './pages/super-admin/branches/components/BranchesIndex'; 
 import SocietiesIndex from './pages/super-admin/societies/components/SocietiesIndex';
 import AdminsManagement from './pages/super-admin/admins/AdminsManagement';
 
-// --- Admin Pages ---
 import AdminDashboard from './pages/admin/dashboard/AdminDashboard'; 
 import VolunteerMemberships from './pages/admin/volunteers/VolunteerMemberships'; 
 import ChaptersIndex from './pages/admin/chapters/ChaptersIndex';
 import ProjectsIndex from './pages/admin/projects/ProjectsIndex';
 
-// --- Chapter Chair Pages ---
 import ChapterDashboard from './pages/chapterChair/Dashboard/ChapterDashboard';
 import ProjectsManagement from './pages/chapterChair/Projects/ProjectsManagement';
 import TasksOverview from './pages/ChapterChair/Tasks/TasksOverview';
 import ChapterMembers from './pages/ChapterChair/members/ChapterMembers';
 
-// --- 🎯 Project Leader Pages ---
 import LeaderDashboard from './pages/project-leader/LeaderDashboard';
 import TeamManagement from './pages/project-leader/TeamManagement';
 import TasksBoard from './pages/project-leader/TasksBoard';
 
-// --- Volunteer Pages ---
 import VolunteerDashboard from './pages/volunteer/VolunteerDashboard';
 import MyTasks from './pages/volunteer/MyTasks';
 import BrowseProjects from './pages/volunteer/BrowseProjects';
@@ -85,7 +78,6 @@ function App() {
           </ProtectedRoute>
         } />
 
-        {/* 👑 Super Admin */}
         <Route path="/super-admin" element={
           <ProtectedRoute allowedRoles={['super_admin']}>
             <DashboardLayout role="super_admin" />
@@ -97,7 +89,6 @@ function App() {
           <Route path="societies" element={<SocietiesIndex />} />
         </Route>
 
-        {/* 🏢 Admin */}
         <Route path="/admin" element={
           <ProtectedRoute allowedRoles={['admin']}>
             <DashboardLayout role="admin" />
@@ -109,7 +100,6 @@ function App() {
           <Route path="projects" element={<ProjectsIndex />} />
         </Route>
 
-        {/* 🚀 Chapter Chair */}
         <Route path="/chapter-chair" element={
           <ProtectedRoute allowedRoles={['chapter_chair']}>
             <DashboardLayout role="chapter_chair" />
@@ -122,7 +112,6 @@ function App() {
           <Route path="profile" element={<Profile />} />
         </Route>
 
-        {/* 🎯 Project Leader */}
         <Route path="/project-leader" element={
           <ProtectedRoute allowedRoles={['project_leader']}>
             <DashboardLayout role="project_leader" />
@@ -134,7 +123,6 @@ function App() {
           <Route path="profile" element={<Profile />} />
         </Route>
 
-        {/* 🦾 Volunteer */}
         <Route path="/volunteer" element={
           <ProtectedRoute allowedRoles={['volunteer']}>
             <DashboardLayout role="volunteer" />
@@ -147,7 +135,6 @@ function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="applications/project/:projectId/overview" element={<ProjectOverview />} />        </Route>
 
-        {/* Catch all route - redirects to Login */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

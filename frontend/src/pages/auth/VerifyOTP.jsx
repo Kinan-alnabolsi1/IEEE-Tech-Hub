@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { postData } from '../../api/apiMethods'; // 🌟 استخدمنا دالتك الحالية
+import { postData } from '../../api/apiMethods';
 import toast from 'react-hot-toast';
 import { Loader2, ShieldCheck, RefreshCw } from 'lucide-react';
 
@@ -33,13 +33,12 @@ const VerifyOTP = () => {
 
         setLoading(true);
         try {
-            // 🌟 استدعاء الباك إند باستخدام postData تبعك
-            // جربي تغيير otp_code إلى otp
+
 await postData('/verify-otp', { email: email, otp: otp }); 
             
             toast.success("Account verified successfully! Please login.");
             localStorage.removeItem('temp_email');
-            navigate('/'); // التوجيه للـ Login
+            navigate('/');
         } catch (error) {
             toast.error(error.response?.data?.message || "Invalid OTP code");
         } finally {
@@ -54,7 +53,7 @@ await postData('/verify-otp', { email: email, otp: otp });
             toast.success("A new code has been sent!");
             setTimer(60); 
         } catch (error) {
-            toast.error("Failed to resend code");
+            toast.error("Failed to resend code",error);
         } finally {
             setResending(false);
         }

@@ -62,7 +62,7 @@ const fetchMembers = async () => {
 
         setMembers(filteredMembers);
     } catch (error) {
-        toast.error("Failed to load chapter members.");
+        toast.error("Failed to load chapter members.",error);
     } finally {
         setLoading(false);
     }
@@ -164,7 +164,6 @@ const fetchMembers = async () => {
                 </div>
             </div>
 
-            {/* Member Cards Grid */}
             {loading ? (
                 <Loader />
             ) : (
@@ -177,7 +176,6 @@ const fetchMembers = async () => {
                                     {member.full_name?.charAt(0).toUpperCase()}
                                 </div>
                                 
-                                {/* 🌟 النقطة المعبأة الخضراء مع rounded-full */}
                                 <div className={`absolute -bottom-2 -right-2 w-8 h-8 rounded-full border-[6px] border-white shadow-md ${getStatusBgColor(member.status)}`}></div>
                                 
                                 <div className="absolute -top-4 -right-12">

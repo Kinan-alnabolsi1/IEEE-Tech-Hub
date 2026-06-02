@@ -1,11 +1,9 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 
-// 🌟 ضفنا showCloseButton وعطيناه قيمة افتراضية true لحتى ما يخرب باقي الموديلات
 const BaseModal = ({ isOpen, onClose, title, subtitle, children, showCloseButton = true }) => {
   useEffect(() => {
     const handleEsc = (e) => { 
-        // 🌟 منعنا زر Escape من الإغلاق إذا كان الإكس مخفي (يعني مودال إجباري)
         if (e.key === 'Escape' && showCloseButton) onClose(); 
     };
     if (isOpen) window.addEventListener('keydown', handleEsc);
@@ -18,7 +16,6 @@ const BaseModal = ({ isOpen, onClose, title, subtitle, children, showCloseButton
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       <div 
         className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 cursor-pointer"
-        // 🌟 منعنا إغلاق المودال عند الضغط على الخلفية الرمادية إذا كان الإكس مخفي
         onClick={showCloseButton ? onClose : undefined} 
       />
       <div 
@@ -36,7 +33,6 @@ const BaseModal = ({ isOpen, onClose, title, subtitle, children, showCloseButton
             )}
           </div>
 
-          {/* 🌟 هون الشرط السحري: زر الإكس ما بيطلع إلا إذا كانت showCloseButton تساوي true */}
           {showCloseButton && (
             <button onClick={onClose} className="p-2 hover:bg-red-50 hover:text-red-500 rounded-xl transition-colors text-slate-300">
               <X className="w-6 h-6" />

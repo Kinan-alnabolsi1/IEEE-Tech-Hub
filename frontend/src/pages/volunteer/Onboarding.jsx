@@ -37,7 +37,6 @@ const Onboarding = () => {
         fetchSkills();
     }, []);
 
-    // 🌟 دالة التحقق من صحة البيانات قبل الانتقال لكل خطوة
     const validateStep = () => {
         if (step === 1) {
             if (!formData.faculty.trim()) { toast.error("Faculty is required."); return false; }
@@ -62,7 +61,6 @@ const Onboarding = () => {
     const handleAddSkill = () => {
         if (!currentSkill.skill_id) return toast.error("Please select a skill.");
         
-        // التحقق من المستوى (بما أنه إجباري للمهارة المضافة)
         if (currentSkill.level < 1 || currentSkill.level > 5) return toast.error("Level must be 1-5.");
 
         if (formData.skills.some(s => String(s.skill_id) === String(currentSkill.skill_id))) {
@@ -79,7 +77,7 @@ const Onboarding = () => {
                     skill_id: parseInt(currentSkill.skill_id),
                     name: skillObj?.name,
                     level: parseInt(currentSkill.level),
-                    experience_years: parseInt(currentSkill.experience_years) || 0 // الخبرة يمكن أن تكون 0
+                    experience_years: parseInt(currentSkill.experience_years) || 0 
                 }
             ]
         });
@@ -131,7 +129,6 @@ const Onboarding = () => {
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
             <div className="w-full max-w-2xl bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden relative">
                 
-                {/* Progress Bar */}
                 <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-50 flex">
                     <div className="h-full bg-[#00629B] transition-all duration-500" style={{ width: `${(step / 4) * 100}%` }}></div>
                 </div>
@@ -155,11 +152,9 @@ const Onboarding = () => {
 
                     <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
                         
-                        {/* STEP 1: Academic Info */}
-                        {/* STEP 1: Academic Info */}
+
 {step === 1 && (
     <div className="space-y-6 animate-in slide-in-from-right-5 duration-300">
-        {/* السطر الأول: الكلية والتخصص */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Faculty *</label>
@@ -182,7 +177,6 @@ const Onboarding = () => {
             </div>
         </div>
 
-        {/* السطر الثاني: السنة الدراسية الحالية - جعلناه منفصلاً ليعطي مساحة */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
             <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Current Study Year</label>
@@ -199,7 +193,6 @@ const Onboarding = () => {
                 </div>
             </div>
 
-            {/* تم تحويل الـ Enrollment لحقل إدخال عادي */}
             <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Enrollment Year *</label>
                 <input 
@@ -228,7 +221,6 @@ const Onboarding = () => {
     </div>
 )}
 
-                        {/* STEP 2: Skills */}
                         {step === 2 && (
                             <div className="space-y-6 animate-in slide-in-from-right-5 duration-300">
                                 <div className="space-y-2">
@@ -279,7 +271,6 @@ const Onboarding = () => {
                             </div>
                         )}
 
-                        {/* STEP 3: Bio */}
                         {step === 3 && (
                             <div className="space-y-4 animate-in slide-in-from-right-5 duration-300">
                                 <div className="space-y-2">
@@ -295,7 +286,6 @@ const Onboarding = () => {
                             </div>
                         )}
 
-                        {/* STEP 4: Phone */}
                         {step === 4 && (
                             <div className="space-y-8 animate-in slide-in-from-right-5 duration-300">
                                 <div className="p-8 bg-blue-50/50 rounded-[2.5rem] border border-blue-100 text-center space-y-4">
@@ -322,7 +312,6 @@ const Onboarding = () => {
                             </div>
                         )}
 
-                        {/* Navigation Buttons */}
                         <div className="flex gap-4 pt-6">
                             {step > 1 && (
                                 <button type="button" onClick={handleBack} className="flex py-4 px-10 items-center justify-center bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-colors hover:bg-slate-200 gap-3">

@@ -25,7 +25,7 @@ const BrowseProjects = () => {
             const response = await projectService.getVolunteerProjects(storedChapterId);
             setProjects(response.data?.data || response.data || []);
         } catch (error) {
-            toast.error("Could not fetch available projects");
+            toast.error("Could not fetch available projects",error);
         } finally {
             setLoading(false);
         }
@@ -45,7 +45,7 @@ const BrowseProjects = () => {
             await volunteerService.joinProject(selectedProject.id || selectedProject.project_id, roleName);
             toast.success(`Application sent for ${roleName}!`);
             setIsModalOpen(false);
-            fetchProjects(); // تحديث الداتا بعد التقديم
+            fetchProjects(); 
         } catch (error) {
             toast.error(error.response?.data?.message || "Error occurred");
         } finally {

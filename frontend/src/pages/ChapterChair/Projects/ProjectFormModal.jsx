@@ -1,46 +1,27 @@
 import React, { useState, useEffect, useRef } from 'react';
 import BaseModal from '@/components/ui/BaseModal'; 
-import { Save, Loader2, Plus, Trash2, Target, Star, ChevronDown } from 'lucide-react';
+import { Save, Loader2, Trash2, Target, Star, ChevronDown } from 'lucide-react';
 import { projectService } from '../../../services/projectService';
 import toast from 'react-hot-toast';
 
+// 🌟 1. CustomDropdown تم تنظيفه بالكامل ليكون فقط للـ UI
 const CustomDropdown = ({ options, value, onChange, placeholder, className, disabled }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
+    
+    // إغلاق الدروب داون عند الضغط بالخارج
     useEffect(() => {
-        const fetchSkills = async () => {
-            try {
-                // 1. محاولة جلب الداتا الحقيقية
-                const res = await projectService.getSkills();
-                const skills = res.data?.data || res.data || [];
-                
-                // 2. إذا الداتا الحقيقية فاضية، بنستخدم الداتا الوهمية
-                if (skills.length === 0) {
-                    console.warn("Using Mock Skills Data...");
-                    setAvailableSkills([
-                        { id: 1, name: 'React.js Development' },
-                        { id: 2, name: 'UI/UX Design (Figma)' },
-                        { id: 3, name: 'Laravel Backend' },
-                        { id: 4, name: 'Project Management' },
-                        { id: 5, name: 'Public Speaking' },
-                        { id: 6, name: 'Technical Writing' }
-                    ]);
-                } else {
-                    setAvailableSkills(skills);
-                }
-            } catch (error) { 
-                console.error("Skills load error, using fallbacks:", error); 
-                // 3. في حال صار Error بالـ API كمان بنحط داتا وهمية عشان ما يوقف الفورم
-                setAvailableSkills([
-                    { id: 1, name: 'React.js (Fallback)' },
-                    { id: 2, name: 'UI/UX (Fallback)' },
-                    { id: 3, name: 'Backend (Fallback)' }
-                ]);
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsOpen(false);
             }
-        };
-        if (isOpen) fetchSkills();
-    }, [isOpen]);
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     const selectedOption = options.find(opt => opt.value === value);
+    
     return (
         <div className={`relative ${isOpen ? 'z-[60]' : 'z-10'} ${className}`} ref={dropdownRef}>
             <div 
@@ -65,6 +46,7 @@ const CustomDropdown = ({ options, value, onChange, placeholder, className, disa
     );
 };
 
+// 🌟 2. ProjectFormModal اللي بيحتوي على داتا المهارات واللوجيك
 const ProjectFormModal = ({ isOpen, onClose, projectToEdit, onSuccess }) => {
     const [loading, setLoading] = useState(false);
     const [availableSkills, setAvailableSkills] = useState([]);
@@ -77,8 +59,29 @@ const ProjectFormModal = ({ isOpen, onClose, projectToEdit, onSuccess }) => {
         const fetchSkills = async () => {
             try {
                 const res = await projectService.getSkills();
-                setAvailableSkills(res.data?.data || res.data || []);
-            } catch (error) { console.error("Skills load error:", error); }
+                const skills = res.data?.data || res.data || [];
+                
+                if (skills.length === 0) {
+                    console.warn("Using Mock Skills Data...");
+                    setAvailableSkills([
+                        { id: 1, name: 'React.js Development' },
+                        { id: 2, name: 'UI/UX Design (Figma)' },
+                        { id: 3, name: 'Laravel Backend' },
+                        { id: 4, name: 'Project Management' },
+                        { id: 5, name: 'Public Speaking' },
+                        { id: 6, name: 'Technical Writing' }
+                    ]);
+                } else {
+                    setAvailableSkills(skills);
+                }
+            } catch (error) { 
+                console.error("Skills load error, using fallbacks:", error); 
+                setAvailableSkills([
+                    { id: 1, name: 'React.js (Fallback)' },
+                    { id: 2, name: 'UI/UX (Fallback)' },
+                    { id: 3, name: 'Backend (Fallback)' }
+                ]);
+            }
         };
         if (isOpen) fetchSkills();
     }, [isOpen]);
@@ -142,7 +145,6 @@ const ProjectFormModal = ({ isOpen, onClose, projectToEdit, onSuccess }) => {
             start_date: formData.start_date, end_date: formData.end_date,
             chapter_id: parseInt(chapterId), required_roles: cleanRoles
         };
-        // نرسل الحالة فقط في التعديل
         if (projectToEdit) payload.status = formData.status;
 
         setLoading(true);
@@ -155,7 +157,7 @@ const ProjectFormModal = ({ isOpen, onClose, projectToEdit, onSuccess }) => {
             }
             toast.success("Success!", { id: tid });
             onSuccess();
-        } catch (error) { toast.error("Error saving project.", { id: tid }); }
+        } catch (error) { toast.error("Error saving project.",error, { id: tid }); }
         finally { setLoading(false); }
     };
 
@@ -169,7 +171,6 @@ const ProjectFormModal = ({ isOpen, onClose, projectToEdit, onSuccess }) => {
                         <label className="text-[9px] font-black uppercase tracking-[0.2em] text-[#005587] ml-2 block">Project Title</label>
                         <input required type="text" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full h-11 bg-slate-50 border border-slate-100 rounded-xl px-4 text-xs font-bold outline-none transition-all" />
                     </div>
-                    {/* 🌟 لا يظهر إلا عند التعديل */}
                     {projectToEdit && (
                         <div className="space-y-1">
                             <label className="text-[9px] font-black uppercase tracking-[0.2em] text-[#005587] ml-2 block">Status</label>
@@ -200,7 +201,7 @@ const ProjectFormModal = ({ isOpen, onClose, projectToEdit, onSuccess }) => {
                     <textarea required rows="3" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold outline-none transition-all resize-none"></textarea>
                 </div>
 
-                {/* Roles & Skills (نفس الكود السابق مع المهارات) */}
+                {/* Roles & Skills */}
                 <div className="space-y-4 pt-4 border-t border-slate-100">
                     <div className="flex justify-between items-center">
                         <label className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-800 ml-2 block">Roles & Requirements</label>
@@ -231,8 +232,16 @@ const ProjectFormModal = ({ isOpen, onClose, projectToEdit, onSuccess }) => {
                                                         <button type="button" onClick={()=>setFormData({...formData, required_roles: formData.required_roles.map((r, ri) => ri === roleIndex ? {...r, required_skills: r.required_skills.filter((_, si) => si !== skillIndex)} : r)})} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-rose-500 border border-slate-100 rounded-lg"><Trash2 size={14}/></button>
                                                     </div>
                                                     <div className="flex items-center gap-4 px-1 mt-2">
-                                                        <Star size={14} className="text-slate-400 shrink-0" /><div className="flex-1 flex flex-col gap-1.5"><div className="flex justify-between text-[8px] font-black uppercase text-slate-300"><span>Bonus</span><span>Crucial</span></div><input type="range" min="0.1" max="1.0" step="0.1" value={skill.weight} onChange={(e)=>handleSkillChange(roleIndex, skillIndex, 'weight', e.target.value)} className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none accent-[#005587]" /></div>
-                                                        <div className="w-24 text-right"><span className={`text-[9px] font-black uppercase ${skill.weight >= 0.8 ? 'text-rose-500' : skill.weight >= 0.5 ? 'text-amber-500' : 'text-slate-400'}`}>{skill.weight >= 0.8 ? 'Must Have' : skill.weight >= 0.5 ? 'Important' : 'Bonus'}</span></div>
+                                                        <Star size={14} className="text-slate-400 shrink-0" />
+                                                        <div className="flex-1 flex flex-col gap-1.5">
+                                                            <div className="flex justify-between text-[8px] font-black uppercase text-slate-300"><span>Bonus</span><span>Crucial</span></div>
+                                                            <input type="range" min="0.1" max="1.0" step="0.1" value={skill.weight} onChange={(e)=>handleSkillChange(roleIndex, skillIndex, 'weight', e.target.value)} className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none accent-[#005587]" />
+                                                        </div>
+                                                        <div className="w-24 text-right">
+                                                            <span className={`text-[9px] font-black uppercase ${skill.weight >= 0.8 ? 'text-rose-500' : skill.weight >= 0.5 ? 'text-amber-500' : 'text-slate-400'}`}>
+                                                                {skill.weight >= 0.8 ? 'Must Have' : skill.weight >= 0.5 ? 'Important' : 'Bonus'}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             ))}
@@ -245,7 +254,7 @@ const ProjectFormModal = ({ isOpen, onClose, projectToEdit, onSuccess }) => {
                 </div>
 
                 <div className="pt-6 flex gap-3">
-                    <button type="button" onClick={onClose} className="flex-1 py-4 text-[9px] font-black uppercase text-slate-400 border border-slate-100 rounded-2xl hover:bg-slate-50 transition-colors">Abort</button>
+                    <button type="button" onClick={onClose} disabled={loading} className="flex-1 py-4 text-[9px] font-black uppercase text-slate-400 border border-slate-100 rounded-2xl hover:bg-slate-50 transition-colors">Abort</button>
                     <button type="submit" disabled={loading} className="flex-[2] flex justify-center items-center gap-2 bg-[#005587] text-white py-4 text-[9px] font-black uppercase rounded-2xl shadow-xl active:scale-95 transition-all">
                         {loading ? <Loader2 className="animate-spin" size={16}/> : <Save size={16} />} {projectToEdit ? "Save Changes" : "Launch Project"}
                     </button>

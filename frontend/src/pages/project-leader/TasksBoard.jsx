@@ -216,7 +216,7 @@ const TasksBoard = () => {
             setTasks(prev => prev.filter(t => (t.task_id || t.id) !== taskId));
             setDeleteModal({ isOpen: false, task: null });
         } catch (error) { 
-            toast.error("Delete failed."); 
+            toast.error("Delete failed.",error); 
         } finally {
             setDeleteSubmitting(false);
         }

@@ -3,14 +3,13 @@ import { volunteerService } from '../../services/volunteerService';
 import { CheckCircle2, Clock, LayoutList, MessageSquare, Loader2, Search, Target, Calendar, Percent } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Loader from '../../components/ui/Loader'; 
-import BaseModal from '../../components/ui/BaseModal'; // تأكدي إنو هاد الـ Import موجود
+import BaseModal from '../../components/ui/BaseModal'; 
 
 const MyTasks = () => {
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
 
-    // 🌟 حالات النافذة الجديدة لتحديث النسبة
     const [progressModal, setProgressModal] = useState({ isOpen: false, taskId: null, pct: 0 });
     const [progressSubmitting, setProgressSubmitting] = useState(false);
 
@@ -37,12 +36,10 @@ const MyTasks = () => {
         fetchTasks(); 
     }, []);
 
-    // 🌟 دالة لفتح النافذة بدل الـ prompt المزعج
     const openProgressModal = (taskId, currentPct) => {
         setProgressModal({ isOpen: true, taskId, pct: currentPct });
     };
 
-    // 🌟 دالة حفظ النسبة الجديدة بعد التأكيد من النافذة
     const submitProgressUpdate = async () => {
         const { taskId, pct } = progressModal;
         
@@ -50,7 +47,6 @@ const MyTasks = () => {
         try {
             await volunteerService.updateTaskProgress(taskId, { completion_pct: pct });
             
-            // تحديث الواجهة فوراً
             setTasks(prevTasks => prevTasks.map(t => 
                 (t.id === taskId || t.task_id === taskId) 
                 ? { ...t, completion_pct: pct } 
@@ -58,7 +54,7 @@ const MyTasks = () => {
             ));
             
             toast.success("Progress updated! Keep up the good work! 🚀");
-            setProgressModal({ isOpen: false, taskId: null, pct: 0 }); // إغلاق النافذة
+            setProgressModal({ isOpen: false, taskId: null, pct: 0 }); 
         } catch (error) {
             console.error("Update Progress Error:", error);
             toast.error(error.response?.data?.message || "Failed to update progress");
@@ -157,7 +153,6 @@ const MyTasks = () => {
                                         </button>
                                     </div>
                                     
-                                    {/* Progress Bar */}
                                     <div className="h-3 bg-slate-50 rounded-full overflow-hidden border border-slate-100 p-0.5">
                                         <div 
                                             className={`h-full rounded-full transition-all duration-1000 ${isDone ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]' : 'bg-gradient-to-r from-[#00629B] to-blue-400'}`}
@@ -186,7 +181,6 @@ const MyTasks = () => {
                 </div>
             )}
 
-            {/* 🌟 النافذة الفخمة لتحديث النسبة */}
             <BaseModal 
                 isOpen={progressModal.isOpen} 
                 onClose={() => !progressSubmitting && setProgressModal({ ...progressModal, isOpen: false })} 
@@ -203,7 +197,6 @@ const MyTasks = () => {
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">Current Completion Rate</p>
                     </div>
 
-                    {/* شريط السحب (Slider) */}
                     <div className="space-y-4 px-2">
                         <input 
                             type="range" 
@@ -221,7 +214,6 @@ const MyTasks = () => {
                         </div>
                     </div>
 
-                    {/* أزرار النسب السريعة */}
                     <div className="grid grid-cols-5 gap-2">
                         {[0, 25, 50, 75, 100].map(val => (
                             <button
@@ -235,7 +227,6 @@ const MyTasks = () => {
                         ))}
                     </div>
 
-                    {/* زر الحفظ */}
                     <button 
                         onClick={submitProgressUpdate}
                         disabled={progressSubmitting}

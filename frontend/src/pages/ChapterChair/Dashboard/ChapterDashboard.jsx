@@ -18,7 +18,7 @@ const ChapterDashboard = () => {
           setStats(response.data.data.cards);
         }
       } catch (error) {
-        toast.error("Failed to load statistics");
+        toast.error("Failed to load statistics",error);
       } finally {
         setLoading(false);
       }

@@ -42,7 +42,6 @@ const VolunteerDashboard = () => {
                 <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] md:tracking-[0.4em] mt-2">Welcome back, {user_info?.full_name}</p>
             </div>
 
-            {/* 🌟 قسم الإحصائيات - Responsive Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 <div className="bg-gradient-to-br from-[#00629B] to-blue-500 p-6 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] text-white shadow-xl shadow-blue-200 relative overflow-hidden flex items-center justify-between">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -mr-10 -mt-10 blur-2xl"></div>

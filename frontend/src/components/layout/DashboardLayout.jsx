@@ -1,22 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
-import Loader from '@/components/ui/Loader'; 
-import RoleSyncWatcher from '@/components/ui/RoleSyncWatcher'; // 🌟 استدعاء المراقب
+import RoleSyncWatcher from '@/components/ui/RoleSyncWatcher'; 
 
 const DashboardLayout = ({ role }) => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const [userData, setUserData] = useState(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let savedName = localStorage.getItem('user_name') || "User";
-    setUserData({ name: savedName, role: role });
-    setLoading(false);
-  }, [role]);
-
-  if (loading) return <Loader />;
+  const savedName = localStorage.getItem('user_name') || "User";
+  const userData = { name: savedName, role: role };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex relative overflow-y-auto">
@@ -31,7 +23,6 @@ const DashboardLayout = ({ role }) => {
       <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
         <Navbar toggleSidebar={() => setSidebarOpen(!isSidebarOpen)} role={role} user={userData} />
         
-        {/* 🌟 المراقب الخفي: مررنا له الـ role الحالية ليراقبها */}
         <RoleSyncWatcher role={role} />
         
         <main className="flex-1 p-4 md:p-8">

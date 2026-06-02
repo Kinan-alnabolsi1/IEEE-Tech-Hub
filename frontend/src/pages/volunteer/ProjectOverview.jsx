@@ -18,10 +18,8 @@ const ProjectOverview = () => {
         const fetchOverview = async () => {
             try {
                 setLoading(true);
-                // بنجيب الـ ID تبع المستخدم الحالي
                 const userId = localStorage.getItem('user_id'); 
                 
-                // استدعاء الـ API الحقيقي مع تمرير رقم المشروع
                 const res = await volunteerService.getUserOverview(userId, projectId);
                 const data = res.data?.data || res.data;
 
@@ -39,23 +37,18 @@ const ProjectOverview = () => {
     if (loading) return <Loader message="Analyzing your achievements..." />;
     if (!overviewData) return <div className="p-20 text-center uppercase font-black italic">No Overview Found</div>;
 
-    // 🌟 استخراج البيانات من الهيكل الحقيقي اللي بعتيه
     const userInfo = overviewData.user_info || {};
     const performance = overviewData.performance || {};
     const feedbacks = overviewData.task_feedbacks || [];
     const skills = overviewData.skills || [];
 
-    // جلب اسم المشروع من أول مهمة مقيمة (إذا توفرت)
     const projectName = feedbacks.length > 0 ? feedbacks[0].project_name : "Project Overview";
     
-    // التعامل مع التقييم (إذا كان من 5 أو 10 أو 100) مشان دائرة الـ SVG
     const rawRating = Number(performance.average_rating) || 0;
-    // إذا التقييم أقل من أو يساوي 5، نضربه بـ 20 ليصير نسبة مئوية (مثال: 4.5 من 5 = 90%)
     const percentageScore = rawRating <= 5 ? rawRating * 20 : (rawRating <= 10 ? rawRating * 10 : rawRating);
 
     return (
         <div className="p-4 md:p-10 animate-in slide-in-from-bottom-10 duration-700 max-w-7xl mx-auto space-y-10">
-            {/* 🌟 Header & Back Button */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <button 
                     onClick={() => navigate(-1)}
@@ -68,12 +61,9 @@ const ProjectOverview = () => {
                 </div>
             </div>
 
-            {/* 🌟 Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
-                {/* 🎯 العمود الأول: Score Circle & Stats */}
                 <div className="lg:col-span-1 space-y-6">
-                    {/* Performance Circle Card */}
                     <div className="bg-white rounded-[3rem] p-10 border border-slate-100 shadow-xl flex flex-col items-center justify-center text-center relative overflow-hidden">
                         <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-50/50 rounded-full blur-2xl"></div>
                         <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest relative mb-6">Final Performance</h2>
@@ -100,7 +90,6 @@ const ProjectOverview = () => {
                         </div>
                     </div>
 
-                    {/* Stats Card */}
                     <div className="bg-[#00629B] rounded-[2.5rem] p-8 text-white shadow-lg relative overflow-hidden">
                         <Trophy className="absolute -right-4 -bottom-4 w-32 h-32 text-white/10" />
                         <h3 className="text-[11px] font-black uppercase tracking-widest text-blue-200 mb-6 flex items-center gap-2">
@@ -123,7 +112,6 @@ const ProjectOverview = () => {
                     </div>
                 </div>
 
-                {/* 📝 العمود الثاني: Task Feedbacks */}
                 <div className="lg:col-span-2">
                     <div className="bg-white rounded-[3rem] p-8 md:p-10 border border-slate-100 shadow-sm h-full">
                         <div className="flex items-center gap-3 mb-8">
@@ -167,7 +155,6 @@ const ProjectOverview = () => {
                             </div>
                         )}
 
-                        {/* قسم المهارات (إضافي بما أن الـ API برجّع skills) */}
                         {skills && skills.length > 0 && (
                             <div className="mt-10 pt-8 border-t border-slate-100">
                                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Demonstrated Skills</h3>

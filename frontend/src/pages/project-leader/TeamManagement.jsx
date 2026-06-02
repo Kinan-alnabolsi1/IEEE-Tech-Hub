@@ -55,7 +55,7 @@ const TeamManagement = () => {
 
                 setApplications(filteredFromLeader);
             } catch (error) {
-                toast.error("Failed to load team data.");
+                toast.error("Failed to load team data.",error);
             } finally {
                 setLoading(false);
             }
@@ -117,7 +117,7 @@ const TeamManagement = () => {
             setAiResults(uniqueMatched);
             toast.success("AI Analysis Complete!");
         } catch (error) {
-            toast.error("AI service is currently busy.");
+            toast.error("AI service is currently busy.",error);
         } finally {
             setAiLoading(false);
         }
@@ -141,7 +141,7 @@ const TeamManagement = () => {
             }));
             // إزالة من لوحة الـ AI إذا كان موجوداً
             if (aiResults) setAiResults(prev => prev.filter(item => (item.user_id || item.user?.id) !== userId));
-        } catch (error) { toast.error("Action failed."); } finally { setActionLoading(null); }
+        } catch (error) { toast.error("Action failed.");error } finally { setActionLoading(null); }
     };
 
     const getRole = (app) => app.pivot?.role || app.pivot?.role_name || app.role_in_project || app.role || "Member";

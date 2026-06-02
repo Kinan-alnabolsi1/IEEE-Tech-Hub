@@ -24,7 +24,7 @@ const LeaderManagementModal = ({ isOpen, onClose, project, onSuccess }) => {
             const response = await projectService.getLeaderApplications(project.project_id);
             setApplicants(response.data?.data || []);
         } catch (error) {
-            toast.error("Failed to load applicants list");
+            toast.error("Failed to load applicants list",error);
         } finally {
             setFetching(false);
         }

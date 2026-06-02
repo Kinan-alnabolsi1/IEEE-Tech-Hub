@@ -8,7 +8,6 @@ const Profile = () => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     
-    // حالات التعديل
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
     
@@ -41,7 +40,6 @@ const Profile = () => {
         fetchProfileData();
     }, []);
 
-    // تفعيل وضع التعديل وتعبئة البيانات
     const toggleEditMode = () => {
         if (!isEditing) {
             const mappedSkills = (user.skills || []).map(s => ({
@@ -68,7 +66,6 @@ const Profile = () => {
         setIsEditing(!isEditing);
     };
 
-    // إدارة المهارات
     const handleAddSkill = () => {
         if (!currentSkill.skill_id) return toast.error("Please select a skill.");
         if (currentSkill.level < 1 || currentSkill.level > 5) return toast.error("Level must be 1-5.");
@@ -89,7 +86,6 @@ const Profile = () => {
         }));
     };
 
-    // حفظ التعديلات
     const handleSaveProfile = async () => {
         if (formData.phone && formData.phone.length < 9) {
             return toast.error("Please enter a valid 9-digit phone number.");
@@ -126,10 +122,8 @@ const Profile = () => {
     return (
         <div className="p-4 md:p-10 animate-in fade-in duration-700 max-w-5xl mx-auto space-y-8">
             
-            {/* 1. Header Card */}
             <div className={`bg-white rounded-[3rem] shadow-sm overflow-hidden relative transition-all duration-500 ${isEditing ? 'border-2 border-blue-300 shadow-blue-100' : 'border border-slate-100'}`}>
                 
-                {/* 🌟 أزرار التحكم بالوضع (Edit / Save / Cancel) */}
                 <div className="absolute top-4 right-4 z-20 flex gap-2">
                     {isEditing ? (
                         <>
@@ -180,10 +174,8 @@ const Profile = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-10">
-                {/* Left Column: Contact & Academic */}
                 <div className="space-y-8">
                     
-                    {/* Contact Info */}
                     <div className={`bg-white p-8 rounded-[2.5rem] shadow-sm border transition-colors ${isEditing ? 'border-blue-200' : 'border-slate-100'} space-y-6`}>
                         <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Contact Details</h3>
                         <div className="space-y-4">
@@ -212,12 +204,10 @@ const Profile = () => {
                         </div>
                     </div>
 
-                    {/* Academic Info */}
                     <div className={`bg-white p-8 rounded-[2.5rem] shadow-sm border transition-colors ${isEditing ? 'border-blue-200' : 'border-slate-100'} space-y-6`}>
                         <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Academic Background</h3>
                         <div className="space-y-5">
                             
-                            {/* Faculty & Major */}
                             <div className="flex items-start gap-3">
                                 <GraduationCap size={16} className={`${isEditing ? 'text-[#00629B]' : 'text-slate-400'} mt-1 shrink-0 transition-colors`} />
                                 <div className="flex-1 space-y-2">
@@ -236,8 +226,7 @@ const Profile = () => {
                                 </div>
                             </div>
 
-                            {/* Dates */}
-{/* Dates */}
+
                             <div className="pt-4 border-t border-slate-50 space-y-4">
                                 {isEditing ? (
                                     <div className="pl-7 grid grid-cols-2 gap-3">
@@ -291,10 +280,8 @@ const Profile = () => {
                     </div>
                 </div>
 
-                {/* Right Column: Bio, Skills & Projects */}
                 <div className="lg:col-span-2 space-y-8">
                     
-                    {/* Bio */}
                     <div className={`bg-white p-8 rounded-[2.5rem] shadow-sm border transition-colors ${isEditing ? 'border-blue-200' : 'border-slate-100'}`}>
                         <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Professional Bio</h3>
                         {isEditing ? (
@@ -306,7 +293,6 @@ const Profile = () => {
                         )}
                     </div>
 
-                    {/* Skills Grid */}
                     <div className={`bg-white p-8 rounded-[2.5rem] shadow-sm border transition-colors ${isEditing ? 'border-blue-200' : 'border-slate-100'}`}>
                         <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
                             <Award size={16}/> Core Skills & Expertise
@@ -357,7 +343,6 @@ const Profile = () => {
                         )}
                     </div>
 
-                    {/* Active Projects (Read Only دائماً) */}
                     {projects.length > 0 && !isEditing && (
                         <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 animate-in fade-in">
                             <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2"><Briefcase size={16}/> Enrolled Missions</h3>

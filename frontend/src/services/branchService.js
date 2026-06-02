@@ -3,7 +3,6 @@ import { getData, postData, updateData, deleteData, patchData } from '../api/api
 export const branchService = {
   getAll: () => getData('/branches'),
   
-  // 🌟 جلب بيانات الفرع كاملة مع الجمعيات المرتبطة فيه
   getById: (id) => getData(`/branches/${id}`),
 
   create: (data) => postData('/branches', data),
@@ -15,9 +14,7 @@ export const branchService = {
     return patchData(`/branches/${id}/status`, { status: newStatus });
   },
   
-  // جلب الجمعيات المرتبطة بفرع معين
   getAttachedSocieties: (branchId) => getData(`/branches/${branchId}/societies`),
 
-  // 🌟 حذف ارتباط جمعية معينة بفرع معين
   detachSociety: (branchId, societyId) => deleteData(`/branches/${branchId}/societies/${societyId}`),
 };
